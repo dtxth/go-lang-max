@@ -1,0 +1,433 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Сервис управления сотрудниками вузов для мини-приложения",
+        "title": "Employee Service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/employees": {
+            "get": {
+                "description": "Выполняет поиск сотрудников по имени, фамилии и названию вуза",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Поиск сотрудников",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поисковый запрос",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Лимит результатов (по умолчанию 50, максимум 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Смещение для пагинации",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/http.Employee"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Добавляет нового сотрудника по номеру телефона. Автоматически получает MAX_id и создает/находит вуз",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Добавить сотрудника",
+                "parameters": [
+                    {
+                        "description": "Данные сотрудника",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.AddEmployeeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/http.Employee"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/employees/all": {
+            "get": {
+                "description": "Возвращает список всех сотрудников с пагинацией",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Получить всех сотрудников",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Лимит результатов (по умолчанию 50, максимум 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Смещение для пагинации",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/http.Employee"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/employees/{id}": {
+            "get": {
+                "description": "Возвращает информацию о сотруднике по его ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Получить сотрудника по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID сотрудника",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.Employee"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "put": {
+                "description": "Обновляет данные сотрудника",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Обновить сотрудника",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID сотрудника",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Обновленные данные сотрудника",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.UpdateEmployeeRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.Employee"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Удаляет сотрудника по ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Удалить сотрудника",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID сотрудника",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.DeleteResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "domain.University": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "inn": {
+                    "type": "string"
+                },
+                "kpp": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.AddEmployeeRequest": {
+            "type": "object",
+            "required": [
+                "first_name",
+                "last_name",
+                "phone"
+            ],
+            "properties": {
+                "first_name": {
+                    "type": "string",
+                    "example": "Иван"
+                },
+                "inn": {
+                    "type": "string",
+                    "example": "1234567890"
+                },
+                "kpp": {
+                    "type": "string",
+                    "example": "123456789"
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Иванов"
+                },
+                "middle_name": {
+                    "type": "string",
+                    "example": "Иванович"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "+79001234567"
+                },
+                "university_name": {
+                    "type": "string",
+                    "example": "МГУ"
+                }
+            }
+        },
+        "http.DeleteResponse": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string",
+                    "example": "deleted"
+                }
+            }
+        },
+        "http.Employee": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "first_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "inn": {
+                    "description": "ИНН",
+                    "type": "string"
+                },
+                "kpp": {
+                    "description": "КПП",
+                    "type": "string"
+                },
+                "last_name": {
+                    "type": "string"
+                },
+                "max_id": {
+                    "description": "MAX_id (заменяет телефон)",
+                    "type": "string"
+                },
+                "middle_name": {
+                    "type": "string"
+                },
+                "phone": {
+                    "description": "Номер телефона",
+                    "type": "string"
+                },
+                "university": {
+                    "$ref": "#/definitions/domain.University"
+                },
+                "university_id": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.UpdateEmployeeRequest": {
+            "type": "object",
+            "properties": {
+                "first_name": {
+                    "type": "string",
+                    "example": "Иван"
+                },
+                "inn": {
+                    "type": "string",
+                    "example": "1234567890"
+                },
+                "kpp": {
+                    "type": "string",
+                    "example": "123456789"
+                },
+                "last_name": {
+                    "type": "string",
+                    "example": "Иванов"
+                },
+                "middle_name": {
+                    "type": "string",
+                    "example": "Иванович"
+                },
+                "phone": {
+                    "type": "string",
+                    "example": "+79001234567"
+                },
+                "university_id": {
+                    "type": "integer",
+                    "example": 1
+                }
+            }
+        }
+    }
+}

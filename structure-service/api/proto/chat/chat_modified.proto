@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package chat;
+
+option go_package = "structure-service/api/proto/chat;chatproto";
+
+// ChatService предоставляет методы для работы с чатами
+service ChatService {
+  // GetChatByID получает чат по ID
+  rpc GetChatByID(GetChatByIDRequest) returns (GetChatByIDResponse);
+  
+  // CreateChat создает новый чат
+  rpc CreateChat(CreateChatRequest) returns (CreateChatResponse);
+}
+
+message GetChatByIDRequest {
+  int64 id = 1;
+}
+
+message GetChatByIDResponse {
+  Chat chat = 1;
+  string error = 2;
+}
+
+message CreateChatRequest {
+  string name = 1;
+  string url = 2;
+  string max_chat_id = 3;
+  string source = 4;
+  int32 participants_count = 5;
+  optional int64 university_id = 6;
+  string department = 7;
+}
+
+message CreateChatResponse {
+  Chat chat = 1;
+  string error = 2;
+}
+
+message Chat {
+  int64 id = 1;
+  string name = 2;
+  string url = 3;
+  string max_chat_id = 4;
+  int32 participants_count = 5;
+  optional int64 university_id = 6;
+  string department = 7;
+  string source = 8;
+  string created_at = 9;
+  string updated_at = 10;
+}
+

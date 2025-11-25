@@ -1,0 +1,12 @@
+package domain
+
+// MaxService определяет интерфейс для работы с MAX API
+// Используется для замены номера телефона на MAX_id
+type MaxService interface {
+	// GetMaxIDByPhone получает MAX_id по номеру телефона
+	GetMaxIDByPhone(phone string) (string, error)
+	
+	// ValidatePhone проверяет валидность номера телефона
+	ValidatePhone(phone string) bool
+}
+

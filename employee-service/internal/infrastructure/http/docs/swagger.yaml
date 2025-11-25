@@ -1,0 +1,293 @@
+basePath: /
+definitions:
+  domain.University:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      inn:
+        type: string
+      kpp:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  http.AddEmployeeRequest:
+    properties:
+      first_name:
+        example: Иван
+        type: string
+      inn:
+        example: "1234567890"
+        type: string
+      kpp:
+        example: "123456789"
+        type: string
+      last_name:
+        example: Иванов
+        type: string
+      middle_name:
+        example: Иванович
+        type: string
+      phone:
+        example: "+79001234567"
+        type: string
+      university_name:
+        example: МГУ
+        type: string
+    required:
+    - first_name
+    - last_name
+    - phone
+    type: object
+  http.DeleteResponse:
+    properties:
+      status:
+        example: deleted
+        type: string
+    type: object
+  http.Employee:
+    properties:
+      created_at:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      inn:
+        description: ИНН
+        type: string
+      kpp:
+        description: КПП
+        type: string
+      last_name:
+        type: string
+      max_id:
+        description: MAX_id (заменяет телефон)
+        type: string
+      middle_name:
+        type: string
+      phone:
+        description: Номер телефона
+        type: string
+      university:
+        $ref: '#/definitions/domain.University'
+      university_id:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  http.UpdateEmployeeRequest:
+    properties:
+      first_name:
+        example: Иван
+        type: string
+      inn:
+        example: "1234567890"
+        type: string
+      kpp:
+        example: "123456789"
+        type: string
+      last_name:
+        example: Иванов
+        type: string
+      middle_name:
+        example: Иванович
+        type: string
+      phone:
+        example: "+79001234567"
+        type: string
+      university_id:
+        example: 1
+        type: integer
+    type: object
+info:
+  contact: {}
+  description: Сервис управления сотрудниками вузов для мини-приложения
+  title: Employee Service API
+  version: "1.0"
+paths:
+  /employees:
+    get:
+      consumes:
+      - application/json
+      description: Выполняет поиск сотрудников по имени, фамилии и названию вуза
+      parameters:
+      - description: Поисковый запрос
+        in: query
+        name: query
+        type: string
+      - description: Лимит результатов (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/http.Employee'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Поиск сотрудников
+      tags:
+      - employees
+    post:
+      consumes:
+      - application/json
+      description: Добавляет нового сотрудника по номеру телефона. Автоматически получает
+        MAX_id и создает/находит вуз
+      parameters:
+      - description: Данные сотрудника
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.AddEmployeeRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.Employee'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "409":
+          description: Conflict
+          schema:
+            type: string
+      summary: Добавить сотрудника
+      tags:
+      - employees
+  /employees/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет сотрудника по ID
+      parameters:
+      - description: ID сотрудника
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.DeleteResponse'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Удалить сотрудника
+      tags:
+      - employees
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о сотруднике по его ID
+      parameters:
+      - description: ID сотрудника
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.Employee'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Получить сотрудника по ID
+      tags:
+      - employees
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные сотрудника
+      parameters:
+      - description: ID сотрудника
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновленные данные сотрудника
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.UpdateEmployeeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.Employee'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Обновить сотрудника
+      tags:
+      - employees
+  /employees/all:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех сотрудников с пагинацией
+      parameters:
+      - description: Лимит результатов (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/http.Employee'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Получить всех сотрудников
+      tags:
+      - employees
+schemes:
+- http
+- https
+swagger: "2.0"

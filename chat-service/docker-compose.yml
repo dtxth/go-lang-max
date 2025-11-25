@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  chat-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: chat_pass
+      POSTGRES_DB: chat_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - chat_db_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat_user -d chat_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  chat-service:
+    build: .
+    ports:
+      - "8082:8082"
+    environment:
+      DATABASE_URL: postgres://chat_user:chat_pass@chat-db:5432/chat_db?sslmode=disable
+      PORT: 8082
+    depends_on:
+      chat-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  chat_db_data:
+

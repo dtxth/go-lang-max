@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  employee-db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: employee_user
+      POSTGRES_PASSWORD: employee_pass
+      POSTGRES_DB: employee_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - employee_db_data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U employee_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  employee-service:
+    build: .
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: postgres://employee_user:employee_pass@employee-db:5432/employee_db?sslmode=disable
+      PORT: 8081
+    depends_on:
+      employee-db:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  employee_db_data:
+
