@@ -14,11 +14,12 @@ type AuthService struct {
     refreshRepo  domain.RefreshTokenRepository
     hasher       domain.PasswordHasher
     jwtManager   domain.JWTManager
+    userRoleRepo domain.UserRoleRepository
 }
 
-func NewAuthService(repo domain.UserRepository, refreshRepo domain.RefreshTokenRepository, hasher domain.PasswordHasher, jwtManager domain.JWTManager) *AuthService {
+func NewAuthService(repo domain.UserRepository, refreshRepo domain.RefreshTokenRepository, hasher domain.PasswordHasher, jwtManager domain.JWTManager, userRoleRepo domain.UserRoleRepository) *AuthService {
     return &AuthService{
-        repo: repo, refreshRepo: refreshRepo, hasher: hasher, jwtManager: jwtManager,
+        repo: repo, refreshRepo: refreshRepo, hasher: hasher, jwtManager: jwtManager, userRoleRepo: userRoleRepo,
     }
 }
 
@@ -156,7 +157,20 @@ func (s *AuthService) ValidateToken(token string) (int64, string, string, error)
     return s.jwtManager.VerifyAccessToken(token)
 }
 
+// ValidateTokenWithContext проверяет валидность access токена и возвращает информацию о пользователе с контекстом
+func (s *AuthService) ValidateTokenWithContext(token string) (int64, string, string, *domain.TokenContext, error) {
+    return s.jwtManager.VerifyAccessTokenWithContext(token)
+}
+
 // GetUserByID получает пользователя по ID
 func (s *AuthService) GetUserByID(userID int64) (*domain.User, error) {
     return s.repo.GetByID(userID)
+}
+
+// GetUserPermissions возвращает все разрешения пользователя
+func (s *AuthService) GetUserPermissions(userID int64) ([]*domain.UserRoleWithDetails, error) {
+    if s.userRoleRepo == nil {
+        return nil, errors.New("user role repository not initialized")
+    }
+    return s.userRoleRepo.GetByUserID(userID)
 }

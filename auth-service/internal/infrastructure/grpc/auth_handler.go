@@ -18,7 +18,7 @@ func NewAuthHandler(authService *usecase.AuthService) *AuthHandler {
 }
 
 func (h *AuthHandler) ValidateToken(ctx context.Context, req *proto.ValidateTokenRequest) (*proto.ValidateTokenResponse, error) {
-	userID, email, role, err := h.authService.ValidateToken(req.Token)
+	userID, email, role, tokenCtx, err := h.authService.ValidateTokenWithContext(req.Token)
 	if err != nil {
 		return &proto.ValidateTokenResponse{
 			Valid: false,
@@ -26,12 +26,27 @@ func (h *AuthHandler) ValidateToken(ctx context.Context, req *proto.ValidateToke
 		}, nil
 	}
 
-	return &proto.ValidateTokenResponse{
+	resp := &proto.ValidateTokenResponse{
 		Valid:  true,
 		UserId: userID,
 		Email:  email,
 		Role:   role,
-	}, nil
+	}
+	
+	// Добавляем контекстную информацию, если она есть
+	if tokenCtx != nil {
+		if tokenCtx.UniversityID != nil {
+			resp.UniversityId = *tokenCtx.UniversityID
+		}
+		if tokenCtx.BranchID != nil {
+			resp.BranchId = *tokenCtx.BranchID
+		}
+		if tokenCtx.FacultyID != nil {
+			resp.FacultyId = *tokenCtx.FacultyID
+		}
+	}
+
+	return resp, nil
 }
 
 func (h *AuthHandler) GetUser(ctx context.Context, req *proto.GetUserRequest) (*proto.GetUserResponse, error) {
@@ -46,6 +61,41 @@ func (h *AuthHandler) GetUser(ctx context.Context, req *proto.GetUserRequest) (*
 		Id:    user.ID,
 		Email: user.Email,
 		Role:  user.Role,
+	}, nil
+}
+
+func (h *AuthHandler) GetUserPermissions(ctx context.Context, req *proto.GetUserPermissionsRequest) (*proto.GetUserPermissionsResponse, error) {
+	permissions, err := h.authService.GetUserPermissions(req.UserId)
+	if err != nil {
+		return &proto.GetUserPermissionsResponse{
+			Error: err.Error(),
+		}, nil
+	}
+
+	var protoPermissions []*proto.UserPermission
+	for _, perm := range permissions {
+		protoPerm := &proto.UserPermission{
+			Id:       perm.ID,
+			UserId:   perm.UserID,
+			RoleId:   perm.RoleID,
+			RoleName: perm.RoleName,
+		}
+		
+		if perm.UniversityID != nil {
+			protoPerm.UniversityId = *perm.UniversityID
+		}
+		if perm.BranchID != nil {
+			protoPerm.BranchId = *perm.BranchID
+		}
+		if perm.FacultyID != nil {
+			protoPerm.FacultyId = *perm.FacultyID
+		}
+		
+		protoPermissions = append(protoPermissions, protoPerm)
+	}
+
+	return &proto.GetUserPermissionsResponse{
+		Permissions: protoPermissions,
 	}, nil
 }
 
