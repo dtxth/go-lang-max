@@ -148,12 +148,17 @@ func (c *Client) GetChatInfo(ctx context.Context, chatID int64) (*domain.ChatInf
 		return nil, mappedErr
 	}
 
+	description := ""
+	if chat.Description != nil {
+		description = *chat.Description
+	}
+
 	chatInfo := &domain.ChatInfo{
-		ChatID:            chat.ChatID,
+		ChatID:            chat.ChatId,
 		Title:             chat.Title,
-		Type:              chat.Type,
+		Type:              string(chat.Type),
 		ParticipantsCount: chat.ParticipantsCount,
-		Description:       chat.Description,
+		Description:       description,
 	}
 
 	log.Printf("[DEBUG] Successfully retrieved chat info for chat %d", chatID)
@@ -179,14 +184,19 @@ func (c *Client) GetChatMembers(ctx context.Context, chatID int64, limit int, ma
 		return nil, mappedErr
 	}
 
+	nextMarker := int64(0)
+	if members.Marker != nil {
+		nextMarker = *members.Marker
+	}
+
 	result := &domain.ChatMembersList{
 		Members: make([]*domain.ChatMember, 0, len(members.Members)),
-		Marker:  members.Marker,
+		Marker:  nextMarker,
 	}
 
 	for _, member := range members.Members {
 		result.Members = append(result.Members, &domain.ChatMember{
-			UserID:  member.UserID,
+			UserID:  member.UserId,
 			Name:    member.Name,
 			IsAdmin: member.IsAdmin,
 			IsOwner: member.IsOwner,
@@ -212,7 +222,7 @@ func (c *Client) GetChatAdmins(ctx context.Context, chatID int64) ([]*domain.Cha
 	result := make([]*domain.ChatMember, 0, len(admins.Members))
 	for _, admin := range admins.Members {
 		result = append(result, &domain.ChatMember{
-			UserID:  admin.UserID,
+			UserID:  admin.UserId,
 			Name:    admin.Name,
 			IsAdmin: admin.IsAdmin,
 			IsOwner: admin.IsOwner,
