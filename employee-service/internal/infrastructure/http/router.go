@@ -30,6 +30,31 @@ func (h *Handler) Router() http.Handler {
 		h.GetAllEmployees(w, r)
 	})
 
+	// Batch operations
+	mux.HandleFunc("/employees/batch-update-maxid", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.BatchUpdateMaxID(w, r)
+	})
+
+	mux.HandleFunc("/employees/batch-status", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.GetAllBatchJobs(w, r)
+	})
+
+	mux.HandleFunc("/employees/batch-status/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.GetBatchStatus(w, r)
+	})
+
 	// Обработка /employees/{id}
 	mux.HandleFunc("/employees/", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/employees/")

@@ -14,6 +14,12 @@ service AuthService {
   
   // GetUserPermissions возвращает все разрешения пользователя
   rpc GetUserPermissions(GetUserPermissionsRequest) returns (GetUserPermissionsResponse);
+  
+  // AssignRole назначает роль пользователю
+  rpc AssignRole(AssignRoleRequest) returns (AssignRoleResponse);
+  
+  // RevokeUserRoles отзывает все роли пользователя
+  rpc RevokeUserRoles(RevokeUserRolesRequest) returns (RevokeUserRolesResponse);
 }
 
 message ValidateTokenRequest {
@@ -61,3 +67,25 @@ message UserPermission {
   int64 faculty_id = 7;
 }
 
+
+message AssignRoleRequest {
+  int64 user_id = 1;
+  string role = 2;
+  int64 university_id = 3;
+  int64 branch_id = 4;
+  int64 faculty_id = 5;
+}
+
+message AssignRoleResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message RevokeUserRolesRequest {
+  int64 user_id = 1;
+}
+
+message RevokeUserRolesResponse {
+  bool success = 1;
+  string error = 2;
+}

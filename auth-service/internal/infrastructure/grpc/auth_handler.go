@@ -99,3 +99,43 @@ func (h *AuthHandler) GetUserPermissions(ctx context.Context, req *proto.GetUser
 	}, nil
 }
 
+
+func (h *AuthHandler) AssignRole(ctx context.Context, req *proto.AssignRoleRequest) (*proto.AssignRoleResponse, error) {
+	var universityID, branchID, facultyID *int64
+	
+	if req.UniversityId > 0 {
+		universityID = &req.UniversityId
+	}
+	if req.BranchId > 0 {
+		branchID = &req.BranchId
+	}
+	if req.FacultyId > 0 {
+		facultyID = &req.FacultyId
+	}
+	
+	err := h.authService.AssignRoleToUser(req.UserId, req.Role, universityID, branchID, facultyID)
+	if err != nil {
+		return &proto.AssignRoleResponse{
+			Success: false,
+			Error:   err.Error(),
+		}, nil
+	}
+	
+	return &proto.AssignRoleResponse{
+		Success: true,
+	}, nil
+}
+
+func (h *AuthHandler) RevokeUserRoles(ctx context.Context, req *proto.RevokeUserRolesRequest) (*proto.RevokeUserRolesResponse, error) {
+	err := h.authService.RevokeAllUserRoles(req.UserId)
+	if err != nil {
+		return &proto.RevokeUserRolesResponse{
+			Success: false,
+			Error:   err.Error(),
+		}, nil
+	}
+	
+	return &proto.RevokeUserRolesResponse{
+		Success: true,
+	}, nil
+}

@@ -38,6 +38,7 @@ func main() {
 	// Инициализируем репозитории
 	employeeRepo := repository.NewEmployeePostgres(db)
 	universityRepo := repository.NewUniversityPostgres(db)
+	batchUpdateJobRepo := repository.NewBatchUpdateJobPostgres(db)
 
 	// Инициализируем MAX gRPC клиент
 	maxClient, err := max.NewMaxClient(cfg.MaxBotAddress, cfg.MaxBotTimeout)
@@ -48,9 +49,10 @@ func main() {
 
 	// Инициализируем usecase
 	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient)
+	batchUpdateMaxIdUseCase := usecase.NewBatchUpdateMaxIdUseCase(employeeRepo, batchUpdateJobRepo, maxClient)
 
 	// Инициализируем HTTP handler
-	handler := http.NewHandler(employeeService)
+	handler := http.NewHandler(employeeService, batchUpdateMaxIdUseCase)
 
 	// HTTP server
 	httpServer := &app.Server{

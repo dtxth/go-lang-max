@@ -174,3 +174,49 @@ func (s *AuthService) GetUserPermissions(userID int64) ([]*domain.UserRoleWithDe
     }
     return s.userRoleRepo.GetByUserID(userID)
 }
+
+// 
+AssignRoleToUser назначает роль пользователю
+func (s *AuthService) AssignRoleToUser(userID int64, roleName string, universityID, branchID, facultyID *int64) error {
+	if s.userRoleRepo == nil {
+		return errors.New("user role repository not initialized")
+	}
+	
+	// Валидация роли
+	if roleName != domain.RoleSuperAdmin && roleName != domain.RoleCurator && roleName != domain.RoleOperator {
+		return errors.New("invalid role")
+	}
+	
+	// Получаем роль по имени
+	role, err := s.userRoleRepo.GetRoleByName(roleName)
+	if err != nil {
+		return fmt.Errorf("role not found: %w", err)
+	}
+	
+	// Создаем user_role запись
+	userRole := &domain.UserRole{
+		UserID: userID,
+		RoleID: role.ID,
+	}
+	
+	if universityID != nil {
+		userRole.UniversityID = universityID
+	}
+	if branchID != nil {
+		userRole.BranchID = branchID
+	}
+	if facultyID != nil {
+		userRole.FacultyID = facultyID
+	}
+	
+	return s.userRoleRepo.Create(userRole)
+}
+
+// RevokeAllUserRoles отзывает все роли пользователя
+func (s *AuthService) RevokeAllUserRoles(userID int64) error {
+	if s.userRoleRepo == nil {
+		return errors.New("user role repository not initialized")
+	}
+	
+	return s.userRoleRepo.DeleteByUserID(userID)
+}

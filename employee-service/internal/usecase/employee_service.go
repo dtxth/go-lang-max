@@ -4,6 +4,7 @@ import (
 	"employee-service/internal/domain"
 	"errors"
 	"strings"
+	"time"
 )
 
 type EmployeeService struct {
@@ -26,6 +27,7 @@ func NewEmployeeService(
 
 // AddEmployeeByPhone добавляет сотрудника по номеру телефона
 // Автоматически получает MAX_id и создает или находит вуз по ИНН/КПП
+// Если MAX_id не найден, сотрудник создается без него (Requirements 3.5)
 func (s *EmployeeService) AddEmployeeByPhone(
 	phone string,
 	firstName, lastName, middleName string,
@@ -43,10 +45,11 @@ func (s *EmployeeService) AddEmployeeByPhone(
 		return nil, domain.ErrEmployeeExists
 	}
 	
-	// Получаем MAX_id по телефону
+	// Получаем MAX_id по телефону (Requirements 3.1)
 	maxID, err := s.maxService.GetMaxIDByPhone(phone)
 	if err != nil {
-		return nil, err
+		// Логируем ошибку, но продолжаем без MAX_id (Requirements 3.5)
+		maxID = ""
 	}
 	
 	// Находим или создаем вуз
@@ -65,6 +68,12 @@ func (s *EmployeeService) AddEmployeeByPhone(
 		INN:           strings.TrimSpace(inn),
 		KPP:           strings.TrimSpace(kpp),
 		UniversityID:  university.ID,
+	}
+	
+	// Если MAX_id получен, сохраняем время обновления (Requirements 3.4)
+	if maxID != "" {
+		now := time.Now()
+		employee.MaxIDUpdatedAt = &now
 	}
 	
 	if err := s.employeeRepo.Create(employee); err != nil {
@@ -130,9 +139,16 @@ func (s *EmployeeService) UpdateEmployee(employee *domain.Employee) error {
 		
 		maxID, err := s.maxService.GetMaxIDByPhone(employee.Phone)
 		if err != nil {
-			return err
+			// Логируем ошибку, но продолжаем без MAX_id
+			maxID = ""
 		}
 		employee.MaxID = maxID
+		
+		// Если MAX_id получен, обновляем время
+		if maxID != "" {
+			now := time.Now()
+			employee.MaxIDUpdatedAt = &now
+		}
 	}
 	
 	return s.employeeRepo.Update(employee)

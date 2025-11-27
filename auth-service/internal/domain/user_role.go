@@ -36,4 +36,7 @@ type UserRoleRepository interface {
 	
 	// GetByUserIDAndRole возвращает роль пользователя по имени роли
 	GetByUserIDAndRole(userID int64, roleName string) (*UserRoleWithDetails, error)
+	
+	// GetRoleByName возвращает роль по имени
+	GetRoleByName(name string) (*Role, error)
 }

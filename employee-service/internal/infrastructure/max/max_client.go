@@ -70,6 +70,30 @@ func (c *MaxClient) ValidatePhone(phone string) bool {
 	return resp.Valid
 }
 
+// BatchGetMaxIDByPhone получает MAX_id для нескольких телефонов
+// Обрабатывает до 100 телефонов за раз
+func (c *MaxClient) BatchGetMaxIDByPhone(phones []string) (map[string]string, error) {
+	result := make(map[string]string)
+	
+	// Ограничиваем размер батча до 100 (Requirements 4.2, 4.3)
+	batchSize := 100
+	if len(phones) > batchSize {
+		phones = phones[:batchSize]
+	}
+	
+	// Пока нет batch метода в MaxBot Service, вызываем по одному
+	// TODO: Когда будет реализован BatchGetUsersByPhone в MaxBot Service, использовать его
+	for _, phone := range phones {
+		maxID, err := c.GetMaxIDByPhone(phone)
+		if err == nil && maxID != "" {
+			result[phone] = maxID
+		}
+		// Игнорируем ошибки для отдельных телефонов
+	}
+	
+	return result, nil
+}
+
 func mapError(code maxbotproto.ErrorCode, message string) error {
 	switch code {
 	case maxbotproto.ErrorCode_ERROR_CODE_INVALID_PHONE:

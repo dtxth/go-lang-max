@@ -9,7 +9,8 @@ import (
 )
 
 type Handler struct {
-	employeeService *usecase.EmployeeService
+	employeeService        *usecase.EmployeeService
+	batchUpdateMaxIdUseCase *usecase.BatchUpdateMaxIdUseCase
 }
 
 // AddEmployeeRequest представляет запрос на добавление сотрудника
@@ -45,8 +46,11 @@ type Employee domain.Employee
 // University представляет вуз (для Swagger)
 type University domain.University
 
-func NewHandler(employeeService *usecase.EmployeeService) *Handler {
-	return &Handler{employeeService: employeeService}
+func NewHandler(employeeService *usecase.EmployeeService, batchUpdateMaxIdUseCase *usecase.BatchUpdateMaxIdUseCase) *Handler {
+	return &Handler{
+		employeeService:        employeeService,
+		batchUpdateMaxIdUseCase: batchUpdateMaxIdUseCase,
+	}
 }
 
 // SearchEmployees godoc
@@ -298,4 +302,95 @@ func (h *Handler) DeleteEmployee(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// BatchUpdateMaxID godoc
+// @Summary      Trigger batch MAX_id update
+// @Description  Starts a batch update job to retrieve MAX_id for all employees without it
+// @Tags         employees
+// @Accept       json
+// @Produce      json
+// @Success      200     {object}  domain.BatchUpdateResult
+// @Failure      500     {string}  string
+// @Router       /employees/batch-update-maxid [post]
+func (h *Handler) BatchUpdateMaxID(w http.ResponseWriter, r *http.Request) {
+	if h.batchUpdateMaxIdUseCase == nil {
+		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
+		return
+	}
+	
+	result, err := h.batchUpdateMaxIdUseCase.StartBatchUpdate()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+// GetBatchStatus godoc
+// @Summary      Get batch update status
+// @Description  Retrieves the status of a specific batch update job
+// @Tags         employees
+// @Accept       json
+// @Produce      json
+// @Param        id      path      int     true   "Batch job ID"
+// @Success      200     {object}  domain.BatchUpdateJob
+// @Failure      400     {string}  string
+// @Failure      404     {string}  string
+// @Router       /employees/batch-status/{id} [get]
+func (h *Handler) GetBatchStatus(w http.ResponseWriter, r *http.Request) {
+	if h.batchUpdateMaxIdUseCase == nil {
+		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
+		return
+	}
+	
+	// Extract ID from path
+	path := r.URL.Path
+	idStr := path[len("/employees/batch-status/"):]
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid batch job id", http.StatusBadRequest)
+		return
+	}
+	
+	job, err := h.batchUpdateMaxIdUseCase.GetBatchJobStatus(id)
+	if err != nil {
+		http.Error(w, "batch job not found", http.StatusNotFound)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(job)
+}
+
+// GetAllBatchJobs godoc
+// @Summary      List all batch jobs
+// @Description  Retrieves all batch update jobs with pagination
+// @Tags         employees
+// @Accept       json
+// @Produce      json
+// @Param        limit   query     int     false  "Limit results (default 50, max 100)"
+// @Param        offset  query     int     false  "Offset for pagination"
+// @Success      200     {array}   domain.BatchUpdateJob
+// @Failure      500     {string}  string
+// @Router       /employees/batch-status [get]
+func (h *Handler) GetAllBatchJobs(w http.ResponseWriter, r *http.Request) {
+	if h.batchUpdateMaxIdUseCase == nil {
+		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
+		return
+	}
+	
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	
+	jobs, err := h.batchUpdateMaxIdUseCase.GetAllBatchJobs(limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jobs)
 }

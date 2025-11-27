@@ -83,3 +83,19 @@ func (r *UserRolePostgres) GetByUserIDAndRole(userID int64, roleName string) (*d
 	
 	return ur, nil
 }
+
+func (r *UserRolePostgres) GetRoleByName(name string) (*domain.Role, error) {
+	role := &domain.Role{}
+	err := r.db.QueryRow(
+		`SELECT id, name, description, created_at
+		 FROM roles
+		 WHERE name = $1`,
+		name,
+	).Scan(&role.ID, &role.Name, &role.Description, &role.CreatedAt)
+	
+	if err != nil {
+		return nil, err
+	}
+	
+	return role, nil
+}

@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.1
-// source: auth.proto
+// source: api/proto/auth.proto
 
 package proto
 
@@ -22,6 +22,8 @@ const (
 	AuthService_ValidateToken_FullMethodName      = "/auth.AuthService/ValidateToken"
 	AuthService_GetUser_FullMethodName            = "/auth.AuthService/GetUser"
 	AuthService_GetUserPermissions_FullMethodName = "/auth.AuthService/GetUserPermissions"
+	AuthService_AssignRole_FullMethodName         = "/auth.AuthService/AssignRole"
+	AuthService_RevokeUserRoles_FullMethodName    = "/auth.AuthService/RevokeUserRoles"
 )
 
 // AuthServiceClient is the client API for AuthService service.
@@ -36,6 +38,10 @@ type AuthServiceClient interface {
 	GetUser(ctx context.Context, in *GetUserRequest, opts ...grpc.CallOption) (*GetUserResponse, error)
 	// GetUserPermissions возвращает все разрешения пользователя
 	GetUserPermissions(ctx context.Context, in *GetUserPermissionsRequest, opts ...grpc.CallOption) (*GetUserPermissionsResponse, error)
+	// AssignRole назначает роль пользователю
+	AssignRole(ctx context.Context, in *AssignRoleRequest, opts ...grpc.CallOption) (*AssignRoleResponse, error)
+	// RevokeUserRoles отзывает все роли пользователя
+	RevokeUserRoles(ctx context.Context, in *RevokeUserRolesRequest, opts ...grpc.CallOption) (*RevokeUserRolesResponse, error)
 }
 
 type authServiceClient struct {
@@ -76,6 +82,26 @@ func (c *authServiceClient) GetUserPermissions(ctx context.Context, in *GetUserP
 	return out, nil
 }
 
+func (c *authServiceClient) AssignRole(ctx context.Context, in *AssignRoleRequest, opts ...grpc.CallOption) (*AssignRoleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AssignRoleResponse)
+	err := c.cc.Invoke(ctx, AuthService_AssignRole_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *authServiceClient) RevokeUserRoles(ctx context.Context, in *RevokeUserRolesRequest, opts ...grpc.CallOption) (*RevokeUserRolesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RevokeUserRolesResponse)
+	err := c.cc.Invoke(ctx, AuthService_RevokeUserRoles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AuthServiceServer is the server API for AuthService service.
 // All implementations must embed UnimplementedAuthServiceServer
 // for forward compatibility.
@@ -88,6 +114,10 @@ type AuthServiceServer interface {
 	GetUser(context.Context, *GetUserRequest) (*GetUserResponse, error)
 	// GetUserPermissions возвращает все разрешения пользователя
 	GetUserPermissions(context.Context, *GetUserPermissionsRequest) (*GetUserPermissionsResponse, error)
+	// AssignRole назначает роль пользователю
+	AssignRole(context.Context, *AssignRoleRequest) (*AssignRoleResponse, error)
+	// RevokeUserRoles отзывает все роли пользователя
+	RevokeUserRoles(context.Context, *RevokeUserRolesRequest) (*RevokeUserRolesResponse, error)
 	mustEmbedUnimplementedAuthServiceServer()
 }
 
@@ -106,6 +136,12 @@ func (UnimplementedAuthServiceServer) GetUser(context.Context, *GetUserRequest) 
 }
 func (UnimplementedAuthServiceServer) GetUserPermissions(context.Context, *GetUserPermissionsRequest) (*GetUserPermissionsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUserPermissions not implemented")
+}
+func (UnimplementedAuthServiceServer) AssignRole(context.Context, *AssignRoleRequest) (*AssignRoleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AssignRole not implemented")
+}
+func (UnimplementedAuthServiceServer) RevokeUserRoles(context.Context, *RevokeUserRolesRequest) (*RevokeUserRolesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RevokeUserRoles not implemented")
 }
 func (UnimplementedAuthServiceServer) mustEmbedUnimplementedAuthServiceServer() {}
 func (UnimplementedAuthServiceServer) testEmbeddedByValue()                     {}
@@ -182,6 +218,42 @@ func _AuthService_GetUserPermissions_Handler(srv interface{}, ctx context.Contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AuthService_AssignRole_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AssignRoleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).AssignRole(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_AssignRole_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).AssignRole(ctx, req.(*AssignRoleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AuthService_RevokeUserRoles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RevokeUserRolesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AuthServiceServer).RevokeUserRoles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AuthService_RevokeUserRoles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AuthServiceServer).RevokeUserRoles(ctx, req.(*RevokeUserRolesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // AuthService_ServiceDesc is the grpc.ServiceDesc for AuthService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -201,7 +273,15 @@ var AuthService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "GetUserPermissions",
 			Handler:    _AuthService_GetUserPermissions_Handler,
 		},
+		{
+			MethodName: "AssignRole",
+			Handler:    _AuthService_AssignRole_Handler,
+		},
+		{
+			MethodName: "RevokeUserRoles",
+			Handler:    _AuthService_RevokeUserRoles_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "auth.proto",
+	Metadata: "api/proto/auth.proto",
 }
