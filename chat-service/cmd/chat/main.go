@@ -40,8 +40,12 @@ func main() {
 	administratorRepo := repository.NewAdministratorPostgres(db)
 	universityRepo := repository.NewUniversityPostgres(db)
 
-	// Инициализируем MAX клиент
-	maxClient := max.NewMaxClient()
+	// Инициализируем MAX gRPC клиент
+	maxClient, err := max.NewMaxClient(cfg.MaxBotAddress, cfg.MaxBotTimeout)
+	if err != nil {
+		panic(err)
+	}
+	defer maxClient.Close()
 
 	// Инициализируем usecase
 	chatService := usecase.NewChatService(chatRepo, administratorRepo, universityRepo, maxClient)
@@ -68,4 +72,3 @@ func main() {
 
 	httpServer.Run()
 }
-

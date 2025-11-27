@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package maxbot;
+
+option go_package = "maxbot-service/api/proto;maxbotproto";
+
+// ErrorCode описывает тип ошибки, возвращаемый сервисом
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_INVALID_PHONE = 1;
+  ERROR_CODE_MAX_ID_NOT_FOUND = 2;
+  ERROR_CODE_INTERNAL = 3;
+}
+
+// MaxBotService предоставляет методы взаимодействия с MAX API
+service MaxBotService {
+  // GetMaxIDByPhone возвращает MAX ID по номеру телефона
+  rpc GetMaxIDByPhone(GetMaxIDByPhoneRequest) returns (GetMaxIDByPhoneResponse);
+  // ValidatePhone проверяет корректность номера телефона
+  rpc ValidatePhone(ValidatePhoneRequest) returns (ValidatePhoneResponse);
+}
+
+message GetMaxIDByPhoneRequest {
+  string phone = 1;
+}
+
+message GetMaxIDByPhoneResponse {
+  string max_id = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+message ValidatePhoneRequest {
+  string phone = 1;
+}
+
+message ValidatePhoneResponse {
+  bool valid = 1;
+  string normalized_phone = 2;
+  ErrorCode error_code = 3;
+  string error = 4;
+}

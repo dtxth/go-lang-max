@@ -76,6 +76,8 @@ services:
     environment:
       DATABASE_URL: postgres://chat_user:chat_pass@chat-db:5432/chat_db?sslmode=disable
       PORT: 8082
+      MAXBOT_GRPC_ADDR: maxbot-service:9095
+      MAXBOT_TIMEOUT: 5s
     depends_on:
       chat-db:
         condition: service_healthy
@@ -115,6 +117,8 @@ services:
     environment:
       DATABASE_URL: postgres://employee_user:employee_pass@employee-db:5432/employee_db?sslmode=disable
       PORT: 8081
+      MAXBOT_GRPC_ADDR: maxbot-service:9095
+      MAXBOT_TIMEOUT: 5s
     depends_on:
       employee-db:
         condition: service_healthy
@@ -158,6 +162,22 @@ services:
     ports:
       - "8083:8080"
     restart: on-failure
+    networks:
+      - microservices-network
+
+  maxbot-service:
+    build:
+      context: ./maxbot-service
+      dockerfile: Dockerfile
+    container_name: maxbot-service
+    environment:
+      GRPC_PORT: "9095"
+      MAX_API_URL: ""
+      MAX_API_TOKEN: ""
+      MAX_API_TIMEOUT: 5s
+    ports:
+      - "9095:9095"
+    restart: unless-stopped
     networks:
       - microservices-network
 

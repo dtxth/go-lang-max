@@ -37,5 +37,13 @@ protoc --go_out=. --go_opt=paths=source_relative \
     api/proto/structure.proto
 cd ..
 
+# MaxBot Service
+echo "Generating maxbot-service proto..."
+cd maxbot-service
+protoc --go_out=. --go_opt=paths=source_relative \
+    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+    api/proto/maxbot.proto
+cd ..
+
 echo "Proto generation complete!"
 

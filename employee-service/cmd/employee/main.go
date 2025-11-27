@@ -39,8 +39,12 @@ func main() {
 	employeeRepo := repository.NewEmployeePostgres(db)
 	universityRepo := repository.NewUniversityPostgres(db)
 
-	// Инициализируем MAX клиент
-	maxClient := max.NewMaxClient()
+	// Инициализируем MAX gRPC клиент
+	maxClient, err := max.NewMaxClient(cfg.MaxBotAddress, cfg.MaxBotTimeout)
+	if err != nil {
+		panic(err)
+	}
+	defer maxClient.Close()
 
 	// Инициализируем usecase
 	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient)
@@ -67,4 +71,3 @@ func main() {
 
 	httpServer.Run()
 }
-

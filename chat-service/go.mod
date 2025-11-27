@@ -6,6 +6,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/swaggo/http-swagger v1.3.4
 	google.golang.org/grpc v1.66.0
+	maxbot-service v0.0.0
 )
 
 require (
@@ -28,3 +29,5 @@ require (
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
+
+replace maxbot-service => ../maxbot-service
