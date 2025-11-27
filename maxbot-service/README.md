@@ -229,27 +229,210 @@ message GetMaxIDByPhoneResponse {
 **Example Usage (Go):**
 
 ```go
-import (
-    pb "path/to/maxbot/proto"
-    "google.golang.org/grpc"
-)
-
-conn, err := grpc.Dial("localhost:9095", grpc.WithInsecure())
-if err != nil {
-    log.Fatal(err)
-}
-defer conn.Close()
-
-client := pb.NewMaxBotServiceClient(conn)
-
 resp, err := client.GetMaxIDByPhone(context.Background(), &pb.GetMaxIDByPhoneRequest{
     Phone: "+7 (999) 123-45-67",
 })
 if err != nil {
     log.Fatal(err)
 }
-
 fmt.Printf("Max ID: %s\n", resp.MaxId)
+```
+
+#### SendMessage
+
+Sends a text message to a user or chat.
+
+**Request:**
+```protobuf
+message SendMessageRequest {
+  oneof recipient {
+    int64 chat_id = 1;  // Chat ID (for group chats)
+    int64 user_id = 2;  // User ID (for direct messages)
+  }
+  string text = 3;      // Message text
+}
+```
+
+**Response:**
+```protobuf
+message SendMessageResponse {
+  string message_id = 1;  // Sent message ID
+}
+```
+
+**Example Usage (Go):**
+
+```go
+// Send to chat
+resp, err := client.SendMessage(context.Background(), &pb.SendMessageRequest{
+    Recipient: &pb.SendMessageRequest_ChatId{ChatId: 12345},
+    Text: "Hello, chat!",
+})
+
+// Send to user
+resp, err := client.SendMessage(context.Background(), &pb.SendMessageRequest{
+    Recipient: &pb.SendMessageRequest_UserId{UserId: 67890},
+    Text: "Hello, user!",
+})
+```
+
+#### SendNotification
+
+Sends a VIP notification to a user by phone number. Notifications are delivered even if the user hasn't started a conversation with the bot.
+
+**Request:**
+```protobuf
+message SendNotificationRequest {
+  string phone = 1;  // Phone number
+  string text = 2;   // Notification text
+}
+```
+
+**Response:**
+```protobuf
+message SendNotificationResponse {
+  bool success = 1;  // Whether notification was sent
+}
+```
+
+**Example Usage (Go):**
+
+```go
+resp, err := client.SendNotification(context.Background(), &pb.SendNotificationRequest{
+    Phone: "+79991234567",
+    Text: "Important notification!",
+})
+```
+
+#### GetChatInfo
+
+Retrieves detailed information about a chat.
+
+**Request:**
+```protobuf
+message GetChatInfoRequest {
+  int64 chat_id = 1;
+}
+```
+
+**Response:**
+```protobuf
+message GetChatInfoResponse {
+  ChatInfo chat = 1;
+}
+
+message ChatInfo {
+  int64 chat_id = 1;
+  string title = 2;
+  string type = 3;
+  int32 participants_count = 4;
+  string description = 5;
+}
+```
+
+**Example Usage (Go):**
+
+```go
+resp, err := client.GetChatInfo(context.Background(), &pb.GetChatInfoRequest{
+    ChatId: 12345,
+})
+fmt.Printf("Chat: %s (%d members)\n", resp.Chat.Title, resp.Chat.ParticipantsCount)
+```
+
+#### GetChatMembers
+
+Retrieves a paginated list of chat members.
+
+**Request:**
+```protobuf
+message GetChatMembersRequest {
+  int64 chat_id = 1;
+  int32 limit = 2;    // Max 100, default 50
+  int64 marker = 3;   // Pagination marker
+}
+```
+
+**Response:**
+```protobuf
+message GetChatMembersResponse {
+  repeated ChatMember members = 1;
+  int64 marker = 2;  // Next page marker
+}
+
+message ChatMember {
+  int64 user_id = 1;
+  string name = 2;
+  bool is_admin = 3;
+  bool is_owner = 4;
+}
+```
+
+**Example Usage (Go):**
+
+```go
+resp, err := client.GetChatMembers(context.Background(), &pb.GetChatMembersRequest{
+    ChatId: 12345,
+    Limit: 50,
+})
+for _, member := range resp.Members {
+    fmt.Printf("Member: %s (ID: %d)\n", member.Name, member.UserId)
+}
+```
+
+#### GetChatAdmins
+
+Retrieves all administrators of a chat.
+
+**Request:**
+```protobuf
+message GetChatAdminsRequest {
+  int64 chat_id = 1;
+}
+```
+
+**Response:**
+```protobuf
+message GetChatAdminsResponse {
+  repeated ChatMember admins = 1;
+}
+```
+
+**Example Usage (Go):**
+
+```go
+resp, err := client.GetChatAdmins(context.Background(), &pb.GetChatAdminsRequest{
+    ChatId: 12345,
+})
+for _, admin := range resp.Admins {
+    fmt.Printf("Admin: %s\n", admin.Name)
+}
+```
+
+#### CheckPhoneNumbers
+
+Checks which phone numbers exist in Max Messenger (bulk operation).
+
+**Request:**
+```protobuf
+message CheckPhoneNumbersRequest {
+  repeated string phones = 1;
+}
+```
+
+**Response:**
+```protobuf
+message CheckPhoneNumbersResponse {
+  repeated string existing_phones = 1;  // Phones that exist
+}
+```
+
+**Example Usage (Go):**
+
+```go
+resp, err := client.CheckPhoneNumbers(context.Background(), &pb.CheckPhoneNumbersRequest{
+    Phones: []string{"+79991234567", "+79997654321", "+79995555555"},
+})
+fmt.Printf("Found %d existing phones\n", len(resp.ExistingPhones))
 ```
 
 ## Phone Number Validation
@@ -279,18 +462,23 @@ The service automatically normalizes and validates phone numbers according to Ru
 
 - ✅ **User Lookup by Phone**: Get Max Messenger user ID from phone number
 - ✅ **Phone Validation**: Normalize and validate phone numbers
+- ✅ **Message Sending**: Send text messages to users or chats
+- ✅ **Notifications**: Send VIP notifications to users by phone number
+- ✅ **Chat Information**: Get detailed information about chats
+- ✅ **Chat Members**: Retrieve list of chat participants with pagination
+- ✅ **Chat Admins**: Get list of chat administrators
+- ✅ **Bulk Phone Check**: Check multiple phone numbers for existence in Max Messenger
 
 ### Available for Future Extension
 
 The [max-bot-api-client-go](https://github.com/max-messenger/max-bot-api-client-go) library provides additional capabilities that can be integrated:
 
-- 📨 **Message Sending**: Send text messages to users or chats
-- 💬 **Chat Management**: Create and manage group chats
-- 📎 **File Operations**: Upload and send files/media
+- �  **File Operations**: Upload and send files/media
 - 🤖 **Bot Commands**: Register and handle bot commands
 - 🔔 **Webhooks**: Receive real-time updates from Max Messenger
-- 👥 **User Management**: Get user profiles and information
-- 📊 **Chat Information**: Retrieve chat details and participant lists
+- 👥 **User Management**: Get detailed user profiles and information
+- ✏️ **Message Editing**: Edit and delete sent messages
+- 🔧 **Chat Management**: Create chats, add/remove members, edit chat settings
 
 ### Extending the Service
 
