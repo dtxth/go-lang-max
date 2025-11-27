@@ -8,7 +8,7 @@
 
 ## Архитектура
 
-Проект состоит из 4 основных микросервисов:
+Проект состоит из 5 основных микросервисов:
 
 ### 1. Auth Service (порт 8080, gRPC: 9090)
 Сервис аутентификации и авторизации пользователей.
@@ -35,6 +35,13 @@
 - Импорт данных из Excel
 - Управление структурой университетов
 - Интеграция с Chat Service через gRPC
+
+### 5. MaxBot Service (gRPC: 9095)
+Сервис интеграции с Max Messenger Bot API.
+- Поиск пользователей по номеру телефона
+- Валидация и нормализация номеров телефонов
+- Интеграция с официальной библиотекой max-bot-api-client-go
+- Подробная документация: [maxbot-service/README.md](./maxbot-service/README.md)
 
 ## Технологический стек
 
@@ -130,6 +137,7 @@ go-lang-max/
 ├── chat-service/          # Сервис чатов
 ├── employee-service/     # Сервис сотрудников
 ├── structure-service/    # Сервис структуры
+├── maxbot-service/       # Сервис интеграции с Max Messenger Bot API
 ├── docker-compose.yml    # Оркестрация всех сервисов
 ├── generate_proto.sh     # Скрипт генерации gRPC кода
 └── GRPC_SETUP.md         # Документация по настройке gRPC
@@ -141,6 +149,7 @@ go-lang-max/
 
 - **Auth Service** предоставляет методы валидации токенов
 - **Chat Service** предоставляет методы для работы с чатами
+- **MaxBot Service** предоставляет методы для работы с Max Messenger Bot API
 - **Employee Service** предоставляет методы для работы с университетами
 - **Structure Service** использует Chat Service для получения информации о чатах
 
@@ -194,6 +203,14 @@ go-lang-max/
 - `PORT` - Порт HTTP сервера (по умолчанию 8080)
 - `GRPC_PORT` - Порт gRPC сервера (по умолчанию 9093)
 - `CHAT_SERVICE_GRPC` - Адрес chat-service gRPC (по умолчанию localhost:9092)
+
+### MaxBot Service
+- `MAX_API_TOKEN` - Токен аутентификации для Max Messenger Bot API (обязательно)
+- `MAX_API_URL` - URL для Max Messenger API (по умолчанию https://api.max.ru)
+- `MAX_API_TIMEOUT` - Таймаут для API запросов (по умолчанию 5s)
+- `GRPC_PORT` - Порт gRPC сервера (по умолчанию 9095)
+
+Подробная документация: [maxbot-service/README.md](./maxbot-service/README.md)
 
 ## Разработка
 
