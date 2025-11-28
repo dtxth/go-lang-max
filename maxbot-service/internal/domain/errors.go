@@ -1,8 +1,11 @@
 package domain
 
-import "errors"
+import (
+	"maxbot-service/internal/infrastructure/errors"
+)
 
 var (
-	ErrInvalidPhone  = errors.New("invalid phone number")
-	ErrMaxIDNotFound = errors.New("max id not found")
+	ErrInvalidPhone  = errors.InvalidPhoneError("")
+	ErrMaxIDNotFound = errors.NotFoundError("MAX_id")
+	ErrMaxAPIError   = errors.ExternalServiceError("MAX API", nil)
 )

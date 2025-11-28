@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"chat-service/internal/domain"
+	grpcretry "chat-service/internal/infrastructure/grpc"
 	authproto "auth-service/api/proto"
 
 	"google.golang.org/grpc"
@@ -41,7 +42,13 @@ func (c *AuthClient) ValidateToken(token string) (*domain.TokenInfo, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	resp, err := c.client.ValidateToken(ctx, &authproto.ValidateTokenRequest{Token: token})
+	var resp *authproto.ValidateTokenResponse
+	err := grpcretry.WithRetry(ctx, "Auth.ValidateToken", func() error {
+		var callErr error
+		resp, callErr = c.client.ValidateToken(ctx, &authproto.ValidateTokenRequest{Token: token})
+		return callErr
+	})
+	
 	if err != nil {
 		return nil, err
 	}

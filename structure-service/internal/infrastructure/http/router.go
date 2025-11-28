@@ -3,6 +3,7 @@ package http
 import (
 	"net/http"
 	"strings"
+	"structure-service/internal/infrastructure/middleware"
 
 	httpSwagger "github.com/swaggo/http-swagger"
 )
@@ -65,6 +66,7 @@ func (h *Handler) Router() http.Handler {
 	// Swagger UI
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	return mux
+	// Wrap with request ID middleware
+	return middleware.RequestIDMiddleware(mux)
 }
 

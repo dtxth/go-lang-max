@@ -31,7 +31,13 @@ func (c *ChatClient) Close() error {
 }
 
 func (c *ChatClient) GetChatByID(ctx context.Context, chatID int64) (*chatproto.Chat, error) {
-	resp, err := c.client.GetChatByID(ctx, &chatproto.GetChatByIDRequest{Id: chatID})
+	var resp *chatproto.GetChatByIDResponse
+	err := WithRetry(ctx, "Chat.GetChatByID", func() error {
+		var callErr error
+		resp, callErr = c.client.GetChatByID(ctx, &chatproto.GetChatByIDRequest{Id: chatID})
+		return callErr
+	})
+	
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +61,13 @@ func (c *ChatClient) CreateChat(ctx context.Context, name, url, maxChatID, sourc
 		req.UniversityId = universityID
 	}
 
-	resp, err := c.client.CreateChat(ctx, req)
+	var resp *chatproto.CreateChatResponse
+	err := WithRetry(ctx, "Chat.CreateChat", func() error {
+		var callErr error
+		resp, callErr = c.client.CreateChat(ctx, req)
+		return callErr
+	})
+	
 	if err != nil {
 		return nil, err
 	}

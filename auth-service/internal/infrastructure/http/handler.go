@@ -1,6 +1,8 @@
 package http
 
 import (
+	"auth-service/internal/infrastructure/errors"
+	"auth-service/internal/infrastructure/middleware"
 	"auth-service/internal/usecase"
 	"encoding/json"
 	"net/http"
@@ -25,19 +27,36 @@ func NewHandler(auth *usecase.AuthService) *Handler {
 // @Failure      400    {string}  string
 // @Router       /register [post]
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
     var req struct {
         Email    string `json:"email"`
         Password string `json:"password"`
         Role     string `json:"role"`
     }
-    json.NewDecoder(r.Body).Decode(&req)
-
-    user, err := h.auth.Register(req.Email, req.Password, req.Role)
-    if err != nil {
-        http.Error(w, err.Error(), 400)
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
         return
     }
 
+    // Validate required fields
+    if req.Email == "" {
+        errors.WriteError(w, errors.MissingFieldError("email"), requestID)
+        return
+    }
+    if req.Password == "" {
+        errors.WriteError(w, errors.MissingFieldError("password"), requestID)
+        return
+    }
+
+    user, err := h.auth.Register(req.Email, req.Password, req.Role)
+    if err != nil {
+        errors.WriteError(w, err, requestID)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
     json.NewEncoder(w).Encode(user)
 }
 
@@ -52,15 +71,31 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 // @Failure      401    {string}  string
 // @Router       /login [post]
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
     var req struct {
         Email    string `json:"email"`
         Password string `json:"password"`
     }
-    _ = json.NewDecoder(r.Body).Decode(&req)
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
+        return
+    }
+
+    // Validate required fields
+    if req.Email == "" {
+        errors.WriteError(w, errors.MissingFieldError("email"), requestID)
+        return
+    }
+    if req.Password == "" {
+        errors.WriteError(w, errors.MissingFieldError("password"), requestID)
+        return
+    }
 
     tokens, err := h.auth.Login(req.Email, req.Password)
     if err != nil {
-        http.Error(w, err.Error(), http.StatusUnauthorized)
+        errors.WriteError(w, err, requestID)
         return
     }
 
@@ -72,18 +107,25 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
     var req struct {
         RefreshToken string `json:"refresh_token"`
     }
-    _ = json.NewDecoder(r.Body).Decode(&req)
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
+        return
+    }
+    
     if req.RefreshToken == "" {
-        http.Error(w, "refresh_token required", http.StatusBadRequest)
+        errors.WriteError(w, errors.MissingFieldError("refresh_token"), requestID)
         return
     }
 
     tokens, err := h.auth.Refresh(req.RefreshToken)
     if err != nil {
-        http.Error(w, err.Error(), http.StatusUnauthorized)
+        errors.WriteError(w, err, requestID)
         return
     }
 
@@ -95,20 +137,28 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
     var req struct {
         RefreshToken string `json:"refresh_token"`
     }
-    _ = json.NewDecoder(r.Body).Decode(&req)
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
+        return
+    }
+    
     if req.RefreshToken == "" {
-        http.Error(w, "refresh_token required", http.StatusBadRequest)
+        errors.WriteError(w, errors.MissingFieldError("refresh_token"), requestID)
         return
     }
 
     if err := h.auth.Logout(req.RefreshToken); err != nil {
-        http.Error(w, err.Error(), http.StatusInternalServerError)
+        errors.WriteError(w, err, requestID)
         return
     }
 
+    w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(map[string]string{"status": "logged_out"})
 }

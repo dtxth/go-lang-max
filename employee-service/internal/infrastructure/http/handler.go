@@ -1,9 +1,10 @@
 package http
 
 import (
-	"context"
 	"employee-service/internal/domain"
 	"employee-service/internal/infrastructure/auth"
+	"employee-service/internal/infrastructure/errors"
+	"employee-service/internal/infrastructure/middleware"
 	"employee-service/internal/usecase"
 	"encoding/json"
 	"net/http"
@@ -81,18 +82,20 @@ func NewHandler(
 // @Failure      403     {string}  string
 // @Router       /employees [get]
 func (h *Handler) SearchEmployees(w http.ResponseWriter, r *http.Request) {
+	requestID := middleware.GetRequestID(r.Context())
+	
 	// Requirements 14.5: Apply role-based filtering
 	// Extract JWT token from Authorization header
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
-		http.Error(w, "missing authorization header", http.StatusUnauthorized)
+		errors.WriteError(w, errors.UnauthorizedError("missing authorization header"), requestID)
 		return
 	}
 
 	// Extract token from "Bearer <token>"
 	token := strings.TrimPrefix(authHeader, "Bearer ")
 	if token == authHeader {
-		http.Error(w, "invalid authorization header format", http.StatusUnauthorized)
+		errors.WriteError(w, errors.UnauthorizedError("invalid authorization header format"), requestID)
 		return
 	}
 

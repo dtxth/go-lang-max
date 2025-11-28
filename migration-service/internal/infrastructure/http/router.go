@@ -1,11 +1,12 @@
 package http
 
 import (
+	"migration-service/internal/infrastructure/middleware"
 	"net/http"
 )
 
 // SetupRoutes sets up HTTP routes
-func SetupRoutes(handler *Handler) *http.ServeMux {
+func SetupRoutes(handler *Handler) http.Handler {
 	mux := http.NewServeMux()
 
 	// Migration endpoints
@@ -21,5 +22,6 @@ func SetupRoutes(handler *Handler) *http.ServeMux {
 		w.Write([]byte("OK"))
 	})
 
-	return mux
+	// Wrap with request ID middleware
+	return middleware.RequestIDMiddleware(mux)
 }

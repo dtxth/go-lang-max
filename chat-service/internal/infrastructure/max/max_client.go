@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"chat-service/internal/domain"
+	grpcretry "chat-service/internal/infrastructure/grpc"
 	maxbotproto "maxbot-service/api/proto"
 
 	"google.golang.org/grpc"
@@ -42,7 +43,13 @@ func (c *MaxClient) GetMaxIDByPhone(phone string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	resp, err := c.client.GetMaxIDByPhone(ctx, &maxbotproto.GetMaxIDByPhoneRequest{Phone: phone})
+	var resp *maxbotproto.GetMaxIDByPhoneResponse
+	err := grpcretry.WithRetry(ctx, "MaxBot.GetMaxIDByPhone", func() error {
+		var callErr error
+		resp, callErr = c.client.GetMaxIDByPhone(ctx, &maxbotproto.GetMaxIDByPhoneRequest{Phone: phone})
+		return callErr
+	})
+	
 	if err != nil {
 		return "", err
 	}
@@ -58,7 +65,13 @@ func (c *MaxClient) ValidatePhone(phone string) bool {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
 
-	resp, err := c.client.ValidatePhone(ctx, &maxbotproto.ValidatePhoneRequest{Phone: phone})
+	var resp *maxbotproto.ValidatePhoneResponse
+	err := grpcretry.WithRetry(ctx, "MaxBot.ValidatePhone", func() error {
+		var callErr error
+		resp, callErr = c.client.ValidatePhone(ctx, &maxbotproto.ValidatePhoneRequest{Phone: phone})
+		return callErr
+	})
+	
 	if err != nil {
 		return false
 	}

@@ -133,11 +133,30 @@ func (r *ChatPostgres) GetByMaxChatID(maxChatID string) (*domain.Chat, error) {
 
 func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
 	query = strings.TrimSpace(query)
-	searchPattern := "%" + strings.ToLower(query) + "%"
+	
+	// Если запрос пустой, возвращаем все чаты с фильтрацией
+	if query == "" {
+		return r.GetAll(limit, offset, filter)
+	}
 
-	// Строим WHERE условие в зависимости от роли
-	whereClause := "WHERE LOWER(c.name) LIKE $1"
-	args := []interface{}{searchPattern}
+	// Подготавливаем поисковый запрос для full-text search
+	// Разбиваем на слова и создаем tsquery для поиска всех слов
+	words := strings.Fields(query)
+	if len(words) == 0 {
+		return r.GetAll(limit, offset, filter)
+	}
+
+	// Создаем tsquery: каждое слово должно присутствовать (AND)
+	tsqueryParts := make([]string, len(words))
+	for i, word := range words {
+		// Экранируем специальные символы и добавляем :* для префиксного поиска
+		tsqueryParts[i] = strings.ReplaceAll(word, "'", "''") + ":*"
+	}
+	tsquery := strings.Join(tsqueryParts, " & ")
+
+	// Строим WHERE условие с full-text search
+	whereClause := "WHERE to_tsvector('russian', c.name) @@ to_tsquery('russian', $1)"
+	args := []interface{}{tsquery}
 	argIndex := 2
 
 	// Фильтрация по роли и контексту
@@ -153,6 +172,108 @@ func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.Ch
 			// Оператор видит только чаты своего вуза
 			// TODO: В будущем добавить фильтрацию по branch_id и faculty_id
 			whereClause += " AND c.university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		}
+	}
+
+	// Подсчет общего количества
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM chats c ` + whereClause
+	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Получение данных с сортировкой по релевантности
+	args = append(args, limit, offset)
+	rows, err := r.db.Query(
+		`SELECT c.id, c.name, c.url, c.max_chat_id, c.participants_count, 
+		        c.university_id, c.department, c.source, c.created_at, c.updated_at,
+		        u.id, u.name, u.inn, u.kpp
+		 FROM chats c
+		 LEFT JOIN universities u ON c.university_id = u.id
+		 `+whereClause+`
+		 ORDER BY ts_rank(to_tsvector('russian', c.name), to_tsquery('russian', $1)) DESC, c.name
+		 LIMIT $`+strconv.Itoa(argIndex)+` OFFSET $`+strconv.Itoa(argIndex+1),
+		args...,
+	)
+
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var chats []*domain.Chat
+	chatIDs := make([]int64, 0)
+
+	for rows.Next() {
+		chat := &domain.Chat{}
+		var universityID sql.NullInt64
+		var universityIDFromJoin sql.NullInt64
+		var universityName sql.NullString
+		var universityINN sql.NullString
+		var universityKPP sql.NullString
+
+		err := rows.Scan(
+			&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &chat.ParticipantsCount,
+			&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
+			&universityIDFromJoin, &universityName, &universityINN, &universityKPP,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		// Устанавливаем вуз, если он есть
+		if universityID.Valid {
+			univID := universityID.Int64
+			chat.UniversityID = &univID
+			if universityIDFromJoin.Valid && universityName.Valid {
+				chat.University = &domain.University{
+					ID:   universityIDFromJoin.Int64,
+					Name: universityName.String,
+					INN:  universityINN.String,
+					KPP:  universityKPP.String,
+				}
+			}
+		}
+
+		chatIDs = append(chatIDs, chat.ID)
+		chats = append(chats, chat)
+	}
+
+	// Загружаем администраторов для всех чатов одним запросом
+	if len(chatIDs) > 0 {
+		administratorsMap, err := r.loadAdministratorsBatch(chatIDs)
+		if err == nil {
+			for _, chat := range chats {
+				chat.Administrators = administratorsMap[chat.ID]
+			}
+		}
+	}
+
+	return chats, totalCount, rows.Err()
+}
+
+func (r *ChatPostgres) GetAll(limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	// Строим WHERE условие в зависимости от роли
+	whereClause := ""
+	args := []interface{}{}
+	argIndex := 1
+
+	// Фильтрация по роли и контексту
+	if filter != nil {
+		if filter.IsSuperadmin() {
+			// Суперадмин видит все чаты - не добавляем фильтры
+		} else if filter.IsCurator() && filter.UniversityID != nil {
+			// Куратор видит только чаты своего вуза
+			whereClause = "WHERE c.university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		} else if filter.IsOperator() && filter.UniversityID != nil {
+			// Оператор видит только чаты своего вуза
+			// TODO: В будущем добавить фильтрацию по branch_id и faculty_id
+			whereClause = "WHERE c.university_id = $" + strconv.Itoa(argIndex)
 			args = append(args, *filter.UniversityID)
 			argIndex++
 		}
@@ -236,10 +357,6 @@ func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.Ch
 	return chats, totalCount, rows.Err()
 }
 
-func (r *ChatPostgres) GetAll(limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
-	return r.Search("", limit, offset, filter)
-}
-
 func (r *ChatPostgres) Update(chat *domain.Chat) error {
 	var universityID interface{}
 	if chat.UniversityID != nil {
@@ -301,7 +418,7 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 	placeholders := make([]string, len(chatIDs))
 	args := make([]interface{}, len(chatIDs))
 	for i, id := range chatIDs {
-		placeholders[i] = "$" + string(rune('1'+i))
+		placeholders[i] = "$" + strconv.Itoa(i+1)
 		args[i] = id
 	}
 
@@ -331,4 +448,3 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 	}
 	return administratorsMap, rows.Err()
 }
-

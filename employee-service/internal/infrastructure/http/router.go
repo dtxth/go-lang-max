@@ -1,6 +1,7 @@
 package http
 
 import (
+	"employee-service/internal/infrastructure/middleware"
 	"net/http"
 	"strings"
 
@@ -94,6 +95,7 @@ func (h *Handler) Router() http.Handler {
 		w.Write([]byte("OK"))
 	})
 
-	return mux
+	// Wrap with request ID middleware
+	return middleware.RequestIDMiddleware(mux)
 }
 

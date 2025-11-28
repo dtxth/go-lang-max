@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pb "structure-service/api/proto/employee"
 	"structure-service/internal/domain"
+	grpcretry "structure-service/internal/infrastructure/grpc"
 	"time"
 
 	"google.golang.org/grpc"
@@ -45,7 +46,13 @@ func (c *EmployeeClient) GetEmployeeByID(id int64) (*domain.Employee, error) {
 		Id: id,
 	}
 
-	resp, err := c.client.GetEmployeeByID(ctx, req)
+	var resp *pb.GetEmployeeByIDResponse
+	err := grpcretry.WithRetry(ctx, "Employee.GetEmployeeByID", func() error {
+		var callErr error
+		resp, callErr = c.client.GetEmployeeByID(ctx, req)
+		return callErr
+	})
+	
 	if err != nil {
 		return nil, fmt.Errorf("failed to get employee: %w", err)
 	}
