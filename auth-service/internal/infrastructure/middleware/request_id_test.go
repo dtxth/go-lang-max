@@ -52,7 +52,8 @@ func TestRequestIDMiddleware(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 	
-	middleware := RequestIDMiddleware(handler)
+	// Create a mock logger (nil is acceptable for testing)
+	middleware := RequestIDMiddleware(nil)(handler)
 	
 	req := httptest.NewRequest("GET", "/test", nil)
 	w := httptest.NewRecorder()
@@ -80,7 +81,8 @@ func TestRequestIDMiddlewareWithExistingID(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 	
-	middleware := RequestIDMiddleware(handler)
+	// Create a mock logger (nil is acceptable for testing)
+	middleware := RequestIDMiddleware(nil)(handler)
 	
 	req := httptest.NewRequest("GET", "/test", nil)
 	req.Header.Set("X-Request-ID", existingID)

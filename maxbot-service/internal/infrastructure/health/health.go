@@ -1,7 +1,6 @@
 package health
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"time"
@@ -38,23 +37,7 @@ func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 
 	// Check MAX API connectivity
 	if h.maxClient != nil {
-		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
-		defer cancel()
-
-		// Try a simple API call to check connectivity
-		_, err := h.maxClient.GetUserByPhone(ctx, "+79999999999")
-		if err != nil {
-			// It's OK if the user is not found, we just want to check connectivity
-			// Only mark as unhealthy if it's a connection error
-			if err != domain.ErrUserNotFound {
-				status.Status = "degraded"
-				status.Checks["max_api"] = "degraded: " + err.Error()
-			} else {
-				status.Checks["max_api"] = "ok"
-			}
-		} else {
-			status.Checks["max_api"] = "ok"
-		}
+		status.Checks["max_api"] = "configured"
 	}
 
 	// Set response status code

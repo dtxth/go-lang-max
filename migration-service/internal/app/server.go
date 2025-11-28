@@ -60,6 +60,7 @@ func (s *Server) Start() error {
 		errorRepo,
 		universityRepo,
 		chatService,
+		nil, // logger
 	)
 
 	googleSheetsUseCase := usecase.NewMigrateFromGoogleSheetsUseCase(
@@ -68,6 +69,7 @@ func (s *Server) Start() error {
 		universityRepo,
 		chatService,
 		s.config.Google.CredentialsPath,
+		nil, // logger
 	)
 
 	excelUseCase := usecase.NewMigrateFromExcelUseCase(
@@ -75,6 +77,7 @@ func (s *Server) Start() error {
 		errorRepo,
 		structureService,
 		chatService,
+		nil, // logger
 	)
 
 	// Initialize HTTP handler

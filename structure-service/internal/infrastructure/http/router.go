@@ -67,6 +67,6 @@ func (h *Handler) Router() http.Handler {
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
 	// Wrap with request ID middleware
-	return middleware.RequestIDMiddleware(mux)
+	return middleware.RequestIDMiddleware(nil)(mux)
 }
 

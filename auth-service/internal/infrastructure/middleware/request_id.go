@@ -45,25 +45,29 @@ func RequestIDMiddleware(log *logger.Logger) func(http.Handler) http.Handler {
 			// Add request ID to context
 			ctx := context.WithValue(r.Context(), RequestIDKey, requestID)
 
-			// Log request start
+			// Log request start (only if logger is provided)
 			start := time.Now()
-			log.Info(ctx, "HTTP request started", map[string]interface{}{
-				"method": r.Method,
-				"path":   r.URL.Path,
-				"remote": r.RemoteAddr,
-			})
+			if log != nil {
+				log.Info(ctx, "HTTP request started", map[string]interface{}{
+					"method": r.Method,
+					"path":   r.URL.Path,
+					"remote": r.RemoteAddr,
+				})
+			}
 
 			// Call next handler
 			next.ServeHTTP(w, r.WithContext(ctx))
 
-			// Log request completion
-			duration := time.Since(start)
-			log.Info(ctx, "HTTP request completed", map[string]interface{}{
-				"method":       r.Method,
-				"path":         r.URL.Path,
-				"duration_ms":  duration.Milliseconds(),
-				"duration":     duration.String(),
-			})
+			// Log request completion (only if logger is provided)
+			if log != nil {
+				duration := time.Since(start)
+				log.Info(ctx, "HTTP request completed", map[string]interface{}{
+					"method":       r.Method,
+					"path":         r.URL.Path,
+					"duration_ms":  duration.Milliseconds(),
+					"duration":     duration.String(),
+				})
+			}
 		})
 	}
 }

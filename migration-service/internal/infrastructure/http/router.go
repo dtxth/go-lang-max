@@ -23,5 +23,5 @@ func SetupRoutes(handler *Handler) http.Handler {
 	})
 
 	// Wrap with request ID middleware
-	return middleware.RequestIDMiddleware(mux)
+	return middleware.RequestIDMiddleware(nil)(mux)
 }
