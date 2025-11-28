@@ -1,0 +1,87 @@
+package health
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"time"
+
+	"maxbot-service/internal/domain"
+)
+
+// HealthStatus represents the health status of the service
+type HealthStatus struct {
+	Status    string            `json:"status"`
+	Timestamp string            `json:"timestamp"`
+	Checks    map[string]string `json:"checks"`
+}
+
+// Handler provides health check endpoints
+type Handler struct {
+	maxClient domain.MaxAPIClient
+}
+
+// NewHandler creates a new health check handler
+func NewHandler(maxClient domain.MaxAPIClient) *Handler {
+	return &Handler{
+		maxClient: maxClient,
+	}
+}
+
+// HealthCheck performs a basic health check
+func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	status := HealthStatus{
+		Status:    "healthy",
+		Timestamp: time.Now().UTC().Format(time.RFC3339),
+		Checks:    make(map[string]string),
+	}
+
+	// Check MAX API connectivity
+	if h.maxClient != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+		defer cancel()
+
+		// Try a simple API call to check connectivity
+		_, err := h.maxClient.GetUserByPhone(ctx, "+79999999999")
+		if err != nil {
+			// It's OK if the user is not found, we just want to check connectivity
+			// Only mark as unhealthy if it's a connection error
+			if err != domain.ErrUserNotFound {
+				status.Status = "degraded"
+				status.Checks["max_api"] = "degraded: " + err.Error()
+			} else {
+				status.Checks["max_api"] = "ok"
+			}
+		} else {
+			status.Checks["max_api"] = "ok"
+		}
+	}
+
+	// Set response status code
+	statusCode := http.StatusOK
+	if status.Status == "unhealthy" {
+		statusCode = http.StatusServiceUnavailable
+	}
+
+	// Write response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(status)
+}
+
+// ReadinessCheck checks if the service is ready to accept traffic
+func (h *Handler) ReadinessCheck(w http.ResponseWriter, r *http.Request) {
+	// For now, readiness is the same as health
+	h.HealthCheck(w, r)
+}
+
+// LivenessCheck checks if the service is alive
+func (h *Handler) LivenessCheck(w http.ResponseWriter, r *http.Request) {
+	// Simple liveness check - just return OK
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{
+		"status":    "alive",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+}

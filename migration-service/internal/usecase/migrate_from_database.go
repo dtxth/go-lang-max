@@ -4,8 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"log"
 	"migration-service/internal/domain"
+	"migration-service/internal/infrastructure/logger"
 )
 
 // MigrateFromDatabaseUseCase handles migration from existing database
@@ -15,6 +15,7 @@ type MigrateFromDatabaseUseCase struct {
 	errorRepo         domain.MigrationErrorRepository
 	universityRepo    domain.UniversityRepository
 	chatService       domain.ChatService
+	logger            *logger.Logger
 }
 
 // NewMigrateFromDatabaseUseCase creates a new MigrateFromDatabaseUseCase
@@ -24,6 +25,7 @@ func NewMigrateFromDatabaseUseCase(
 	errorRepo domain.MigrationErrorRepository,
 	universityRepo domain.UniversityRepository,
 	chatService domain.ChatService,
+	log *logger.Logger,
 ) *MigrateFromDatabaseUseCase {
 	return &MigrateFromDatabaseUseCase{
 		sourceDB:       sourceDB,
@@ -31,6 +33,7 @@ func NewMigrateFromDatabaseUseCase(
 		errorRepo:      errorRepo,
 		universityRepo: universityRepo,
 		chatService:    chatService,
+		logger:         log,
 	}
 }
 
@@ -59,10 +62,20 @@ func (uc *MigrateFromDatabaseUseCase) Execute(ctx context.Context, sourceIdentif
 		return 0, fmt.Errorf("failed to create migration job: %w", err)
 	}
 
+	uc.logger.Info(ctx, "Migration job created", map[string]interface{}{
+		"job_id":            job.ID,
+		"source_type":       string(domain.MigrationSourceDatabase),
+		"source_identifier": sourceIdentifier,
+	})
+
 	// Update status to running
 	if err := uc.jobRepo.UpdateStatus(ctx, job.ID, domain.MigrationJobStatusRunning); err != nil {
 		return 0, fmt.Errorf("failed to update job status: %w", err)
 	}
+
+	uc.logger.Info(ctx, "Migration job started", map[string]interface{}{
+		"job_id": job.ID,
+	})
 
 	// Read chat data from source database
 	chats, err := uc.readChatsFromDatabase(ctx)
@@ -74,8 +87,16 @@ func (uc *MigrateFromDatabaseUseCase) Execute(ctx context.Context, sourceIdentif
 	// Update total count
 	job.Total = len(chats)
 	if err := uc.jobRepo.Update(ctx, job); err != nil {
-		log.Printf("Failed to update job total: %v", err)
+		uc.logger.Error(ctx, "Failed to update job total", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
+
+	uc.logger.Info(ctx, "Migration progress: chats loaded", map[string]interface{}{
+		"job_id": job.ID,
+		"total":  job.Total,
+	})
 
 	// Process each chat
 	processed := 0
@@ -83,7 +104,11 @@ func (uc *MigrateFromDatabaseUseCase) Execute(ctx context.Context, sourceIdentif
 
 	for _, chat := range chats {
 		if err := uc.processChat(ctx, job.ID, &chat); err != nil {
-			log.Printf("Failed to process chat %d: %v", chat.ID, err)
+			uc.logger.Error(ctx, "Failed to process chat", map[string]interface{}{
+				"job_id":  job.ID,
+				"chat_id": chat.ID,
+				"error":   err.Error(),
+			})
 			failed++
 			
 			// Record error
@@ -93,7 +118,10 @@ func (uc *MigrateFromDatabaseUseCase) Execute(ctx context.Context, sourceIdentif
 				ErrorMessage:     err.Error(),
 			}
 			if err := uc.errorRepo.Create(ctx, migrationErr); err != nil {
-				log.Printf("Failed to record error: %v", err)
+				uc.logger.Error(ctx, "Failed to record error", map[string]interface{}{
+					"job_id": job.ID,
+					"error":  err.Error(),
+				})
 			}
 		} else {
 			processed++
@@ -102,22 +130,43 @@ func (uc *MigrateFromDatabaseUseCase) Execute(ctx context.Context, sourceIdentif
 		// Update progress periodically
 		if (processed+failed)%100 == 0 {
 			if err := uc.jobRepo.UpdateProgress(ctx, job.ID, processed, failed); err != nil {
-				log.Printf("Failed to update progress: %v", err)
+				uc.logger.Error(ctx, "Failed to update progress", map[string]interface{}{
+					"job_id": job.ID,
+					"error":  err.Error(),
+				})
 			}
+			uc.logger.Info(ctx, "Migration progress update", map[string]interface{}{
+				"job_id":    job.ID,
+				"total":     job.Total,
+				"processed": processed,
+				"failed":    failed,
+				"percent":   float64(processed+failed) / float64(job.Total) * 100,
+			})
 		}
 	}
 
 	// Final progress update
 	if err := uc.jobRepo.UpdateProgress(ctx, job.ID, processed, failed); err != nil {
-		log.Printf("Failed to update final progress: %v", err)
+		uc.logger.Error(ctx, "Failed to update final progress", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
 
 	// Update status to completed
 	if err := uc.jobRepo.UpdateStatus(ctx, job.ID, domain.MigrationJobStatusCompleted); err != nil {
-		log.Printf("Failed to update job status to completed: %v", err)
+		uc.logger.Error(ctx, "Failed to update job status to completed", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
 
-	log.Printf("Migration completed: total=%d, processed=%d, failed=%d", job.Total, processed, failed)
+	uc.logger.Info(ctx, "Migration completed", map[string]interface{}{
+		"job_id":    job.ID,
+		"total":     job.Total,
+		"processed": processed,
+		"failed":    failed,
+	})
 
 	return job.ID, nil
 }
@@ -194,7 +243,11 @@ func (uc *MigrateFromDatabaseUseCase) processChat(ctx context.Context, jobID int
 	if chat.AdminPhone != "" {
 		if err := uc.chatService.AddAdministrator(ctx, chatID, chat.AdminPhone); err != nil {
 			// Log error but don't fail the migration
-			log.Printf("Failed to add administrator for chat %d: %v", chatID, err)
+			uc.logger.Warn(ctx, "Failed to add administrator for chat", map[string]interface{}{
+				"chat_id": chatID,
+				"phone":   chat.AdminPhone,
+				"error":   err.Error(),
+			})
 		}
 	}
 

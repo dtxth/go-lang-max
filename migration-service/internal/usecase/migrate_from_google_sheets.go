@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"log"
 	"migration-service/internal/domain"
+	"migration-service/internal/infrastructure/logger"
 
 	"google.golang.org/api/option"
 	"google.golang.org/api/sheets/v4"
@@ -17,6 +17,7 @@ type MigrateFromGoogleSheetsUseCase struct {
 	universityRepo domain.UniversityRepository
 	chatService    domain.ChatService
 	credentialsPath string
+	logger         *logger.Logger
 }
 
 // NewMigrateFromGoogleSheetsUseCase creates a new MigrateFromGoogleSheetsUseCase
@@ -26,6 +27,7 @@ func NewMigrateFromGoogleSheetsUseCase(
 	universityRepo domain.UniversityRepository,
 	chatService domain.ChatService,
 	credentialsPath string,
+	log *logger.Logger,
 ) *MigrateFromGoogleSheetsUseCase {
 	return &MigrateFromGoogleSheetsUseCase{
 		jobRepo:         jobRepo,
@@ -33,6 +35,7 @@ func NewMigrateFromGoogleSheetsUseCase(
 		universityRepo:  universityRepo,
 		chatService:     chatService,
 		credentialsPath: credentialsPath,
+		logger:          log,
 	}
 }
 
@@ -76,8 +79,16 @@ func (uc *MigrateFromGoogleSheetsUseCase) Execute(ctx context.Context, spreadshe
 	// Update total count
 	job.Total = len(rows)
 	if err := uc.jobRepo.Update(ctx, job); err != nil {
-		log.Printf("Failed to update job total: %v", err)
+		uc.logger.Error(ctx, "Failed to update job total", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
+
+	uc.logger.Info(ctx, "Migration progress: rows loaded", map[string]interface{}{
+		"job_id": job.ID,
+		"total":  job.Total,
+	})
 
 	// Process each row
 	processed := 0
@@ -85,7 +96,11 @@ func (uc *MigrateFromGoogleSheetsUseCase) Execute(ctx context.Context, spreadshe
 
 	for _, row := range rows {
 		if err := uc.processRow(ctx, job.ID, &row); err != nil {
-			log.Printf("Failed to process row %d: %v", row.RowNumber, err)
+			uc.logger.Error(ctx, "Failed to process row", map[string]interface{}{
+				"job_id":     job.ID,
+				"row_number": row.RowNumber,
+				"error":      err.Error(),
+			})
 			failed++
 
 			// Record error
@@ -95,7 +110,10 @@ func (uc *MigrateFromGoogleSheetsUseCase) Execute(ctx context.Context, spreadshe
 				ErrorMessage:     err.Error(),
 			}
 			if err := uc.errorRepo.Create(ctx, migrationErr); err != nil {
-				log.Printf("Failed to record error: %v", err)
+				uc.logger.Error(ctx, "Failed to record error", map[string]interface{}{
+					"job_id": job.ID,
+					"error":  err.Error(),
+				})
 			}
 		} else {
 			processed++
@@ -104,22 +122,43 @@ func (uc *MigrateFromGoogleSheetsUseCase) Execute(ctx context.Context, spreadshe
 		// Update progress periodically
 		if (processed+failed)%50 == 0 {
 			if err := uc.jobRepo.UpdateProgress(ctx, job.ID, processed, failed); err != nil {
-				log.Printf("Failed to update progress: %v", err)
+				uc.logger.Error(ctx, "Failed to update progress", map[string]interface{}{
+					"job_id": job.ID,
+					"error":  err.Error(),
+				})
 			}
+			uc.logger.Info(ctx, "Migration progress update", map[string]interface{}{
+				"job_id":    job.ID,
+				"total":     job.Total,
+				"processed": processed,
+				"failed":    failed,
+				"percent":   float64(processed+failed) / float64(job.Total) * 100,
+			})
 		}
 	}
 
 	// Final progress update
 	if err := uc.jobRepo.UpdateProgress(ctx, job.ID, processed, failed); err != nil {
-		log.Printf("Failed to update final progress: %v", err)
+		uc.logger.Error(ctx, "Failed to update final progress", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
 
 	// Update status to completed
 	if err := uc.jobRepo.UpdateStatus(ctx, job.ID, domain.MigrationJobStatusCompleted); err != nil {
-		log.Printf("Failed to update job status to completed: %v", err)
+		uc.logger.Error(ctx, "Failed to update job status to completed", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
 
-	log.Printf("Google Sheets migration completed: total=%d, processed=%d, failed=%d", job.Total, processed, failed)
+	uc.logger.Info(ctx, "Google Sheets migration completed", map[string]interface{}{
+		"job_id":    job.ID,
+		"total":     job.Total,
+		"processed": processed,
+		"failed":    failed,
+	})
 
 	return job.ID, nil
 }
@@ -143,7 +182,10 @@ func (uc *MigrateFromGoogleSheetsUseCase) readFromGoogleSheets(ctx context.Conte
 	var rows []SheetRow
 	for i, row := range resp.Values {
 		if len(row) < 3 {
-			log.Printf("Skipping row %d: insufficient columns", i+2)
+			uc.logger.Warn(ctx, "Skipping row: insufficient columns", map[string]interface{}{
+				"row_number": i + 2,
+				"columns":    len(row),
+			})
 			continue
 		}
 
@@ -167,7 +209,9 @@ func (uc *MigrateFromGoogleSheetsUseCase) readFromGoogleSheets(ctx context.Conte
 
 		// Validate required fields
 		if sheetRow.INN == "" || sheetRow.URL == "" {
-			log.Printf("Skipping row %d: missing required fields", sheetRow.RowNumber)
+			uc.logger.Warn(ctx, "Skipping row: missing required fields", map[string]interface{}{
+				"row_number": sheetRow.RowNumber,
+			})
 			continue
 		}
 
@@ -217,7 +261,11 @@ func (uc *MigrateFromGoogleSheetsUseCase) processRow(ctx context.Context, jobID 
 	if row.AdminPhone != "" {
 		if err := uc.chatService.AddAdministrator(ctx, chatID, row.AdminPhone); err != nil {
 			// Log error but don't fail the migration
-			log.Printf("Failed to add administrator for chat %d: %v", chatID, err)
+			uc.logger.Warn(ctx, "Failed to add administrator for chat", map[string]interface{}{
+				"chat_id": chatID,
+				"phone":   row.AdminPhone,
+				"error":   err.Error(),
+			})
 		}
 	}
 

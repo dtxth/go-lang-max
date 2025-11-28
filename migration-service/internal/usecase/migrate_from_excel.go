@@ -3,8 +3,8 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"log"
 	"migration-service/internal/domain"
+	"migration-service/internal/infrastructure/logger"
 	"strconv"
 
 	"github.com/xuri/excelize/v2"
@@ -16,6 +16,7 @@ type MigrateFromExcelUseCase struct {
 	errorRepo        domain.MigrationErrorRepository
 	structureService domain.StructureService
 	chatService      domain.ChatService
+	logger           *logger.Logger
 }
 
 // NewMigrateFromExcelUseCase creates a new MigrateFromExcelUseCase
@@ -24,12 +25,14 @@ func NewMigrateFromExcelUseCase(
 	errorRepo domain.MigrationErrorRepository,
 	structureService domain.StructureService,
 	chatService domain.ChatService,
+	log *logger.Logger,
 ) *MigrateFromExcelUseCase {
 	return &MigrateFromExcelUseCase{
 		jobRepo:          jobRepo,
 		errorRepo:        errorRepo,
 		structureService: structureService,
 		chatService:      chatService,
+		logger:           log,
 	}
 }
 
@@ -80,8 +83,16 @@ func (uc *MigrateFromExcelUseCase) Execute(ctx context.Context, filePath string)
 	// Update total count
 	job.Total = len(rows)
 	if err := uc.jobRepo.Update(ctx, job); err != nil {
-		log.Printf("Failed to update job total: %v", err)
+		uc.logger.Error(ctx, "Failed to update job total", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
+
+	uc.logger.Info(ctx, "Migration progress: rows loaded", map[string]interface{}{
+		"job_id": job.ID,
+		"total":  job.Total,
+	})
 
 	// Process each row
 	processed := 0
@@ -89,7 +100,11 @@ func (uc *MigrateFromExcelUseCase) Execute(ctx context.Context, filePath string)
 
 	for _, row := range rows {
 		if err := uc.processRow(ctx, job.ID, &row); err != nil {
-			log.Printf("Failed to process row %d: %v", row.RowNumber, err)
+			uc.logger.Error(ctx, "Failed to process row", map[string]interface{}{
+				"job_id":     job.ID,
+				"row_number": row.RowNumber,
+				"error":      err.Error(),
+			})
 			failed++
 
 			// Record error
@@ -99,7 +114,10 @@ func (uc *MigrateFromExcelUseCase) Execute(ctx context.Context, filePath string)
 				ErrorMessage:     err.Error(),
 			}
 			if err := uc.errorRepo.Create(ctx, migrationErr); err != nil {
-				log.Printf("Failed to record error: %v", err)
+				uc.logger.Error(ctx, "Failed to record error", map[string]interface{}{
+					"job_id": job.ID,
+					"error":  err.Error(),
+				})
 			}
 		} else {
 			processed++
@@ -108,22 +126,43 @@ func (uc *MigrateFromExcelUseCase) Execute(ctx context.Context, filePath string)
 		// Update progress periodically
 		if (processed+failed)%100 == 0 {
 			if err := uc.jobRepo.UpdateProgress(ctx, job.ID, processed, failed); err != nil {
-				log.Printf("Failed to update progress: %v", err)
+				uc.logger.Error(ctx, "Failed to update progress", map[string]interface{}{
+					"job_id": job.ID,
+					"error":  err.Error(),
+				})
 			}
+			uc.logger.Info(ctx, "Migration progress update", map[string]interface{}{
+				"job_id":    job.ID,
+				"total":     job.Total,
+				"processed": processed,
+				"failed":    failed,
+				"percent":   float64(processed+failed) / float64(job.Total) * 100,
+			})
 		}
 	}
 
 	// Final progress update
 	if err := uc.jobRepo.UpdateProgress(ctx, job.ID, processed, failed); err != nil {
-		log.Printf("Failed to update final progress: %v", err)
+		uc.logger.Error(ctx, "Failed to update final progress", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
 
 	// Update status to completed
 	if err := uc.jobRepo.UpdateStatus(ctx, job.ID, domain.MigrationJobStatusCompleted); err != nil {
-		log.Printf("Failed to update job status to completed: %v", err)
+		uc.logger.Error(ctx, "Failed to update job status to completed", map[string]interface{}{
+			"job_id": job.ID,
+			"error":  err.Error(),
+		})
 	}
 
-	log.Printf("Excel migration completed: total=%d, processed=%d, failed=%d", job.Total, processed, failed)
+	uc.logger.Info(ctx, "Excel migration completed", map[string]interface{}{
+		"job_id":    job.ID,
+		"total":     job.Total,
+		"processed": processed,
+		"failed":    failed,
+	})
 
 	return job.ID, nil
 }
@@ -160,10 +199,14 @@ func (uc *MigrateFromExcelUseCase) readFromExcel(filePath string) ([]ExcelRow, e
 	}
 
 	var excelRows []ExcelRow
+	ctx := context.Background() // Create context for logging
 	for i := 1; i < len(rows); i++ {
 		row := rows[i]
 		if len(row) < len(requiredColumns) {
-			log.Printf("Skipping row %d: insufficient columns", i+1)
+			uc.logger.Warn(ctx, "Skipping row: insufficient columns", map[string]interface{}{
+				"row_number": i + 1,
+				"columns":    len(row),
+			})
 			continue
 		}
 
@@ -190,7 +233,9 @@ func (uc *MigrateFromExcelUseCase) readFromExcel(filePath string) ([]ExcelRow, e
 
 		// Validate required fields
 		if excelRow.INN == "" || excelRow.ChatURL == "" {
-			log.Printf("Skipping row %d: missing required fields", excelRow.RowNumber)
+			uc.logger.Warn(ctx, "Skipping row: missing required fields", map[string]interface{}{
+				"row_number": excelRow.RowNumber,
+			})
 			continue
 		}
 
@@ -241,14 +286,22 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 	// Link group to chat
 	if err := uc.structureService.LinkGroupToChat(ctx, structureResult.GroupID, chatID); err != nil {
 		// Log error but don't fail the migration
-		log.Printf("Failed to link group %d to chat %d: %v", structureResult.GroupID, chatID, err)
+		uc.logger.Warn(ctx, "Failed to link group to chat", map[string]interface{}{
+			"group_id": structureResult.GroupID,
+			"chat_id":  chatID,
+			"error":    err.Error(),
+		})
 	}
 
 	// Add administrator if phone is provided
 	if row.AdminPhone != "" {
 		if err := uc.chatService.AddAdministrator(ctx, chatID, row.AdminPhone); err != nil {
 			// Log error but don't fail the migration
-			log.Printf("Failed to add administrator for chat %d: %v", chatID, err)
+			uc.logger.Warn(ctx, "Failed to add administrator for chat", map[string]interface{}{
+				"chat_id": chatID,
+				"phone":   row.AdminPhone,
+				"error":   err.Error(),
+			})
 		}
 	}
 
