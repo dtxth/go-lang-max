@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.1
-// source: api/proto/maxbot.proto
+// source: maxbot.proto
 
 package maxbotproto
 
@@ -19,14 +19,16 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	MaxBotService_GetMaxIDByPhone_FullMethodName   = "/maxbot.MaxBotService/GetMaxIDByPhone"
-	MaxBotService_ValidatePhone_FullMethodName     = "/maxbot.MaxBotService/ValidatePhone"
-	MaxBotService_SendMessage_FullMethodName       = "/maxbot.MaxBotService/SendMessage"
-	MaxBotService_SendNotification_FullMethodName  = "/maxbot.MaxBotService/SendNotification"
-	MaxBotService_GetChatInfo_FullMethodName       = "/maxbot.MaxBotService/GetChatInfo"
-	MaxBotService_GetChatMembers_FullMethodName    = "/maxbot.MaxBotService/GetChatMembers"
-	MaxBotService_GetChatAdmins_FullMethodName     = "/maxbot.MaxBotService/GetChatAdmins"
-	MaxBotService_CheckPhoneNumbers_FullMethodName = "/maxbot.MaxBotService/CheckPhoneNumbers"
+	MaxBotService_GetMaxIDByPhone_FullMethodName      = "/maxbot.MaxBotService/GetMaxIDByPhone"
+	MaxBotService_ValidatePhone_FullMethodName        = "/maxbot.MaxBotService/ValidatePhone"
+	MaxBotService_SendMessage_FullMethodName          = "/maxbot.MaxBotService/SendMessage"
+	MaxBotService_SendNotification_FullMethodName     = "/maxbot.MaxBotService/SendNotification"
+	MaxBotService_GetChatInfo_FullMethodName          = "/maxbot.MaxBotService/GetChatInfo"
+	MaxBotService_GetChatMembers_FullMethodName       = "/maxbot.MaxBotService/GetChatMembers"
+	MaxBotService_GetChatAdmins_FullMethodName        = "/maxbot.MaxBotService/GetChatAdmins"
+	MaxBotService_CheckPhoneNumbers_FullMethodName    = "/maxbot.MaxBotService/CheckPhoneNumbers"
+	MaxBotService_NormalizePhone_FullMethodName       = "/maxbot.MaxBotService/NormalizePhone"
+	MaxBotService_BatchGetUsersByPhone_FullMethodName = "/maxbot.MaxBotService/BatchGetUsersByPhone"
 )
 
 // MaxBotServiceClient is the client API for MaxBotService service.
@@ -51,6 +53,10 @@ type MaxBotServiceClient interface {
 	GetChatAdmins(ctx context.Context, in *GetChatAdminsRequest, opts ...grpc.CallOption) (*GetChatAdminsResponse, error)
 	// CheckPhoneNumbers проверяет существование номеров телефонов в Max Messenger
 	CheckPhoneNumbers(ctx context.Context, in *CheckPhoneNumbersRequest, opts ...grpc.CallOption) (*CheckPhoneNumbersResponse, error)
+	// NormalizePhone нормализует номер телефона в формат E.164
+	NormalizePhone(ctx context.Context, in *NormalizePhoneRequest, opts ...grpc.CallOption) (*NormalizePhoneResponse, error)
+	// BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
+	BatchGetUsersByPhone(ctx context.Context, in *BatchGetUsersByPhoneRequest, opts ...grpc.CallOption) (*BatchGetUsersByPhoneResponse, error)
 }
 
 type maxBotServiceClient struct {
@@ -141,6 +147,26 @@ func (c *maxBotServiceClient) CheckPhoneNumbers(ctx context.Context, in *CheckPh
 	return out, nil
 }
 
+func (c *maxBotServiceClient) NormalizePhone(ctx context.Context, in *NormalizePhoneRequest, opts ...grpc.CallOption) (*NormalizePhoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NormalizePhoneResponse)
+	err := c.cc.Invoke(ctx, MaxBotService_NormalizePhone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *maxBotServiceClient) BatchGetUsersByPhone(ctx context.Context, in *BatchGetUsersByPhoneRequest, opts ...grpc.CallOption) (*BatchGetUsersByPhoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchGetUsersByPhoneResponse)
+	err := c.cc.Invoke(ctx, MaxBotService_BatchGetUsersByPhone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MaxBotServiceServer is the server API for MaxBotService service.
 // All implementations must embed UnimplementedMaxBotServiceServer
 // for forward compatibility.
@@ -163,6 +189,10 @@ type MaxBotServiceServer interface {
 	GetChatAdmins(context.Context, *GetChatAdminsRequest) (*GetChatAdminsResponse, error)
 	// CheckPhoneNumbers проверяет существование номеров телефонов в Max Messenger
 	CheckPhoneNumbers(context.Context, *CheckPhoneNumbersRequest) (*CheckPhoneNumbersResponse, error)
+	// NormalizePhone нормализует номер телефона в формат E.164
+	NormalizePhone(context.Context, *NormalizePhoneRequest) (*NormalizePhoneResponse, error)
+	// BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
+	BatchGetUsersByPhone(context.Context, *BatchGetUsersByPhoneRequest) (*BatchGetUsersByPhoneResponse, error)
 	mustEmbedUnimplementedMaxBotServiceServer()
 }
 
@@ -196,6 +226,12 @@ func (UnimplementedMaxBotServiceServer) GetChatAdmins(context.Context, *GetChatA
 }
 func (UnimplementedMaxBotServiceServer) CheckPhoneNumbers(context.Context, *CheckPhoneNumbersRequest) (*CheckPhoneNumbersResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CheckPhoneNumbers not implemented")
+}
+func (UnimplementedMaxBotServiceServer) NormalizePhone(context.Context, *NormalizePhoneRequest) (*NormalizePhoneResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method NormalizePhone not implemented")
+}
+func (UnimplementedMaxBotServiceServer) BatchGetUsersByPhone(context.Context, *BatchGetUsersByPhoneRequest) (*BatchGetUsersByPhoneResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchGetUsersByPhone not implemented")
 }
 func (UnimplementedMaxBotServiceServer) mustEmbedUnimplementedMaxBotServiceServer() {}
 func (UnimplementedMaxBotServiceServer) testEmbeddedByValue()                       {}
@@ -362,6 +398,42 @@ func _MaxBotService_CheckPhoneNumbers_Handler(srv interface{}, ctx context.Conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MaxBotService_NormalizePhone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NormalizePhoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MaxBotServiceServer).NormalizePhone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MaxBotService_NormalizePhone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MaxBotServiceServer).NormalizePhone(ctx, req.(*NormalizePhoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _MaxBotService_BatchGetUsersByPhone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchGetUsersByPhoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MaxBotServiceServer).BatchGetUsersByPhone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MaxBotService_BatchGetUsersByPhone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MaxBotServiceServer).BatchGetUsersByPhone(ctx, req.(*BatchGetUsersByPhoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MaxBotService_ServiceDesc is the grpc.ServiceDesc for MaxBotService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -401,7 +473,15 @@ var MaxBotService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "CheckPhoneNumbers",
 			Handler:    _MaxBotService_CheckPhoneNumbers_Handler,
 		},
+		{
+			MethodName: "NormalizePhone",
+			Handler:    _MaxBotService_NormalizePhone_Handler,
+		},
+		{
+			MethodName: "BatchGetUsersByPhone",
+			Handler:    _MaxBotService_BatchGetUsersByPhone_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/maxbot.proto",
+	Metadata: "maxbot.proto",
 }

@@ -12,6 +12,8 @@ type Config struct {
 	MaxAPI        string // URL для MAX API (опционально)
 	MaxBotAddress string
 	MaxBotTimeout time.Duration
+	AuthAddress   string
+	AuthTimeout   time.Duration
 }
 
 func Load() *Config {
@@ -22,6 +24,8 @@ func Load() *Config {
 		MaxAPI:        getEnv("MAX_API_URL", ""),
 		MaxBotAddress: getEnv("MAXBOT_GRPC_ADDR", "localhost:9095"),
 		MaxBotTimeout: getDurationEnv("MAXBOT_TIMEOUT", 5*time.Second),
+		AuthAddress:   getEnv("AUTH_GRPC_ADDR", "localhost:9090"),
+		AuthTimeout:   getDurationEnv("AUTH_TIMEOUT", 5*time.Second),
 	}
 }
 

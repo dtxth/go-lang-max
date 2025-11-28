@@ -131,7 +131,7 @@ func (r *ChatPostgres) GetByMaxChatID(maxChatID string) (*domain.Chat, error) {
 	return chat, nil
 }
 
-func (r *ChatPostgres) Search(query string, limit, offset int, userRole string, universityID *int64) ([]*domain.Chat, int, error) {
+func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
 	query = strings.TrimSpace(query)
 	searchPattern := "%" + strings.ToLower(query) + "%"
 
@@ -140,11 +140,22 @@ func (r *ChatPostgres) Search(query string, limit, offset int, userRole string, 
 	args := []interface{}{searchPattern}
 	argIndex := 2
 
-	// Фильтрация по роли и университету
-	if userRole != "superadmin" && universityID != nil {
-		whereClause += " AND c.university_id = $" + strconv.Itoa(argIndex)
-		args = append(args, *universityID)
-		argIndex++
+	// Фильтрация по роли и контексту
+	if filter != nil {
+		if filter.IsSuperadmin() {
+			// Суперадмин видит все чаты - не добавляем фильтры
+		} else if filter.IsCurator() && filter.UniversityID != nil {
+			// Куратор видит только чаты своего вуза
+			whereClause += " AND c.university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		} else if filter.IsOperator() && filter.UniversityID != nil {
+			// Оператор видит только чаты своего вуза
+			// TODO: В будущем добавить фильтрацию по branch_id и faculty_id
+			whereClause += " AND c.university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		}
 	}
 
 	// Подсчет общего количества
@@ -225,8 +236,8 @@ func (r *ChatPostgres) Search(query string, limit, offset int, userRole string, 
 	return chats, totalCount, rows.Err()
 }
 
-func (r *ChatPostgres) GetAll(limit, offset int, userRole string, universityID *int64) ([]*domain.Chat, int, error) {
-	return r.Search("", limit, offset, userRole, universityID)
+func (r *ChatPostgres) GetAll(limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	return r.Search("", limit, offset, filter)
 }
 
 func (r *ChatPostgres) Update(chat *domain.Chat) error {

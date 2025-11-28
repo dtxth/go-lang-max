@@ -35,6 +35,10 @@ func (m *mockUserRoleRepository) GetByUserIDAndRole(userID int64, roleName strin
 	return nil, nil
 }
 
+func (m *mockUserRoleRepository) GetRoleByName(name string) (*domain.Role, error) {
+	return &domain.Role{ID: 1, Name: name}, nil
+}
+
 type mockRoleRepository struct{}
 
 func (m *mockRoleRepository) GetByName(name string) (*domain.Role, error) {

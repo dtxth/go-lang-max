@@ -42,6 +42,26 @@ func (h *Handler) Router() http.Handler {
 	// Import
 	mux.HandleFunc("/import/excel", h.ImportExcel)
 
+	// Department Managers
+	mux.HandleFunc("/departments/managers", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			h.GetAllDepartmentManagers(w, r)
+		case http.MethodPost:
+			h.AssignOperator(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	mux.HandleFunc("/departments/managers/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodDelete {
+			h.RemoveOperator(w, r)
+		} else {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
 	// Swagger UI
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 

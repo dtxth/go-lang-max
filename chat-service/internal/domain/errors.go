@@ -11,4 +11,8 @@ var (
 	ErrMaxIDNotFound         = errors.New("max id not found")
 	ErrCannotDeleteLastAdmin = errors.New("cannot delete last administrator")
 	ErrUniversityNotFound    = errors.New("university not found")
+	ErrInvalidToken          = errors.New("invalid or expired token")
+	ErrUnauthorized          = errors.New("unauthorized")
+	ErrForbidden             = errors.New("forbidden: insufficient permissions")
+	ErrInvalidRole           = errors.New("invalid role")
 )

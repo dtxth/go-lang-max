@@ -3,6 +3,7 @@ package main
 import (
 	"chat-service/internal/app"
 	"chat-service/internal/config"
+	"chat-service/internal/infrastructure/auth"
 	"chat-service/internal/infrastructure/grpc"
 	"chat-service/internal/infrastructure/http"
 	"chat-service/internal/infrastructure/max"
@@ -47,11 +48,21 @@ func main() {
 	}
 	defer maxClient.Close()
 
+	// Инициализируем Auth gRPC клиент
+	authClient, err := auth.NewAuthClient(cfg.AuthAddress, cfg.AuthTimeout)
+	if err != nil {
+		panic(err)
+	}
+	defer authClient.Close()
+
 	// Инициализируем usecase
 	chatService := usecase.NewChatService(chatRepo, administratorRepo, universityRepo, maxClient)
 
+	// Инициализируем middleware
+	authMiddleware := http.NewAuthMiddleware(authClient)
+
 	// Инициализируем HTTP handler
-	handler := http.NewHandler(chatService)
+	handler := http.NewHandler(chatService, authMiddleware)
 
 	// HTTP server
 	httpServer := &app.Server{

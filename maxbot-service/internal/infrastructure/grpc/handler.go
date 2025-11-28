@@ -157,6 +157,39 @@ func (h *MaxBotHandler) CheckPhoneNumbers(ctx context.Context, req *maxbotproto.
 	return &maxbotproto.CheckPhoneNumbersResponse{ExistingPhones: existingPhones}, nil
 }
 
+func (h *MaxBotHandler) NormalizePhone(ctx context.Context, req *maxbotproto.NormalizePhoneRequest) (*maxbotproto.NormalizePhoneResponse, error) {
+	normalized, err := h.service.NormalizePhone(req.GetPhone())
+	if err != nil {
+		return &maxbotproto.NormalizePhoneResponse{
+			Error:     err.Error(),
+			ErrorCode: mapError(err),
+		}, nil
+	}
+
+	return &maxbotproto.NormalizePhoneResponse{NormalizedPhone: normalized}, nil
+}
+
+func (h *MaxBotHandler) BatchGetUsersByPhone(ctx context.Context, req *maxbotproto.BatchGetUsersByPhoneRequest) (*maxbotproto.BatchGetUsersByPhoneResponse, error) {
+	mappings, err := h.service.BatchGetUsersByPhone(ctx, req.GetPhones())
+	if err != nil {
+		return &maxbotproto.BatchGetUsersByPhoneResponse{
+			Error:     err.Error(),
+			ErrorCode: mapError(err),
+		}, nil
+	}
+
+	protoMappings := make([]*maxbotproto.UserPhoneMapping, 0, len(mappings))
+	for _, mapping := range mappings {
+		protoMappings = append(protoMappings, &maxbotproto.UserPhoneMapping{
+			Phone: mapping.Phone,
+			MaxId: mapping.MaxID,
+			Found: mapping.Found,
+		})
+	}
+
+	return &maxbotproto.BatchGetUsersByPhoneResponse{Mappings: protoMappings}, nil
+}
+
 func mapError(err error) maxbotproto.ErrorCode {
 	switch err {
 	case domain.ErrInvalidPhone:

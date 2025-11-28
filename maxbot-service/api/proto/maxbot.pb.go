@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.33.1
-// source: api/proto/maxbot.proto
+// source: maxbot.proto
 
 package maxbotproto
 
@@ -58,11 +58,11 @@ func (x ErrorCode) String() string {
 }
 
 func (ErrorCode) Descriptor() protoreflect.EnumDescriptor {
-	return file_api_proto_maxbot_proto_enumTypes[0].Descriptor()
+	return file_maxbot_proto_enumTypes[0].Descriptor()
 }
 
 func (ErrorCode) Type() protoreflect.EnumType {
-	return &file_api_proto_maxbot_proto_enumTypes[0]
+	return &file_maxbot_proto_enumTypes[0]
 }
 
 func (x ErrorCode) Number() protoreflect.EnumNumber {
@@ -71,7 +71,7 @@ func (x ErrorCode) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use ErrorCode.Descriptor instead.
 func (ErrorCode) EnumDescriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{0}
+	return file_maxbot_proto_rawDescGZIP(), []int{0}
 }
 
 type GetMaxIDByPhoneRequest struct {
@@ -83,7 +83,7 @@ type GetMaxIDByPhoneRequest struct {
 
 func (x *GetMaxIDByPhoneRequest) Reset() {
 	*x = GetMaxIDByPhoneRequest{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[0]
+	mi := &file_maxbot_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -95,7 +95,7 @@ func (x *GetMaxIDByPhoneRequest) String() string {
 func (*GetMaxIDByPhoneRequest) ProtoMessage() {}
 
 func (x *GetMaxIDByPhoneRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[0]
+	mi := &file_maxbot_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -108,7 +108,7 @@ func (x *GetMaxIDByPhoneRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMaxIDByPhoneRequest.ProtoReflect.Descriptor instead.
 func (*GetMaxIDByPhoneRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{0}
+	return file_maxbot_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetMaxIDByPhoneRequest) GetPhone() string {
@@ -129,7 +129,7 @@ type GetMaxIDByPhoneResponse struct {
 
 func (x *GetMaxIDByPhoneResponse) Reset() {
 	*x = GetMaxIDByPhoneResponse{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[1]
+	mi := &file_maxbot_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -141,7 +141,7 @@ func (x *GetMaxIDByPhoneResponse) String() string {
 func (*GetMaxIDByPhoneResponse) ProtoMessage() {}
 
 func (x *GetMaxIDByPhoneResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[1]
+	mi := &file_maxbot_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -154,7 +154,7 @@ func (x *GetMaxIDByPhoneResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetMaxIDByPhoneResponse.ProtoReflect.Descriptor instead.
 func (*GetMaxIDByPhoneResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{1}
+	return file_maxbot_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetMaxIDByPhoneResponse) GetMaxId() string {
@@ -187,7 +187,7 @@ type ValidatePhoneRequest struct {
 
 func (x *ValidatePhoneRequest) Reset() {
 	*x = ValidatePhoneRequest{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[2]
+	mi := &file_maxbot_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -199,7 +199,7 @@ func (x *ValidatePhoneRequest) String() string {
 func (*ValidatePhoneRequest) ProtoMessage() {}
 
 func (x *ValidatePhoneRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[2]
+	mi := &file_maxbot_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -212,7 +212,7 @@ func (x *ValidatePhoneRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidatePhoneRequest.ProtoReflect.Descriptor instead.
 func (*ValidatePhoneRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{2}
+	return file_maxbot_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ValidatePhoneRequest) GetPhone() string {
@@ -234,7 +234,7 @@ type ValidatePhoneResponse struct {
 
 func (x *ValidatePhoneResponse) Reset() {
 	*x = ValidatePhoneResponse{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[3]
+	mi := &file_maxbot_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -246,7 +246,7 @@ func (x *ValidatePhoneResponse) String() string {
 func (*ValidatePhoneResponse) ProtoMessage() {}
 
 func (x *ValidatePhoneResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[3]
+	mi := &file_maxbot_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -259,7 +259,7 @@ func (x *ValidatePhoneResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ValidatePhoneResponse.ProtoReflect.Descriptor instead.
 func (*ValidatePhoneResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{3}
+	return file_maxbot_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ValidatePhoneResponse) GetValid() bool {
@@ -305,7 +305,7 @@ type SendMessageRequest struct {
 
 func (x *SendMessageRequest) Reset() {
 	*x = SendMessageRequest{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[4]
+	mi := &file_maxbot_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -317,7 +317,7 @@ func (x *SendMessageRequest) String() string {
 func (*SendMessageRequest) ProtoMessage() {}
 
 func (x *SendMessageRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[4]
+	mi := &file_maxbot_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -330,7 +330,7 @@ func (x *SendMessageRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMessageRequest.ProtoReflect.Descriptor instead.
 func (*SendMessageRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{4}
+	return file_maxbot_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *SendMessageRequest) GetRecipient() isSendMessageRequest_Recipient {
@@ -392,7 +392,7 @@ type SendMessageResponse struct {
 
 func (x *SendMessageResponse) Reset() {
 	*x = SendMessageResponse{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[5]
+	mi := &file_maxbot_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -404,7 +404,7 @@ func (x *SendMessageResponse) String() string {
 func (*SendMessageResponse) ProtoMessage() {}
 
 func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[5]
+	mi := &file_maxbot_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -417,7 +417,7 @@ func (x *SendMessageResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendMessageResponse.ProtoReflect.Descriptor instead.
 func (*SendMessageResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{5}
+	return file_maxbot_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *SendMessageResponse) GetMessageId() string {
@@ -452,7 +452,7 @@ type SendNotificationRequest struct {
 
 func (x *SendNotificationRequest) Reset() {
 	*x = SendNotificationRequest{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[6]
+	mi := &file_maxbot_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -464,7 +464,7 @@ func (x *SendNotificationRequest) String() string {
 func (*SendNotificationRequest) ProtoMessage() {}
 
 func (x *SendNotificationRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[6]
+	mi := &file_maxbot_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -477,7 +477,7 @@ func (x *SendNotificationRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendNotificationRequest.ProtoReflect.Descriptor instead.
 func (*SendNotificationRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{6}
+	return file_maxbot_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *SendNotificationRequest) GetPhone() string {
@@ -505,7 +505,7 @@ type SendNotificationResponse struct {
 
 func (x *SendNotificationResponse) Reset() {
 	*x = SendNotificationResponse{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[7]
+	mi := &file_maxbot_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -517,7 +517,7 @@ func (x *SendNotificationResponse) String() string {
 func (*SendNotificationResponse) ProtoMessage() {}
 
 func (x *SendNotificationResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[7]
+	mi := &file_maxbot_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -530,7 +530,7 @@ func (x *SendNotificationResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use SendNotificationResponse.ProtoReflect.Descriptor instead.
 func (*SendNotificationResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{7}
+	return file_maxbot_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *SendNotificationResponse) GetSuccess() bool {
@@ -564,7 +564,7 @@ type GetChatInfoRequest struct {
 
 func (x *GetChatInfoRequest) Reset() {
 	*x = GetChatInfoRequest{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[8]
+	mi := &file_maxbot_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -576,7 +576,7 @@ func (x *GetChatInfoRequest) String() string {
 func (*GetChatInfoRequest) ProtoMessage() {}
 
 func (x *GetChatInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[8]
+	mi := &file_maxbot_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -589,7 +589,7 @@ func (x *GetChatInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatInfoRequest.ProtoReflect.Descriptor instead.
 func (*GetChatInfoRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{8}
+	return file_maxbot_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *GetChatInfoRequest) GetChatId() int64 {
@@ -610,7 +610,7 @@ type GetChatInfoResponse struct {
 
 func (x *GetChatInfoResponse) Reset() {
 	*x = GetChatInfoResponse{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[9]
+	mi := &file_maxbot_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -622,7 +622,7 @@ func (x *GetChatInfoResponse) String() string {
 func (*GetChatInfoResponse) ProtoMessage() {}
 
 func (x *GetChatInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[9]
+	mi := &file_maxbot_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -635,7 +635,7 @@ func (x *GetChatInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatInfoResponse.ProtoReflect.Descriptor instead.
 func (*GetChatInfoResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{9}
+	return file_maxbot_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *GetChatInfoResponse) GetChat() *ChatInfo {
@@ -672,7 +672,7 @@ type ChatInfo struct {
 
 func (x *ChatInfo) Reset() {
 	*x = ChatInfo{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[10]
+	mi := &file_maxbot_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -684,7 +684,7 @@ func (x *ChatInfo) String() string {
 func (*ChatInfo) ProtoMessage() {}
 
 func (x *ChatInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[10]
+	mi := &file_maxbot_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -697,7 +697,7 @@ func (x *ChatInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatInfo.ProtoReflect.Descriptor instead.
 func (*ChatInfo) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{10}
+	return file_maxbot_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ChatInfo) GetChatId() int64 {
@@ -747,7 +747,7 @@ type GetChatMembersRequest struct {
 
 func (x *GetChatMembersRequest) Reset() {
 	*x = GetChatMembersRequest{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[11]
+	mi := &file_maxbot_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -759,7 +759,7 @@ func (x *GetChatMembersRequest) String() string {
 func (*GetChatMembersRequest) ProtoMessage() {}
 
 func (x *GetChatMembersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[11]
+	mi := &file_maxbot_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -772,7 +772,7 @@ func (x *GetChatMembersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatMembersRequest.ProtoReflect.Descriptor instead.
 func (*GetChatMembersRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{11}
+	return file_maxbot_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *GetChatMembersRequest) GetChatId() int64 {
@@ -808,7 +808,7 @@ type GetChatMembersResponse struct {
 
 func (x *GetChatMembersResponse) Reset() {
 	*x = GetChatMembersResponse{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[12]
+	mi := &file_maxbot_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -820,7 +820,7 @@ func (x *GetChatMembersResponse) String() string {
 func (*GetChatMembersResponse) ProtoMessage() {}
 
 func (x *GetChatMembersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[12]
+	mi := &file_maxbot_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -833,7 +833,7 @@ func (x *GetChatMembersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatMembersResponse.ProtoReflect.Descriptor instead.
 func (*GetChatMembersResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{12}
+	return file_maxbot_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *GetChatMembersResponse) GetMembers() []*ChatMember {
@@ -876,7 +876,7 @@ type ChatMember struct {
 
 func (x *ChatMember) Reset() {
 	*x = ChatMember{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[13]
+	mi := &file_maxbot_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -888,7 +888,7 @@ func (x *ChatMember) String() string {
 func (*ChatMember) ProtoMessage() {}
 
 func (x *ChatMember) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[13]
+	mi := &file_maxbot_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -901,7 +901,7 @@ func (x *ChatMember) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ChatMember.ProtoReflect.Descriptor instead.
 func (*ChatMember) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{13}
+	return file_maxbot_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ChatMember) GetUserId() int64 {
@@ -942,7 +942,7 @@ type GetChatAdminsRequest struct {
 
 func (x *GetChatAdminsRequest) Reset() {
 	*x = GetChatAdminsRequest{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[14]
+	mi := &file_maxbot_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -954,7 +954,7 @@ func (x *GetChatAdminsRequest) String() string {
 func (*GetChatAdminsRequest) ProtoMessage() {}
 
 func (x *GetChatAdminsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[14]
+	mi := &file_maxbot_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -967,7 +967,7 @@ func (x *GetChatAdminsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatAdminsRequest.ProtoReflect.Descriptor instead.
 func (*GetChatAdminsRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{14}
+	return file_maxbot_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *GetChatAdminsRequest) GetChatId() int64 {
@@ -988,7 +988,7 @@ type GetChatAdminsResponse struct {
 
 func (x *GetChatAdminsResponse) Reset() {
 	*x = GetChatAdminsResponse{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[15]
+	mi := &file_maxbot_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1000,7 +1000,7 @@ func (x *GetChatAdminsResponse) String() string {
 func (*GetChatAdminsResponse) ProtoMessage() {}
 
 func (x *GetChatAdminsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[15]
+	mi := &file_maxbot_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1013,7 +1013,7 @@ func (x *GetChatAdminsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatAdminsResponse.ProtoReflect.Descriptor instead.
 func (*GetChatAdminsResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{15}
+	return file_maxbot_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *GetChatAdminsResponse) GetAdmins() []*ChatMember {
@@ -1047,7 +1047,7 @@ type CheckPhoneNumbersRequest struct {
 
 func (x *CheckPhoneNumbersRequest) Reset() {
 	*x = CheckPhoneNumbersRequest{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[16]
+	mi := &file_maxbot_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1059,7 +1059,7 @@ func (x *CheckPhoneNumbersRequest) String() string {
 func (*CheckPhoneNumbersRequest) ProtoMessage() {}
 
 func (x *CheckPhoneNumbersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[16]
+	mi := &file_maxbot_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1072,7 +1072,7 @@ func (x *CheckPhoneNumbersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckPhoneNumbersRequest.ProtoReflect.Descriptor instead.
 func (*CheckPhoneNumbersRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{16}
+	return file_maxbot_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *CheckPhoneNumbersRequest) GetPhones() []string {
@@ -1093,7 +1093,7 @@ type CheckPhoneNumbersResponse struct {
 
 func (x *CheckPhoneNumbersResponse) Reset() {
 	*x = CheckPhoneNumbersResponse{}
-	mi := &file_api_proto_maxbot_proto_msgTypes[17]
+	mi := &file_maxbot_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1105,7 +1105,7 @@ func (x *CheckPhoneNumbersResponse) String() string {
 func (*CheckPhoneNumbersResponse) ProtoMessage() {}
 
 func (x *CheckPhoneNumbersResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_maxbot_proto_msgTypes[17]
+	mi := &file_maxbot_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1118,7 +1118,7 @@ func (x *CheckPhoneNumbersResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CheckPhoneNumbersResponse.ProtoReflect.Descriptor instead.
 func (*CheckPhoneNumbersResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_maxbot_proto_rawDescGZIP(), []int{17}
+	return file_maxbot_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *CheckPhoneNumbersResponse) GetExistingPhones() []string {
@@ -1142,11 +1142,281 @@ func (x *CheckPhoneNumbersResponse) GetError() string {
 	return ""
 }
 
-var File_api_proto_maxbot_proto protoreflect.FileDescriptor
+// NormalizePhone
+type NormalizePhoneRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Phone         string                 `protobuf:"bytes,1,opt,name=phone,proto3" json:"phone,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_api_proto_maxbot_proto_rawDesc = "" +
+func (x *NormalizePhoneRequest) Reset() {
+	*x = NormalizePhoneRequest{}
+	mi := &file_maxbot_proto_msgTypes[18]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NormalizePhoneRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NormalizePhoneRequest) ProtoMessage() {}
+
+func (x *NormalizePhoneRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_maxbot_proto_msgTypes[18]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NormalizePhoneRequest.ProtoReflect.Descriptor instead.
+func (*NormalizePhoneRequest) Descriptor() ([]byte, []int) {
+	return file_maxbot_proto_rawDescGZIP(), []int{18}
+}
+
+func (x *NormalizePhoneRequest) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+type NormalizePhoneResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	NormalizedPhone string                 `protobuf:"bytes,1,opt,name=normalized_phone,json=normalizedPhone,proto3" json:"normalized_phone,omitempty"`
+	ErrorCode       ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=maxbot.ErrorCode" json:"error_code,omitempty"`
+	Error           string                 `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *NormalizePhoneResponse) Reset() {
+	*x = NormalizePhoneResponse{}
+	mi := &file_maxbot_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NormalizePhoneResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NormalizePhoneResponse) ProtoMessage() {}
+
+func (x *NormalizePhoneResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_maxbot_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NormalizePhoneResponse.ProtoReflect.Descriptor instead.
+func (*NormalizePhoneResponse) Descriptor() ([]byte, []int) {
+	return file_maxbot_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *NormalizePhoneResponse) GetNormalizedPhone() string {
+	if x != nil {
+		return x.NormalizedPhone
+	}
+	return ""
+}
+
+func (x *NormalizePhoneResponse) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *NormalizePhoneResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+// BatchGetUsersByPhone
+type BatchGetUsersByPhoneRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Phones        []string               `protobuf:"bytes,1,rep,name=phones,proto3" json:"phones,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchGetUsersByPhoneRequest) Reset() {
+	*x = BatchGetUsersByPhoneRequest{}
+	mi := &file_maxbot_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchGetUsersByPhoneRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchGetUsersByPhoneRequest) ProtoMessage() {}
+
+func (x *BatchGetUsersByPhoneRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_maxbot_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchGetUsersByPhoneRequest.ProtoReflect.Descriptor instead.
+func (*BatchGetUsersByPhoneRequest) Descriptor() ([]byte, []int) {
+	return file_maxbot_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *BatchGetUsersByPhoneRequest) GetPhones() []string {
+	if x != nil {
+		return x.Phones
+	}
+	return nil
+}
+
+type BatchGetUsersByPhoneResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Mappings      []*UserPhoneMapping    `protobuf:"bytes,1,rep,name=mappings,proto3" json:"mappings,omitempty"`
+	ErrorCode     ErrorCode              `protobuf:"varint,2,opt,name=error_code,json=errorCode,proto3,enum=maxbot.ErrorCode" json:"error_code,omitempty"`
+	Error         string                 `protobuf:"bytes,3,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *BatchGetUsersByPhoneResponse) Reset() {
+	*x = BatchGetUsersByPhoneResponse{}
+	mi := &file_maxbot_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *BatchGetUsersByPhoneResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*BatchGetUsersByPhoneResponse) ProtoMessage() {}
+
+func (x *BatchGetUsersByPhoneResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_maxbot_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use BatchGetUsersByPhoneResponse.ProtoReflect.Descriptor instead.
+func (*BatchGetUsersByPhoneResponse) Descriptor() ([]byte, []int) {
+	return file_maxbot_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *BatchGetUsersByPhoneResponse) GetMappings() []*UserPhoneMapping {
+	if x != nil {
+		return x.Mappings
+	}
+	return nil
+}
+
+func (x *BatchGetUsersByPhoneResponse) GetErrorCode() ErrorCode {
+	if x != nil {
+		return x.ErrorCode
+	}
+	return ErrorCode_ERROR_CODE_UNSPECIFIED
+}
+
+func (x *BatchGetUsersByPhoneResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type UserPhoneMapping struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Phone         string                 `protobuf:"bytes,1,opt,name=phone,proto3" json:"phone,omitempty"`
+	MaxId         string                 `protobuf:"bytes,2,opt,name=max_id,json=maxId,proto3" json:"max_id,omitempty"`
+	Found         bool                   `protobuf:"varint,3,opt,name=found,proto3" json:"found,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UserPhoneMapping) Reset() {
+	*x = UserPhoneMapping{}
+	mi := &file_maxbot_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UserPhoneMapping) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UserPhoneMapping) ProtoMessage() {}
+
+func (x *UserPhoneMapping) ProtoReflect() protoreflect.Message {
+	mi := &file_maxbot_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UserPhoneMapping.ProtoReflect.Descriptor instead.
+func (*UserPhoneMapping) Descriptor() ([]byte, []int) {
+	return file_maxbot_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *UserPhoneMapping) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *UserPhoneMapping) GetMaxId() string {
+	if x != nil {
+		return x.MaxId
+	}
+	return ""
+}
+
+func (x *UserPhoneMapping) GetFound() bool {
+	if x != nil {
+		return x.Found
+	}
+	return false
+}
+
+var File_maxbot_proto protoreflect.FileDescriptor
+
+const file_maxbot_proto_rawDesc = "" +
 	"\n" +
-	"\x16api/proto/maxbot.proto\x12\x06maxbot\".\n" +
+	"\fmaxbot.proto\x12\x06maxbot\".\n" +
 	"\x16GetMaxIDByPhoneRequest\x12\x14\n" +
 	"\x05phone\x18\x01 \x01(\tR\x05phone\"x\n" +
 	"\x17GetMaxIDByPhoneResponse\x12\x15\n" +
@@ -1223,12 +1493,30 @@ const file_api_proto_maxbot_proto_rawDesc = "" +
 	"\x0fexisting_phones\x18\x01 \x03(\tR\x0eexistingPhones\x120\n" +
 	"\n" +
 	"error_code\x18\x02 \x01(\x0e2\x11.maxbot.ErrorCodeR\terrorCode\x12\x14\n" +
-	"\x05error\x18\x03 \x01(\tR\x05error*\x7f\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"-\n" +
+	"\x15NormalizePhoneRequest\x12\x14\n" +
+	"\x05phone\x18\x01 \x01(\tR\x05phone\"\x8b\x01\n" +
+	"\x16NormalizePhoneResponse\x12)\n" +
+	"\x10normalized_phone\x18\x01 \x01(\tR\x0fnormalizedPhone\x120\n" +
+	"\n" +
+	"error_code\x18\x02 \x01(\x0e2\x11.maxbot.ErrorCodeR\terrorCode\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"5\n" +
+	"\x1bBatchGetUsersByPhoneRequest\x12\x16\n" +
+	"\x06phones\x18\x01 \x03(\tR\x06phones\"\x9c\x01\n" +
+	"\x1cBatchGetUsersByPhoneResponse\x124\n" +
+	"\bmappings\x18\x01 \x03(\v2\x18.maxbot.UserPhoneMappingR\bmappings\x120\n" +
+	"\n" +
+	"error_code\x18\x02 \x01(\x0e2\x11.maxbot.ErrorCodeR\terrorCode\x12\x14\n" +
+	"\x05error\x18\x03 \x01(\tR\x05error\"U\n" +
+	"\x10UserPhoneMapping\x12\x14\n" +
+	"\x05phone\x18\x01 \x01(\tR\x05phone\x12\x15\n" +
+	"\x06max_id\x18\x02 \x01(\tR\x05maxId\x12\x14\n" +
+	"\x05found\x18\x03 \x01(\bR\x05found*\x7f\n" +
 	"\tErrorCode\x12\x1a\n" +
 	"\x16ERROR_CODE_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18ERROR_CODE_INVALID_PHONE\x10\x01\x12\x1f\n" +
 	"\x1bERROR_CODE_MAX_ID_NOT_FOUND\x10\x02\x12\x17\n" +
-	"\x13ERROR_CODE_INTERNAL\x10\x032\x91\x05\n" +
+	"\x13ERROR_CODE_INTERNAL\x10\x032\xc5\x06\n" +
 	"\rMaxBotService\x12R\n" +
 	"\x0fGetMaxIDByPhone\x12\x1e.maxbot.GetMaxIDByPhoneRequest\x1a\x1f.maxbot.GetMaxIDByPhoneResponse\x12L\n" +
 	"\rValidatePhone\x12\x1c.maxbot.ValidatePhoneRequest\x1a\x1d.maxbot.ValidatePhoneResponse\x12F\n" +
@@ -1237,44 +1525,51 @@ const file_api_proto_maxbot_proto_rawDesc = "" +
 	"\vGetChatInfo\x12\x1a.maxbot.GetChatInfoRequest\x1a\x1b.maxbot.GetChatInfoResponse\x12O\n" +
 	"\x0eGetChatMembers\x12\x1d.maxbot.GetChatMembersRequest\x1a\x1e.maxbot.GetChatMembersResponse\x12L\n" +
 	"\rGetChatAdmins\x12\x1c.maxbot.GetChatAdminsRequest\x1a\x1d.maxbot.GetChatAdminsResponse\x12X\n" +
-	"\x11CheckPhoneNumbers\x12 .maxbot.CheckPhoneNumbersRequest\x1a!.maxbot.CheckPhoneNumbersResponseB&Z$maxbot-service/api/proto;maxbotprotob\x06proto3"
+	"\x11CheckPhoneNumbers\x12 .maxbot.CheckPhoneNumbersRequest\x1a!.maxbot.CheckPhoneNumbersResponse\x12O\n" +
+	"\x0eNormalizePhone\x12\x1d.maxbot.NormalizePhoneRequest\x1a\x1e.maxbot.NormalizePhoneResponse\x12a\n" +
+	"\x14BatchGetUsersByPhone\x12#.maxbot.BatchGetUsersByPhoneRequest\x1a$.maxbot.BatchGetUsersByPhoneResponseB&Z$maxbot-service/api/proto;maxbotprotob\x06proto3"
 
 var (
-	file_api_proto_maxbot_proto_rawDescOnce sync.Once
-	file_api_proto_maxbot_proto_rawDescData []byte
+	file_maxbot_proto_rawDescOnce sync.Once
+	file_maxbot_proto_rawDescData []byte
 )
 
-func file_api_proto_maxbot_proto_rawDescGZIP() []byte {
-	file_api_proto_maxbot_proto_rawDescOnce.Do(func() {
-		file_api_proto_maxbot_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_maxbot_proto_rawDesc), len(file_api_proto_maxbot_proto_rawDesc)))
+func file_maxbot_proto_rawDescGZIP() []byte {
+	file_maxbot_proto_rawDescOnce.Do(func() {
+		file_maxbot_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_maxbot_proto_rawDesc), len(file_maxbot_proto_rawDesc)))
 	})
-	return file_api_proto_maxbot_proto_rawDescData
+	return file_maxbot_proto_rawDescData
 }
 
-var file_api_proto_maxbot_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_api_proto_maxbot_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
-var file_api_proto_maxbot_proto_goTypes = []any{
-	(ErrorCode)(0),                    // 0: maxbot.ErrorCode
-	(*GetMaxIDByPhoneRequest)(nil),    // 1: maxbot.GetMaxIDByPhoneRequest
-	(*GetMaxIDByPhoneResponse)(nil),   // 2: maxbot.GetMaxIDByPhoneResponse
-	(*ValidatePhoneRequest)(nil),      // 3: maxbot.ValidatePhoneRequest
-	(*ValidatePhoneResponse)(nil),     // 4: maxbot.ValidatePhoneResponse
-	(*SendMessageRequest)(nil),        // 5: maxbot.SendMessageRequest
-	(*SendMessageResponse)(nil),       // 6: maxbot.SendMessageResponse
-	(*SendNotificationRequest)(nil),   // 7: maxbot.SendNotificationRequest
-	(*SendNotificationResponse)(nil),  // 8: maxbot.SendNotificationResponse
-	(*GetChatInfoRequest)(nil),        // 9: maxbot.GetChatInfoRequest
-	(*GetChatInfoResponse)(nil),       // 10: maxbot.GetChatInfoResponse
-	(*ChatInfo)(nil),                  // 11: maxbot.ChatInfo
-	(*GetChatMembersRequest)(nil),     // 12: maxbot.GetChatMembersRequest
-	(*GetChatMembersResponse)(nil),    // 13: maxbot.GetChatMembersResponse
-	(*ChatMember)(nil),                // 14: maxbot.ChatMember
-	(*GetChatAdminsRequest)(nil),      // 15: maxbot.GetChatAdminsRequest
-	(*GetChatAdminsResponse)(nil),     // 16: maxbot.GetChatAdminsResponse
-	(*CheckPhoneNumbersRequest)(nil),  // 17: maxbot.CheckPhoneNumbersRequest
-	(*CheckPhoneNumbersResponse)(nil), // 18: maxbot.CheckPhoneNumbersResponse
+var file_maxbot_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_maxbot_proto_msgTypes = make([]protoimpl.MessageInfo, 23)
+var file_maxbot_proto_goTypes = []any{
+	(ErrorCode)(0),                       // 0: maxbot.ErrorCode
+	(*GetMaxIDByPhoneRequest)(nil),       // 1: maxbot.GetMaxIDByPhoneRequest
+	(*GetMaxIDByPhoneResponse)(nil),      // 2: maxbot.GetMaxIDByPhoneResponse
+	(*ValidatePhoneRequest)(nil),         // 3: maxbot.ValidatePhoneRequest
+	(*ValidatePhoneResponse)(nil),        // 4: maxbot.ValidatePhoneResponse
+	(*SendMessageRequest)(nil),           // 5: maxbot.SendMessageRequest
+	(*SendMessageResponse)(nil),          // 6: maxbot.SendMessageResponse
+	(*SendNotificationRequest)(nil),      // 7: maxbot.SendNotificationRequest
+	(*SendNotificationResponse)(nil),     // 8: maxbot.SendNotificationResponse
+	(*GetChatInfoRequest)(nil),           // 9: maxbot.GetChatInfoRequest
+	(*GetChatInfoResponse)(nil),          // 10: maxbot.GetChatInfoResponse
+	(*ChatInfo)(nil),                     // 11: maxbot.ChatInfo
+	(*GetChatMembersRequest)(nil),        // 12: maxbot.GetChatMembersRequest
+	(*GetChatMembersResponse)(nil),       // 13: maxbot.GetChatMembersResponse
+	(*ChatMember)(nil),                   // 14: maxbot.ChatMember
+	(*GetChatAdminsRequest)(nil),         // 15: maxbot.GetChatAdminsRequest
+	(*GetChatAdminsResponse)(nil),        // 16: maxbot.GetChatAdminsResponse
+	(*CheckPhoneNumbersRequest)(nil),     // 17: maxbot.CheckPhoneNumbersRequest
+	(*CheckPhoneNumbersResponse)(nil),    // 18: maxbot.CheckPhoneNumbersResponse
+	(*NormalizePhoneRequest)(nil),        // 19: maxbot.NormalizePhoneRequest
+	(*NormalizePhoneResponse)(nil),       // 20: maxbot.NormalizePhoneResponse
+	(*BatchGetUsersByPhoneRequest)(nil),  // 21: maxbot.BatchGetUsersByPhoneRequest
+	(*BatchGetUsersByPhoneResponse)(nil), // 22: maxbot.BatchGetUsersByPhoneResponse
+	(*UserPhoneMapping)(nil),             // 23: maxbot.UserPhoneMapping
 }
-var file_api_proto_maxbot_proto_depIdxs = []int32{
+var file_maxbot_proto_depIdxs = []int32{
 	0,  // 0: maxbot.GetMaxIDByPhoneResponse.error_code:type_name -> maxbot.ErrorCode
 	0,  // 1: maxbot.ValidatePhoneResponse.error_code:type_name -> maxbot.ErrorCode
 	0,  // 2: maxbot.SendMessageResponse.error_code:type_name -> maxbot.ErrorCode
@@ -1286,35 +1581,42 @@ var file_api_proto_maxbot_proto_depIdxs = []int32{
 	14, // 8: maxbot.GetChatAdminsResponse.admins:type_name -> maxbot.ChatMember
 	0,  // 9: maxbot.GetChatAdminsResponse.error_code:type_name -> maxbot.ErrorCode
 	0,  // 10: maxbot.CheckPhoneNumbersResponse.error_code:type_name -> maxbot.ErrorCode
-	1,  // 11: maxbot.MaxBotService.GetMaxIDByPhone:input_type -> maxbot.GetMaxIDByPhoneRequest
-	3,  // 12: maxbot.MaxBotService.ValidatePhone:input_type -> maxbot.ValidatePhoneRequest
-	5,  // 13: maxbot.MaxBotService.SendMessage:input_type -> maxbot.SendMessageRequest
-	7,  // 14: maxbot.MaxBotService.SendNotification:input_type -> maxbot.SendNotificationRequest
-	9,  // 15: maxbot.MaxBotService.GetChatInfo:input_type -> maxbot.GetChatInfoRequest
-	12, // 16: maxbot.MaxBotService.GetChatMembers:input_type -> maxbot.GetChatMembersRequest
-	15, // 17: maxbot.MaxBotService.GetChatAdmins:input_type -> maxbot.GetChatAdminsRequest
-	17, // 18: maxbot.MaxBotService.CheckPhoneNumbers:input_type -> maxbot.CheckPhoneNumbersRequest
-	2,  // 19: maxbot.MaxBotService.GetMaxIDByPhone:output_type -> maxbot.GetMaxIDByPhoneResponse
-	4,  // 20: maxbot.MaxBotService.ValidatePhone:output_type -> maxbot.ValidatePhoneResponse
-	6,  // 21: maxbot.MaxBotService.SendMessage:output_type -> maxbot.SendMessageResponse
-	8,  // 22: maxbot.MaxBotService.SendNotification:output_type -> maxbot.SendNotificationResponse
-	10, // 23: maxbot.MaxBotService.GetChatInfo:output_type -> maxbot.GetChatInfoResponse
-	13, // 24: maxbot.MaxBotService.GetChatMembers:output_type -> maxbot.GetChatMembersResponse
-	16, // 25: maxbot.MaxBotService.GetChatAdmins:output_type -> maxbot.GetChatAdminsResponse
-	18, // 26: maxbot.MaxBotService.CheckPhoneNumbers:output_type -> maxbot.CheckPhoneNumbersResponse
-	19, // [19:27] is the sub-list for method output_type
-	11, // [11:19] is the sub-list for method input_type
-	11, // [11:11] is the sub-list for extension type_name
-	11, // [11:11] is the sub-list for extension extendee
-	0,  // [0:11] is the sub-list for field type_name
+	0,  // 11: maxbot.NormalizePhoneResponse.error_code:type_name -> maxbot.ErrorCode
+	23, // 12: maxbot.BatchGetUsersByPhoneResponse.mappings:type_name -> maxbot.UserPhoneMapping
+	0,  // 13: maxbot.BatchGetUsersByPhoneResponse.error_code:type_name -> maxbot.ErrorCode
+	1,  // 14: maxbot.MaxBotService.GetMaxIDByPhone:input_type -> maxbot.GetMaxIDByPhoneRequest
+	3,  // 15: maxbot.MaxBotService.ValidatePhone:input_type -> maxbot.ValidatePhoneRequest
+	5,  // 16: maxbot.MaxBotService.SendMessage:input_type -> maxbot.SendMessageRequest
+	7,  // 17: maxbot.MaxBotService.SendNotification:input_type -> maxbot.SendNotificationRequest
+	9,  // 18: maxbot.MaxBotService.GetChatInfo:input_type -> maxbot.GetChatInfoRequest
+	12, // 19: maxbot.MaxBotService.GetChatMembers:input_type -> maxbot.GetChatMembersRequest
+	15, // 20: maxbot.MaxBotService.GetChatAdmins:input_type -> maxbot.GetChatAdminsRequest
+	17, // 21: maxbot.MaxBotService.CheckPhoneNumbers:input_type -> maxbot.CheckPhoneNumbersRequest
+	19, // 22: maxbot.MaxBotService.NormalizePhone:input_type -> maxbot.NormalizePhoneRequest
+	21, // 23: maxbot.MaxBotService.BatchGetUsersByPhone:input_type -> maxbot.BatchGetUsersByPhoneRequest
+	2,  // 24: maxbot.MaxBotService.GetMaxIDByPhone:output_type -> maxbot.GetMaxIDByPhoneResponse
+	4,  // 25: maxbot.MaxBotService.ValidatePhone:output_type -> maxbot.ValidatePhoneResponse
+	6,  // 26: maxbot.MaxBotService.SendMessage:output_type -> maxbot.SendMessageResponse
+	8,  // 27: maxbot.MaxBotService.SendNotification:output_type -> maxbot.SendNotificationResponse
+	10, // 28: maxbot.MaxBotService.GetChatInfo:output_type -> maxbot.GetChatInfoResponse
+	13, // 29: maxbot.MaxBotService.GetChatMembers:output_type -> maxbot.GetChatMembersResponse
+	16, // 30: maxbot.MaxBotService.GetChatAdmins:output_type -> maxbot.GetChatAdminsResponse
+	18, // 31: maxbot.MaxBotService.CheckPhoneNumbers:output_type -> maxbot.CheckPhoneNumbersResponse
+	20, // 32: maxbot.MaxBotService.NormalizePhone:output_type -> maxbot.NormalizePhoneResponse
+	22, // 33: maxbot.MaxBotService.BatchGetUsersByPhone:output_type -> maxbot.BatchGetUsersByPhoneResponse
+	24, // [24:34] is the sub-list for method output_type
+	14, // [14:24] is the sub-list for method input_type
+	14, // [14:14] is the sub-list for extension type_name
+	14, // [14:14] is the sub-list for extension extendee
+	0,  // [0:14] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_maxbot_proto_init() }
-func file_api_proto_maxbot_proto_init() {
-	if File_api_proto_maxbot_proto != nil {
+func init() { file_maxbot_proto_init() }
+func file_maxbot_proto_init() {
+	if File_maxbot_proto != nil {
 		return
 	}
-	file_api_proto_maxbot_proto_msgTypes[4].OneofWrappers = []any{
+	file_maxbot_proto_msgTypes[4].OneofWrappers = []any{
 		(*SendMessageRequest_ChatId)(nil),
 		(*SendMessageRequest_UserId)(nil),
 	}
@@ -1322,18 +1624,18 @@ func file_api_proto_maxbot_proto_init() {
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_maxbot_proto_rawDesc), len(file_api_proto_maxbot_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_maxbot_proto_rawDesc), len(file_maxbot_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   18,
+			NumMessages:   23,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_maxbot_proto_goTypes,
-		DependencyIndexes: file_api_proto_maxbot_proto_depIdxs,
-		EnumInfos:         file_api_proto_maxbot_proto_enumTypes,
-		MessageInfos:      file_api_proto_maxbot_proto_msgTypes,
+		GoTypes:           file_maxbot_proto_goTypes,
+		DependencyIndexes: file_maxbot_proto_depIdxs,
+		EnumInfos:         file_maxbot_proto_enumTypes,
+		MessageInfos:      file_maxbot_proto_msgTypes,
 	}.Build()
-	File_api_proto_maxbot_proto = out.File
-	file_api_proto_maxbot_proto_goTypes = nil
-	file_api_proto_maxbot_proto_depIdxs = nil
+	File_maxbot_proto = out.File
+	file_maxbot_proto_goTypes = nil
+	file_maxbot_proto_depIdxs = nil
 }

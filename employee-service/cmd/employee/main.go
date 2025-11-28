@@ -4,11 +4,13 @@ import (
 	"database/sql"
 	"employee-service/internal/app"
 	"employee-service/internal/config"
+	"employee-service/internal/infrastructure/auth"
 	"employee-service/internal/infrastructure/grpc"
 	"employee-service/internal/infrastructure/http"
 	"employee-service/internal/infrastructure/max"
 	"employee-service/internal/infrastructure/repository"
 	"employee-service/internal/usecase"
+	"log"
 
 	_ "github.com/lib/pq"
 
@@ -47,12 +49,28 @@ func main() {
 	}
 	defer maxClient.Close()
 
+	// Инициализируем Auth gRPC клиент
+	authClient, err := auth.NewAuthClient(cfg.AuthServiceAddress)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to auth service: %v", err)
+		authClient = nil
+	}
+	if authClient != nil {
+		defer authClient.Close()
+	}
+
 	// Инициализируем usecase
 	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient)
 	batchUpdateMaxIdUseCase := usecase.NewBatchUpdateMaxIdUseCase(employeeRepo, batchUpdateJobRepo, maxClient)
+	
+	// Инициализируем use case для поиска с ролевой фильтрацией
+	var searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase
+	if authClient != nil {
+		searchEmployeesWithRoleFilterUC = usecase.NewSearchEmployeesWithRoleFilterUseCase(employeeRepo, authClient)
+	}
 
 	// Инициализируем HTTP handler
-	handler := http.NewHandler(employeeService, batchUpdateMaxIdUseCase)
+	handler := http.NewHandler(employeeService, batchUpdateMaxIdUseCase, searchEmployeesWithRoleFilterUC, authClient)
 
 	// HTTP server
 	httpServer := &app.Server{

@@ -7,14 +7,14 @@ import (
 	"time"
 )
 
-// Mock repositories and services for testing
-type mockEmployeeRepo struct {
+// Mock repositories and services specific to batch update tests
+type mockEmployeeRepoForBatch struct {
 	employees          []*domain.Employee
 	countWithoutMaxID  int
 	updateCalled       int
 }
 
-func (m *mockEmployeeRepo) Create(employee *domain.Employee) error {
+func (m *mockEmployeeRepoForBatch) Create(employee *domain.Employee) error {
 	employee.ID = int64(len(m.employees) + 1)
 	employee.CreatedAt = time.Now()
 	employee.UpdatedAt = time.Now()
@@ -22,7 +22,7 @@ func (m *mockEmployeeRepo) Create(employee *domain.Employee) error {
 	return nil
 }
 
-func (m *mockEmployeeRepo) GetByID(id int64) (*domain.Employee, error) {
+func (m *mockEmployeeRepoForBatch) GetByID(id int64) (*domain.Employee, error) {
 	for _, emp := range m.employees {
 		if emp.ID == id {
 			return emp, nil
@@ -31,23 +31,23 @@ func (m *mockEmployeeRepo) GetByID(id int64) (*domain.Employee, error) {
 	return nil, errors.New("not found")
 }
 
-func (m *mockEmployeeRepo) GetByPhone(phone string) (*domain.Employee, error) {
+func (m *mockEmployeeRepoForBatch) GetByPhone(phone string) (*domain.Employee, error) {
 	return nil, errors.New("not found")
 }
 
-func (m *mockEmployeeRepo) GetByMaxID(maxID string) (*domain.Employee, error) {
+func (m *mockEmployeeRepoForBatch) GetByMaxID(maxID string) (*domain.Employee, error) {
 	return nil, errors.New("not found")
 }
 
-func (m *mockEmployeeRepo) Search(query string, limit, offset int) ([]*domain.Employee, error) {
+func (m *mockEmployeeRepoForBatch) Search(query string, limit, offset int) ([]*domain.Employee, error) {
 	return m.employees, nil
 }
 
-func (m *mockEmployeeRepo) GetAll(limit, offset int) ([]*domain.Employee, error) {
+func (m *mockEmployeeRepoForBatch) GetAll(limit, offset int) ([]*domain.Employee, error) {
 	return m.employees, nil
 }
 
-func (m *mockEmployeeRepo) Update(employee *domain.Employee) error {
+func (m *mockEmployeeRepoForBatch) Update(employee *domain.Employee) error {
 	m.updateCalled++
 	for i, emp := range m.employees {
 		if emp.ID == employee.ID {
@@ -58,11 +58,23 @@ func (m *mockEmployeeRepo) Update(employee *domain.Employee) error {
 	return errors.New("not found")
 }
 
-func (m *mockEmployeeRepo) Delete(id int64) error {
+func (m *mockEmployeeRepoForBatch) Delete(id int64) error {
 	return nil
 }
 
-func (m *mockEmployeeRepo) GetEmployeesWithoutMaxID(limit, offset int) ([]*domain.Employee, error) {
+func (m *mockEmployeeRepoForBatch) GetWithoutMaxID(limit int) ([]*domain.Employee, error) {
+	var result []*domain.Employee
+	count := 0
+	for _, emp := range m.employees {
+		if emp.MaxID == "" && count < limit {
+			result = append(result, emp)
+			count++
+		}
+	}
+	return result, nil
+}
+
+func (m *mockEmployeeRepoForBatch) GetEmployeesWithoutMaxID(limit, offset int) ([]*domain.Employee, error) {
 	var result []*domain.Employee
 	for _, emp := range m.employees {
 		if emp.MaxID == "" {
@@ -83,60 +95,26 @@ func (m *mockEmployeeRepo) GetEmployeesWithoutMaxID(limit, offset int) ([]*domai
 	return result[offset:end], nil
 }
 
-func (m *mockEmployeeRepo) CountEmployeesWithoutMaxID() (int, error) {
+func (m *mockEmployeeRepoForBatch) CountEmployeesWithoutMaxID() (int, error) {
 	return m.countWithoutMaxID, nil
 }
 
-type mockBatchUpdateJobRepo struct {
-	jobs []*domain.BatchUpdateJob
-}
-
-func (m *mockBatchUpdateJobRepo) Create(job *domain.BatchUpdateJob) error {
-	job.ID = int64(len(m.jobs) + 1)
-	job.StartedAt = time.Now()
-	m.jobs = append(m.jobs, job)
-	return nil
-}
-
-func (m *mockBatchUpdateJobRepo) GetByID(id int64) (*domain.BatchUpdateJob, error) {
-	for _, job := range m.jobs {
-		if job.ID == id {
-			return job, nil
-		}
-	}
-	return nil, errors.New("not found")
-}
-
-func (m *mockBatchUpdateJobRepo) Update(job *domain.BatchUpdateJob) error {
-	for i, j := range m.jobs {
-		if j.ID == job.ID {
-			m.jobs[i] = job
-			return nil
-		}
-	}
-	return errors.New("not found")
-}
-
-func (m *mockBatchUpdateJobRepo) GetAll(limit, offset int) ([]*domain.BatchUpdateJob, error) {
-	return m.jobs, nil
-}
-
-type mockMaxService struct {
+type mockMaxServiceForBatch struct {
 	maxIDs map[string]string
 }
 
-func (m *mockMaxService) GetMaxIDByPhone(phone string) (string, error) {
+func (m *mockMaxServiceForBatch) GetMaxIDByPhone(phone string) (string, error) {
 	if maxID, ok := m.maxIDs[phone]; ok {
 		return maxID, nil
 	}
 	return "", errors.New("not found")
 }
 
-func (m *mockMaxService) ValidatePhone(phone string) bool {
+func (m *mockMaxServiceForBatch) ValidatePhone(phone string) bool {
 	return true
 }
 
-func (m *mockMaxService) BatchGetMaxIDByPhone(phones []string) (map[string]string, error) {
+func (m *mockMaxServiceForBatch) BatchGetMaxIDByPhone(phones []string) (map[string]string, error) {
 	result := make(map[string]string)
 	for _, phone := range phones {
 		if maxID, ok := m.maxIDs[phone]; ok {
@@ -147,14 +125,12 @@ func (m *mockMaxService) BatchGetMaxIDByPhone(phones []string) (map[string]strin
 }
 
 func TestBatchUpdateMaxId_EmptyDatabase(t *testing.T) {
-	employeeRepo := &mockEmployeeRepo{
+	employeeRepo := &mockEmployeeRepoForBatch{
 		employees:         []*domain.Employee{},
 		countWithoutMaxID: 0,
 	}
-	batchJobRepo := &mockBatchUpdateJobRepo{
-		jobs: []*domain.BatchUpdateJob{},
-	}
-	maxService := &mockMaxService{
+	batchJobRepo := newMockBatchUpdateJobRepo()
+	maxService := &mockMaxServiceForBatch{
 		maxIDs: make(map[string]string),
 	}
 	
@@ -181,16 +157,14 @@ func TestBatchUpdateMaxId_SuccessfulUpdate(t *testing.T) {
 		{ID: 2, Phone: "+79001234568", MaxID: "", FirstName: "Petr", LastName: "Petrov"},
 	}
 	
-	employeeRepo := &mockEmployeeRepo{
+	employeeRepo := &mockEmployeeRepoForBatch{
 		employees:         employees,
 		countWithoutMaxID: 2,
 	}
 	
-	batchJobRepo := &mockBatchUpdateJobRepo{
-		jobs: []*domain.BatchUpdateJob{},
-	}
+	batchJobRepo := newMockBatchUpdateJobRepo()
 	
-	maxService := &mockMaxService{
+	maxService := &mockMaxServiceForBatch{
 		maxIDs: map[string]string{
 			"+79001234567": "max_id_1",
 			"+79001234568": "max_id_2",
@@ -230,17 +204,15 @@ func TestBatchUpdateMaxId_PartialFailure(t *testing.T) {
 		{ID: 3, Phone: "+79001234569", MaxID: "", FirstName: "Sidor", LastName: "Sidorov"},
 	}
 	
-	employeeRepo := &mockEmployeeRepo{
+	employeeRepo := &mockEmployeeRepoForBatch{
 		employees:         employees,
 		countWithoutMaxID: 3,
 	}
 	
-	batchJobRepo := &mockBatchUpdateJobRepo{
-		jobs: []*domain.BatchUpdateJob{},
-	}
+	batchJobRepo := newMockBatchUpdateJobRepo()
 	
 	// Only 2 out of 3 phones have MAX_id
-	maxService := &mockMaxService{
+	maxService := &mockMaxServiceForBatch{
 		maxIDs: map[string]string{
 			"+79001234567": "max_id_1",
 			"+79001234568": "max_id_2",
@@ -285,16 +257,14 @@ func TestBatchUpdateMaxId_BatchSizeLimit(t *testing.T) {
 		maxIDs[phone] = "max_id_" + string(rune('0'+i))
 	}
 	
-	employeeRepo := &mockEmployeeRepo{
+	employeeRepo := &mockEmployeeRepoForBatch{
 		employees:         employees,
 		countWithoutMaxID: 150,
 	}
 	
-	batchJobRepo := &mockBatchUpdateJobRepo{
-		jobs: []*domain.BatchUpdateJob{},
-	}
+	batchJobRepo := newMockBatchUpdateJobRepo()
 	
-	maxService := &mockMaxService{
+	maxService := &mockMaxServiceForBatch{
 		maxIDs: maxIDs,
 	}
 	

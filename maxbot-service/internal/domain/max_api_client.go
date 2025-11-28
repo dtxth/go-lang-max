@@ -23,6 +23,9 @@ type MaxAPIClient interface {
 	
 	// CheckPhoneNumbers проверяет существование номеров телефонов в Max Messenger
 	CheckPhoneNumbers(ctx context.Context, phones []string) ([]string, error)
+	
+	// BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
+	BatchGetUsersByPhone(ctx context.Context, phones []string) ([]*UserPhoneMapping, error)
 }
 
 // ChatInfo содержит информацию о чате
@@ -46,4 +49,11 @@ type ChatMember struct {
 type ChatMembersList struct {
 	Members []*ChatMember
 	Marker  int64
+}
+
+// UserPhoneMapping представляет маппинг телефона на MAX_id
+type UserPhoneMapping struct {
+	Phone string
+	MaxID string
+	Found bool
 }

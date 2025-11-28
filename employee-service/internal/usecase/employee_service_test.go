@@ -1,145 +1,17 @@
 package usecase
 
 import (
-	"employee-service/internal/domain"
 	"errors"
 	"testing"
-	"time"
 )
 
-// Mock implementations for testing
-
-type mockEmployeeRepo struct {
-	employees map[int64]*domain.Employee
-	nextID    int64
-}
-
-func newMockEmployeeRepo() *mockEmployeeRepo {
-	return &mockEmployeeRepo{
-		employees: make(map[int64]*domain.Employee),
-		nextID:    1,
-	}
-}
-
-func (m *mockEmployeeRepo) Create(e *domain.Employee) error {
-	e.ID = m.nextID
-	m.nextID++
-	e.CreatedAt = time.Now()
-	e.UpdatedAt = time.Now()
-	m.employees[e.ID] = e
-	return nil
-}
-
-func (m *mockEmployeeRepo) GetByID(id int64) (*domain.Employee, error) {
-	e, ok := m.employees[id]
-	if !ok {
-		return nil, domain.ErrEmployeeNotFound
-	}
-	return e, nil
-}
-
-func (m *mockEmployeeRepo) GetByPhone(phone string) (*domain.Employee, error) {
-	for _, e := range m.employees {
-		if e.Phone == phone {
-			return e, nil
-		}
-	}
-	return nil, domain.ErrEmployeeNotFound
-}
-
-func (m *mockEmployeeRepo) Update(e *domain.Employee) error {
-	if _, ok := m.employees[e.ID]; !ok {
-		return domain.ErrEmployeeNotFound
-	}
-	e.UpdatedAt = time.Now()
-	m.employees[e.ID] = e
-	return nil
-}
-
-func (m *mockEmployeeRepo) Delete(id int64) error {
-	if _, ok := m.employees[id]; !ok {
-		return domain.ErrEmployeeNotFound
-	}
-	delete(m.employees, id)
-	return nil
-}
-
-func (m *mockEmployeeRepo) Search(query string, limit, offset int) ([]*domain.Employee, error) {
-	return nil, nil
-}
-
-func (m *mockEmployeeRepo) GetAll(limit, offset int) ([]*domain.Employee, error) {
-	return nil, nil
-}
-
-func (m *mockEmployeeRepo) GetByMaxID(maxID string) (*domain.Employee, error) {
-	for _, e := range m.employees {
-		if e.MaxID == maxID {
-			return e, nil
-		}
-	}
-	return nil, domain.ErrEmployeeNotFound
-}
-
-type mockUniversityRepo struct {
-	universities map[int64]*domain.University
-	nextID       int64
-}
-
-func newMockUniversityRepo() *mockUniversityRepo {
-	return &mockUniversityRepo{
-		universities: make(map[int64]*domain.University),
-		nextID:       1,
-	}
-}
-
-func (m *mockUniversityRepo) Create(u *domain.University) error {
-	u.ID = m.nextID
-	m.nextID++
-	m.universities[u.ID] = u
-	return nil
-}
-
-func (m *mockUniversityRepo) GetByID(id int64) (*domain.University, error) {
-	u, ok := m.universities[id]
-	if !ok {
-		return nil, domain.ErrUniversityNotFound
-	}
-	return u, nil
-}
-
-func (m *mockUniversityRepo) GetByINN(inn string) (*domain.University, error) {
-	for _, u := range m.universities {
-		if u.INN == inn {
-			return u, nil
-		}
-	}
-	return nil, domain.ErrUniversityNotFound
-}
-
-func (m *mockUniversityRepo) GetByINNAndKPP(inn, kpp string) (*domain.University, error) {
-	for _, u := range m.universities {
-		if u.INN == inn && u.KPP == kpp {
-			return u, nil
-		}
-	}
-	return nil, domain.ErrUniversityNotFound
-}
-
-func (m *mockUniversityRepo) SearchByName(query string) ([]*domain.University, error) {
-	return nil, nil
-}
-
-func (m *mockUniversityRepo) GetAll() ([]*domain.University, error) {
-	return nil, nil
-}
-
-type mockMaxService struct {
+// mockMaxServiceForEmployeeTest is a specific mock for employee service tests
+type mockMaxServiceForEmployeeTest struct {
 	shouldFail bool
 	maxID      string
 }
 
-func (m *mockMaxService) GetMaxIDByPhone(phone string) (string, error) {
+func (m *mockMaxServiceForEmployeeTest) GetMaxIDByPhone(phone string) (string, error) {
 	if m.shouldFail {
 		return "", errors.New("MAX API unavailable")
 	}
@@ -149,15 +21,29 @@ func (m *mockMaxService) GetMaxIDByPhone(phone string) (string, error) {
 	return "max_" + phone, nil
 }
 
-func (m *mockMaxService) ValidatePhone(phone string) bool {
+func (m *mockMaxServiceForEmployeeTest) ValidatePhone(phone string) bool {
 	return len(phone) > 5
+}
+
+func (m *mockMaxServiceForEmployeeTest) BatchGetMaxIDByPhone(phones []string) (map[string]string, error) {
+	result := make(map[string]string)
+	for _, phone := range phones {
+		if !m.shouldFail {
+			if m.maxID != "" {
+				result[phone] = m.maxID
+			} else {
+				result[phone] = "max_" + phone
+			}
+		}
+	}
+	return result, nil
 }
 
 // Test: Employee creation triggers MAX_id lookup (Requirements 3.1)
 func TestAddEmployeeByPhone_TriggersMaxIDLookup(t *testing.T) {
 	employeeRepo := newMockEmployeeRepo()
 	universityRepo := newMockUniversityRepo()
-	maxService := &mockMaxService{maxID: "max_123456"}
+	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_123456"}
 
 	service := NewEmployeeService(employeeRepo, universityRepo, maxService)
 
@@ -184,7 +70,7 @@ func TestAddEmployeeByPhone_TriggersMaxIDLookup(t *testing.T) {
 func TestAddEmployeeByPhone_StoresMaxIDWhenReceived(t *testing.T) {
 	employeeRepo := newMockEmployeeRepo()
 	universityRepo := newMockUniversityRepo()
-	maxService := &mockMaxService{maxID: "max_987654"}
+	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_987654"}
 
 	service := NewEmployeeService(employeeRepo, universityRepo, maxService)
 
@@ -215,7 +101,7 @@ func TestAddEmployeeByPhone_StoresMaxIDWhenReceived(t *testing.T) {
 func TestAddEmployeeByPhone_SucceedsWithoutMaxID(t *testing.T) {
 	employeeRepo := newMockEmployeeRepo()
 	universityRepo := newMockUniversityRepo()
-	maxService := &mockMaxService{shouldFail: true}
+	maxService := &mockMaxServiceForEmployeeTest{shouldFail: true}
 
 	service := NewEmployeeService(employeeRepo, universityRepo, maxService)
 
@@ -243,5 +129,284 @@ func TestAddEmployeeByPhone_SucceedsWithoutMaxID(t *testing.T) {
 
 	if employee.Phone != "+79001234567" {
 		t.Errorf("Expected phone to be '+79001234567', got '%s'", employee.Phone)
+	}
+}
+
+// Test: New universities are created automatically (Requirements 15.1)
+func TestAddEmployeeByPhone_CreatesNewUniversity(t *testing.T) {
+	employeeRepo := newMockEmployeeRepo()
+	universityRepo := newMockUniversityRepo()
+	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_123"}
+
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService)
+
+	// Create employee with new university INN
+	employee, err := service.AddEmployeeByPhone(
+		"+79001234567",
+		"Анна",
+		"Смирнова",
+		"",
+		"7707083893",
+		"770701001",
+		"Московский Государственный Университет",
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify employee was created
+	if employee.ID == 0 {
+		t.Error("Expected employee to have ID assigned")
+	}
+
+	// Verify university was created
+	university, err := universityRepo.GetByINN("7707083893")
+	if err != nil {
+		t.Fatalf("Expected university to be created, got error: %v", err)
+	}
+
+	if university.Name != "Московский Государственный Университет" {
+		t.Errorf("Expected university name 'Московский Государственный Университет', got '%s'", university.Name)
+	}
+
+	if university.INN != "7707083893" {
+		t.Errorf("Expected university INN '7707083893', got '%s'", university.INN)
+	}
+
+	if university.KPP != "770701001" {
+		t.Errorf("Expected university KPP '770701001', got '%s'", university.KPP)
+	}
+
+	// Verify employee is linked to the university
+	if employee.UniversityID != university.ID {
+		t.Errorf("Expected employee university_id %d, got %d", university.ID, employee.UniversityID)
+	}
+}
+
+// Test: Existing universities are reused (Requirements 15.2)
+func TestAddEmployeeByPhone_ReusesExistingUniversity(t *testing.T) {
+	employeeRepo := newMockEmployeeRepo()
+	universityRepo := newMockUniversityRepo()
+	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_456"}
+
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService)
+
+	// Create first employee (this will create the university)
+	employee1, err := service.AddEmployeeByPhone(
+		"+79001111111",
+		"Иван",
+		"Иванов",
+		"",
+		"1234567890",
+		"123456789",
+		"СПбГУ",
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error creating first employee, got %v", err)
+	}
+
+	universityID1 := employee1.UniversityID
+
+	// Create second employee with same INN (should reuse university)
+	employee2, err := service.AddEmployeeByPhone(
+		"+79002222222",
+		"Петр",
+		"Петров",
+		"",
+		"1234567890",
+		"123456789",
+		"СПбГУ Повторно",
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error creating second employee, got %v", err)
+	}
+
+	// Verify both employees reference the same university
+	if employee2.UniversityID != universityID1 {
+		t.Errorf("Expected second employee to reuse university ID %d, got %d", universityID1, employee2.UniversityID)
+	}
+
+	// Verify only one university was created
+	allUniversities, _ := universityRepo.GetAll()
+	if len(allUniversities) != 1 {
+		t.Errorf("Expected 1 university, got %d", len(allUniversities))
+	}
+
+	// Verify the university name is from the first creation
+	university, _ := universityRepo.GetByINN("1234567890")
+	if university.Name != "СПбГУ" {
+		t.Errorf("Expected university name 'СПбГУ', got '%s'", university.Name)
+	}
+}
+
+// Test: University stores name, INN, and KPP (Requirements 15.3)
+func TestAddEmployeeByPhone_StoresUniversityData(t *testing.T) {
+	employeeRepo := newMockEmployeeRepo()
+	universityRepo := newMockUniversityRepo()
+	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_789"}
+
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService)
+
+	employee, err := service.AddEmployeeByPhone(
+		"+79003333333",
+		"Мария",
+		"Сидорова",
+		"Александровна",
+		"9876543210",
+		"987654321",
+		"МФТИ",
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Retrieve the university
+	university, err := universityRepo.GetByID(employee.UniversityID)
+	if err != nil {
+		t.Fatalf("Expected to retrieve university, got error: %v", err)
+	}
+
+	// Verify all fields are stored
+	if university.Name != "МФТИ" {
+		t.Errorf("Expected university name 'МФТИ', got '%s'", university.Name)
+	}
+
+	if university.INN != "9876543210" {
+		t.Errorf("Expected university INN '9876543210', got '%s'", university.INN)
+	}
+
+	if university.KPP != "987654321" {
+		t.Errorf("Expected university KPP '987654321', got '%s'", university.KPP)
+	}
+
+	// Verify timestamps are set
+	if university.CreatedAt.IsZero() {
+		t.Error("Expected university CreatedAt to be set")
+	}
+
+	if university.UpdatedAt.IsZero() {
+		t.Error("Expected university UpdatedAt to be set")
+	}
+}
+
+// Test: University reuse by INN+KPP combination (Requirements 15.2)
+func TestAddEmployeeByPhone_ReusesUniversityByINNAndKPP(t *testing.T) {
+	employeeRepo := newMockEmployeeRepo()
+	universityRepo := newMockUniversityRepo()
+	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_999"}
+
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService)
+
+	// Create first employee with INN and KPP
+	employee1, err := service.AddEmployeeByPhone(
+		"+79004444444",
+		"Алексей",
+		"Козлов",
+		"",
+		"5555555555",
+		"555555555",
+		"ВШЭ",
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error creating first employee, got %v", err)
+	}
+
+	// Create second employee with same INN and KPP
+	employee2, err := service.AddEmployeeByPhone(
+		"+79005555555",
+		"Ольга",
+		"Новикова",
+		"",
+		"5555555555",
+		"555555555",
+		"ВШЭ Филиал",
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error creating second employee, got %v", err)
+	}
+
+	// Verify both employees reference the same university
+	if employee1.UniversityID != employee2.UniversityID {
+		t.Errorf("Expected employees to share university ID, got %d and %d", employee1.UniversityID, employee2.UniversityID)
+	}
+
+	// Verify only one university exists
+	allUniversities, _ := universityRepo.GetAll()
+	if len(allUniversities) != 1 {
+		t.Errorf("Expected 1 university, got %d", len(allUniversities))
+	}
+}
+
+// Test: Employee creation returns complete record with university details (Requirements 15.5)
+func TestAddEmployeeByPhone_ReturnsCompleteRecord(t *testing.T) {
+	employeeRepo := newMockEmployeeRepo()
+	universityRepo := newMockUniversityRepo()
+	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_complete"}
+
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService)
+
+	employee, err := service.AddEmployeeByPhone(
+		"+79006666666",
+		"Дмитрий",
+		"Волков",
+		"Сергеевич",
+		"1111111111",
+		"111111111",
+		"ИТМО",
+	)
+
+	if err != nil {
+		t.Fatalf("Expected no error, got %v", err)
+	}
+
+	// Verify employee has all required fields
+	if employee.ID == 0 {
+		t.Error("Expected employee ID to be set")
+	}
+
+	if employee.FirstName != "Дмитрий" {
+		t.Errorf("Expected first name 'Дмитрий', got '%s'", employee.FirstName)
+	}
+
+	if employee.LastName != "Волков" {
+		t.Errorf("Expected last name 'Волков', got '%s'", employee.LastName)
+	}
+
+	if employee.MiddleName != "Сергеевич" {
+		t.Errorf("Expected middle name 'Сергеевич', got '%s'", employee.MiddleName)
+	}
+
+	if employee.Phone != "+79006666666" {
+		t.Errorf("Expected phone '+79006666666', got '%s'", employee.Phone)
+	}
+
+	if employee.MaxID != "max_complete" {
+		t.Errorf("Expected MAX_id 'max_complete', got '%s'", employee.MaxID)
+	}
+
+	if employee.INN != "1111111111" {
+		t.Errorf("Expected INN '1111111111', got '%s'", employee.INN)
+	}
+
+	if employee.KPP != "111111111" {
+		t.Errorf("Expected KPP '111111111', got '%s'", employee.KPP)
+	}
+
+	if employee.UniversityID == 0 {
+		t.Error("Expected university_id to be set")
+	}
+
+	if employee.CreatedAt.IsZero() {
+		t.Error("Expected CreatedAt to be set")
+	}
+
+	if employee.UpdatedAt.IsZero() {
+		t.Error("Expected UpdatedAt to be set")
 	}
 }

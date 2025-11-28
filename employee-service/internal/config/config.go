@@ -6,22 +6,24 @@ import (
 )
 
 type Config struct {
-	DBUrl         string
-	Port          string
-	GRPCPort      string
-	MaxAPI        string // URL для MAX API (опционально)
-	MaxBotAddress string
-	MaxBotTimeout time.Duration
+	DBUrl              string
+	Port               string
+	GRPCPort           string
+	MaxAPI             string // URL для MAX API (опционально)
+	MaxBotAddress      string
+	MaxBotTimeout      time.Duration
+	AuthServiceAddress string
 }
 
 func Load() *Config {
 	return &Config{
-		DBUrl:         os.Getenv("DATABASE_URL"),
-		Port:          getEnv("PORT", "8081"),
-		GRPCPort:      getEnv("GRPC_PORT", "9091"),
-		MaxAPI:        getEnv("MAX_API_URL", ""),
-		MaxBotAddress: getEnv("MAXBOT_GRPC_ADDR", "localhost:9095"),
-		MaxBotTimeout: getDurationEnv("MAXBOT_TIMEOUT", 5*time.Second),
+		DBUrl:              os.Getenv("DATABASE_URL"),
+		Port:               getEnv("PORT", "8081"),
+		GRPCPort:           getEnv("GRPC_PORT", "9091"),
+		MaxAPI:             getEnv("MAX_API_URL", ""),
+		MaxBotAddress:      getEnv("MAXBOT_GRPC_ADDR", "localhost:9095"),
+		MaxBotTimeout:      getDurationEnv("MAXBOT_TIMEOUT", 5*time.Second),
+		AuthServiceAddress: getEnv("AUTH_GRPC_ADDR", "localhost:9090"),
 	}
 }
 

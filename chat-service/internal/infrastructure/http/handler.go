@@ -10,7 +10,8 @@ import (
 )
 
 type Handler struct {
-	chatService *usecase.ChatService
+	chatService    *usecase.ChatService
+	authMiddleware *AuthMiddleware
 }
 
 // Chat представляет чат (для Swagger)
@@ -37,8 +38,11 @@ type DeleteResponse struct {
 	Status string `json:"status" example:"deleted"`
 }
 
-func NewHandler(chatService *usecase.ChatService) *Handler {
-	return &Handler{chatService: chatService}
+func NewHandler(chatService *usecase.ChatService, authMiddleware *AuthMiddleware) *Handler {
+	return &Handler{
+		chatService:    chatService,
+		authMiddleware: authMiddleware,
+	}
 }
 
 // SearchChats godoc
@@ -47,33 +51,41 @@ func NewHandler(chatService *usecase.ChatService) *Handler {
 // @Tags         chats
 // @Accept       json
 // @Produce      json
+// @Param        Authorization header    string  true   "Bearer token"
 // @Param        query         query     string  false  "Поисковый запрос (название чата)"
 // @Param        limit         query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
 // @Param        offset        query     int     false  "Смещение для пагинации"
-// @Param        user_role     query     string  false  "Роль пользователя (superadmin, admin, user)"
-// @Param        university_id query     int     false  "ID вуза (для фильтрации, если не superadmin)"
 // @Success      200           {object}  ChatListResponse
 // @Failure      400           {string}  string
+// @Failure      401           {string}  string
+// @Failure      403           {string}  string
 // @Router       /chats [get]
 func (h *Handler) SearchChats(w http.ResponseWriter, r *http.Request) {
+	// Получаем информацию о токене из контекста (установлена middleware)
+	tokenInfo, ok := GetTokenInfo(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Создаем фильтр на основе информации о токене
+	filter := domain.NewChatFilter(tokenInfo)
+	if filter == nil {
+		http.Error(w, "invalid token info", http.StatusUnauthorized)
+		return
+	}
+
 	query := r.URL.Query().Get("query")
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	userRole := r.URL.Query().Get("user_role")
-	if userRole == "" {
-		userRole = "user" // По умолчанию
-	}
 
-	var universityID *int64
-	if uidStr := r.URL.Query().Get("university_id"); uidStr != "" {
-		if uid, err := strconv.ParseInt(uidStr, 10, 64); err == nil {
-			universityID = &uid
-		}
-	}
-
-	chats, totalCount, err := h.chatService.SearchChats(query, limit, offset, userRole, universityID)
+	chats, totalCount, err := h.chatService.SearchChats(query, limit, offset, filter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		statusCode := http.StatusInternalServerError
+		if err == domain.ErrForbidden || err == domain.ErrInvalidRole {
+			statusCode = http.StatusForbidden
+		}
+		http.Error(w, err.Error(), statusCode)
 		return
 	}
 
@@ -101,31 +113,39 @@ func (h *Handler) SearchChats(w http.ResponseWriter, r *http.Request) {
 // @Tags         chats
 // @Accept       json
 // @Produce      json
+// @Param        Authorization header    string  true   "Bearer token"
 // @Param        limit         query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
 // @Param        offset        query     int     false  "Смещение для пагинации"
-// @Param        user_role     query     string  false  "Роль пользователя (superadmin, admin, user)"
-// @Param        university_id query     int     false  "ID вуза (для фильтрации, если не superadmin)"
 // @Success      200           {object}  ChatListResponse
 // @Failure      400           {string}  string
+// @Failure      401           {string}  string
+// @Failure      403           {string}  string
 // @Router       /chats/all [get]
 func (h *Handler) GetAllChats(w http.ResponseWriter, r *http.Request) {
+	// Получаем информацию о токене из контекста (установлена middleware)
+	tokenInfo, ok := GetTokenInfo(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	// Создаем фильтр на основе информации о токене
+	filter := domain.NewChatFilter(tokenInfo)
+	if filter == nil {
+		http.Error(w, "invalid token info", http.StatusUnauthorized)
+		return
+	}
+
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	userRole := r.URL.Query().Get("user_role")
-	if userRole == "" {
-		userRole = "user" // По умолчанию
-	}
 
-	var universityID *int64
-	if uidStr := r.URL.Query().Get("university_id"); uidStr != "" {
-		if uid, err := strconv.ParseInt(uidStr, 10, 64); err == nil {
-			universityID = &uid
-		}
-	}
-
-	chats, totalCount, err := h.chatService.GetAllChats(limit, offset, userRole, universityID)
+	chats, totalCount, err := h.chatService.GetAllChats(limit, offset, filter)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		statusCode := http.StatusInternalServerError
+		if err == domain.ErrForbidden || err == domain.ErrInvalidRole {
+			statusCode = http.StatusForbidden
+		}
+		http.Error(w, err.Error(), statusCode)
 		return
 	}
 

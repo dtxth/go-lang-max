@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"structure-service/internal/app"
 	"structure-service/internal/config"
+	"structure-service/internal/infrastructure/employee"
 	"structure-service/internal/infrastructure/grpc"
 	"structure-service/internal/infrastructure/http"
 	"structure-service/internal/infrastructure/repository"
@@ -28,6 +29,7 @@ func main() {
 	}
 
 	repo := repository.NewStructurePostgres(db)
+	dmRepo := repository.NewDepartmentManagerPostgres(db)
 	
 	// Инициализируем gRPC клиент для chat-service
 	chatClient, err := grpc.NewChatClient(cfg.ChatService)
@@ -36,8 +38,21 @@ func main() {
 	}
 	defer chatClient.Close()
 
+	// Инициализируем gRPC клиент для employee-service
+	employeeClient, err := employee.NewEmployeeClient(cfg.EmployeeService)
+	if err != nil {
+		panic(err)
+	}
+	defer employeeClient.Close()
+
+	// Create chat service adapter
+	chatServiceAdapter := grpc.NewChatServiceAdapter(chatClient)
+
 	structureUC := usecase.NewStructureService(repo)
-	handler := http.NewHandler(structureUC)
+	getUniversityStructureUC := usecase.NewGetUniversityStructureUseCase(repo, chatServiceAdapter)
+	assignOperatorUC := usecase.NewAssignOperatorToDepartmentUseCase(dmRepo, employeeClient)
+	importStructureUC := usecase.NewImportStructureFromExcelUseCase(repo, db)
+	handler := http.NewHandler(structureUC, getUniversityStructureUC, assignOperatorUC, importStructureUC, dmRepo)
 
 	// HTTP server
 	httpServer := &app.Server{

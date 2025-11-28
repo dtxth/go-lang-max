@@ -267,6 +267,72 @@ func (c *Client) CheckPhoneNumbers(ctx context.Context, phones []string) ([]stri
 	return existingPhones, nil
 }
 
+func (c *Client) BatchGetUsersByPhone(ctx context.Context, phones []string) ([]*domain.UserPhoneMapping, error) {
+	if len(phones) == 0 {
+		return []*domain.UserPhoneMapping{}, nil
+	}
+
+	if len(phones) > 100 {
+		return nil, fmt.Errorf("batch size exceeds maximum of 100 phones")
+	}
+
+	// Normalize all phone numbers
+	phoneMap := make(map[string]string) // normalized -> original
+	normalized := make([]string, 0, len(phones))
+	
+	for _, phone := range phones {
+		valid, norm, err := c.ValidatePhone(phone)
+		if err != nil {
+			continue
+		}
+		if valid {
+			normalized = append(normalized, norm)
+			phoneMap[norm] = phone
+		}
+	}
+
+	if len(normalized) == 0 {
+		return []*domain.UserPhoneMapping{}, nil
+	}
+
+	// Check which phones exist in Max Messenger
+	message := maxbot.NewMessage().SetPhoneNumbers(normalized)
+	existingPhones, err := c.api.Messages.ListExist(ctx, message)
+	if err != nil {
+		mappedErr := c.mapAPIError(err)
+		log.Printf("[ERROR] Failed to batch check phone numbers: %v", err)
+		return nil, mappedErr
+	}
+
+	// Create a set of existing phones for quick lookup
+	existingSet := make(map[string]bool)
+	for _, phone := range existingPhones {
+		existingSet[phone] = true
+	}
+
+	// Build mappings
+	mappings := make([]*domain.UserPhoneMapping, 0, len(normalized))
+	for _, norm := range normalized {
+		originalPhone := phoneMap[norm]
+		found := existingSet[norm]
+		
+		mapping := &domain.UserPhoneMapping{
+			Phone: originalPhone,
+			Found: found,
+		}
+		
+		if found {
+			// In Max API, the normalized phone serves as the Max ID
+			mapping.MaxID = norm
+		}
+		
+		mappings = append(mappings, mapping)
+	}
+
+	log.Printf("[DEBUG] Batch checked %d phones, found %d existing", len(normalized), len(existingPhones))
+	return mappings, nil
+}
+
 func (c *Client) ValidatePhone(phone string) (bool, string, error) {
 	cleaned := nonDigitRegexp.ReplaceAllString(phone, "")
 

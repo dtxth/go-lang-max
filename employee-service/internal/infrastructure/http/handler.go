@@ -1,16 +1,21 @@
 package http
 
 import (
+	"context"
 	"employee-service/internal/domain"
+	"employee-service/internal/infrastructure/auth"
 	"employee-service/internal/usecase"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type Handler struct {
-	employeeService        *usecase.EmployeeService
-	batchUpdateMaxIdUseCase *usecase.BatchUpdateMaxIdUseCase
+	employeeService                 *usecase.EmployeeService
+	batchUpdateMaxIdUseCase         *usecase.BatchUpdateMaxIdUseCase
+	searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase
+	authClient                      *auth.AuthClient
 }
 
 // AddEmployeeRequest представляет запрос на добавление сотрудника
@@ -46,30 +51,97 @@ type Employee domain.Employee
 // University представляет вуз (для Swagger)
 type University domain.University
 
-func NewHandler(employeeService *usecase.EmployeeService, batchUpdateMaxIdUseCase *usecase.BatchUpdateMaxIdUseCase) *Handler {
+func NewHandler(
+	employeeService *usecase.EmployeeService,
+	batchUpdateMaxIdUseCase *usecase.BatchUpdateMaxIdUseCase,
+	searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase,
+	authClient *auth.AuthClient,
+) *Handler {
 	return &Handler{
-		employeeService:        employeeService,
-		batchUpdateMaxIdUseCase: batchUpdateMaxIdUseCase,
+		employeeService:                 employeeService,
+		batchUpdateMaxIdUseCase:         batchUpdateMaxIdUseCase,
+		searchEmployeesWithRoleFilterUC: searchEmployeesWithRoleFilterUC,
+		authClient:                      authClient,
 	}
 }
 
 // SearchEmployees godoc
 // @Summary      Поиск сотрудников
-// @Description  Выполняет поиск сотрудников по имени, фамилии и названию вуза
+// @Description  Выполняет поиск сотрудников по имени, фамилии и названию вуза с применением ролевой фильтрации
 // @Tags         employees
 // @Accept       json
 // @Produce      json
 // @Param        query   query     string  false  "Поисковый запрос"
 // @Param        limit   query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
 // @Param        offset  query     int     false  "Смещение для пагинации"
-// @Success      200     {array}   Employee
+// @Param        Authorization  header  string  true  "Bearer token"
+// @Success      200     {array}   usecase.SearchEmployeeResult
 // @Failure      400     {string}  string
+// @Failure      401     {string}  string
+// @Failure      403     {string}  string
 // @Router       /employees [get]
 func (h *Handler) SearchEmployees(w http.ResponseWriter, r *http.Request) {
+	// Requirements 14.5: Apply role-based filtering
+	// Extract JWT token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		http.Error(w, "missing authorization header", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract token from "Bearer <token>"
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	if token == authHeader {
+		http.Error(w, "invalid authorization header format", http.StatusUnauthorized)
+		return
+	}
+
+	// Validate token and get user info
+	ctx := r.Context()
+	tokenInfo, err := h.authClient.ValidateToken(ctx, token)
+	if err != nil {
+		http.Error(w, "invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract query parameters
 	query := r.URL.Query().Get("query")
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 
+	// Prepare university ID for filtering
+	var universityID *int64
+	if tokenInfo.UniversityId > 0 {
+		uid := tokenInfo.UniversityId
+		universityID = &uid
+	}
+
+	// Use the new use case with role filtering if available
+	if h.searchEmployeesWithRoleFilterUC != nil {
+		results, err := h.searchEmployeesWithRoleFilterUC.Execute(
+			ctx,
+			query,
+			tokenInfo.Role,
+			universityID,
+			limit,
+			offset,
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Requirements 14.5: Return empty array for no matches
+		if results == nil {
+			results = []*usecase.SearchEmployeeResult{}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(results)
+		return
+	}
+
+	// Fallback to old implementation if new use case not available
 	employees, err := h.employeeService.SearchEmployees(query, limit, offset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -318,13 +390,13 @@ func (h *Handler) BatchUpdateMaxID(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
 		return
 	}
-	
+
 	result, err := h.batchUpdateMaxIdUseCase.StartBatchUpdate()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }
@@ -345,7 +417,7 @@ func (h *Handler) GetBatchStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
 		return
 	}
-	
+
 	// Extract ID from path
 	path := r.URL.Path
 	idStr := path[len("/employees/batch-status/"):]
@@ -354,13 +426,13 @@ func (h *Handler) GetBatchStatus(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid batch job id", http.StatusBadRequest)
 		return
 	}
-	
+
 	job, err := h.batchUpdateMaxIdUseCase.GetBatchJobStatus(id)
 	if err != nil {
 		http.Error(w, "batch job not found", http.StatusNotFound)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(job)
 }
@@ -381,16 +453,16 @@ func (h *Handler) GetAllBatchJobs(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
 		return
 	}
-	
+
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
-	
+
 	jobs, err := h.batchUpdateMaxIdUseCase.GetAllBatchJobs(limit, offset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jobs)
 }

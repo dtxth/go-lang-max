@@ -7,11 +7,17 @@ import (
 )
 
 type MaxBotService struct {
-	apiClient domain.MaxAPIClient
+	apiClient              domain.MaxAPIClient
+	normalizePhoneUC       *NormalizePhoneUseCase
+	batchGetUsersByPhoneUC *BatchGetUsersByPhoneUseCase
 }
 
 func NewMaxBotService(apiClient domain.MaxAPIClient) *MaxBotService {
-	return &MaxBotService{apiClient: apiClient}
+	return &MaxBotService{
+		apiClient:              apiClient,
+		normalizePhoneUC:       NewNormalizePhoneUseCase(),
+		batchGetUsersByPhoneUC: NewBatchGetUsersByPhoneUseCase(apiClient),
+	}
 }
 
 func (s *MaxBotService) GetMaxIDByPhone(ctx context.Context, phone string) (string, error) {
@@ -44,4 +50,12 @@ func (s *MaxBotService) GetChatAdmins(ctx context.Context, chatID int64) ([]*dom
 
 func (s *MaxBotService) CheckPhoneNumbers(ctx context.Context, phones []string) ([]string, error) {
 	return s.apiClient.CheckPhoneNumbers(ctx, phones)
+}
+
+func (s *MaxBotService) NormalizePhone(phone string) (string, error) {
+	return s.normalizePhoneUC.Execute(phone)
+}
+
+func (s *MaxBotService) BatchGetUsersByPhone(ctx context.Context, phones []string) ([]*domain.UserPhoneMapping, error) {
+	return s.batchGetUsersByPhoneUC.Execute(ctx, phones)
 }

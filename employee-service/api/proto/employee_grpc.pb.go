@@ -22,6 +22,7 @@ const (
 	EmployeeService_GetUniversityByID_FullMethodName        = "/employee.EmployeeService/GetUniversityByID"
 	EmployeeService_GetUniversityByINN_FullMethodName       = "/employee.EmployeeService/GetUniversityByINN"
 	EmployeeService_GetUniversityByINNAndKPP_FullMethodName = "/employee.EmployeeService/GetUniversityByINNAndKPP"
+	EmployeeService_GetEmployeeByID_FullMethodName          = "/employee.EmployeeService/GetEmployeeByID"
 )
 
 // EmployeeServiceClient is the client API for EmployeeService service.
@@ -36,6 +37,8 @@ type EmployeeServiceClient interface {
 	GetUniversityByINN(ctx context.Context, in *GetUniversityByINNRequest, opts ...grpc.CallOption) (*GetUniversityByINNResponse, error)
 	// GetUniversityByINNAndKPP получает вуз по ИНН и КПП
 	GetUniversityByINNAndKPP(ctx context.Context, in *GetUniversityByINNAndKPPRequest, opts ...grpc.CallOption) (*GetUniversityByINNAndKPPResponse, error)
+	// GetEmployeeByID получает сотрудника по ID
+	GetEmployeeByID(ctx context.Context, in *GetEmployeeByIDRequest, opts ...grpc.CallOption) (*GetEmployeeByIDResponse, error)
 }
 
 type employeeServiceClient struct {
@@ -76,6 +79,16 @@ func (c *employeeServiceClient) GetUniversityByINNAndKPP(ctx context.Context, in
 	return out, nil
 }
 
+func (c *employeeServiceClient) GetEmployeeByID(ctx context.Context, in *GetEmployeeByIDRequest, opts ...grpc.CallOption) (*GetEmployeeByIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEmployeeByIDResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_GetEmployeeByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // EmployeeServiceServer is the server API for EmployeeService service.
 // All implementations must embed UnimplementedEmployeeServiceServer
 // for forward compatibility.
@@ -88,6 +101,8 @@ type EmployeeServiceServer interface {
 	GetUniversityByINN(context.Context, *GetUniversityByINNRequest) (*GetUniversityByINNResponse, error)
 	// GetUniversityByINNAndKPP получает вуз по ИНН и КПП
 	GetUniversityByINNAndKPP(context.Context, *GetUniversityByINNAndKPPRequest) (*GetUniversityByINNAndKPPResponse, error)
+	// GetEmployeeByID получает сотрудника по ID
+	GetEmployeeByID(context.Context, *GetEmployeeByIDRequest) (*GetEmployeeByIDResponse, error)
 	mustEmbedUnimplementedEmployeeServiceServer()
 }
 
@@ -106,6 +121,9 @@ func (UnimplementedEmployeeServiceServer) GetUniversityByINN(context.Context, *G
 }
 func (UnimplementedEmployeeServiceServer) GetUniversityByINNAndKPP(context.Context, *GetUniversityByINNAndKPPRequest) (*GetUniversityByINNAndKPPResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUniversityByINNAndKPP not implemented")
+}
+func (UnimplementedEmployeeServiceServer) GetEmployeeByID(context.Context, *GetEmployeeByIDRequest) (*GetEmployeeByIDResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEmployeeByID not implemented")
 }
 func (UnimplementedEmployeeServiceServer) mustEmbedUnimplementedEmployeeServiceServer() {}
 func (UnimplementedEmployeeServiceServer) testEmbeddedByValue()                         {}
@@ -182,6 +200,24 @@ func _EmployeeService_GetUniversityByINNAndKPP_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _EmployeeService_GetEmployeeByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEmployeeByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).GetEmployeeByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_GetEmployeeByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).GetEmployeeByID(ctx, req.(*GetEmployeeByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // EmployeeService_ServiceDesc is the grpc.ServiceDesc for EmployeeService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +236,10 @@ var EmployeeService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUniversityByINNAndKPP",
 			Handler:    _EmployeeService_GetUniversityByINNAndKPP_Handler,
+		},
+		{
+			MethodName: "GetEmployeeByID",
+			Handler:    _EmployeeService_GetEmployeeByID_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

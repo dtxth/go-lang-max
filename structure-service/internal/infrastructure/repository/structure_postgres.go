@@ -36,8 +36,19 @@ func (r *StructurePostgres) GetUniversityByID(id int64) (*domain.University, err
 func (r *StructurePostgres) GetUniversityByINN(inn string) (*domain.University, error) {
 	u := &domain.University{}
 	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
-			  FROM universities WHERE inn = $1`
+			  FROM universities WHERE inn = $1 LIMIT 1`
 	err := r.db.QueryRow(query, inn).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrUniversityNotFound
+	}
+	return u, err
+}
+
+func (r *StructurePostgres) GetUniversityByINNAndKPP(inn, kpp string) (*domain.University, error) {
+	u := &domain.University{}
+	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
+			  FROM universities WHERE inn = $1 AND kpp = $2`
+	err := r.db.QueryRow(query, inn, kpp).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrUniversityNotFound
 	}
@@ -93,6 +104,17 @@ func (r *StructurePostgres) GetBranchByID(id int64) (*domain.Branch, error) {
 	return b, err
 }
 
+func (r *StructurePostgres) GetBranchByUniversityAndName(universityID int64, name string) (*domain.Branch, error) {
+	b := &domain.Branch{}
+	query := `SELECT id, university_id, name, created_at, updated_at FROM branches 
+			  WHERE university_id = $1 AND name = $2`
+	err := r.db.QueryRow(query, universityID, name).Scan(&b.ID, &b.UniversityID, &b.Name, &b.CreatedAt, &b.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrBranchNotFound
+	}
+	return b, err
+}
+
 func (r *StructurePostgres) GetBranchesByUniversityID(universityID int64) ([]*domain.Branch, error) {
 	query := `SELECT id, university_id, name, created_at, updated_at 
 			  FROM branches WHERE university_id = $1 ORDER BY name`
@@ -142,6 +164,31 @@ func (r *StructurePostgres) GetFacultyByID(id int64) (*domain.Faculty, error) {
 	}
 	if branchID.Valid {
 		f.BranchID = &branchID.Int64
+	}
+	return f, err
+}
+
+func (r *StructurePostgres) GetFacultyByBranchAndName(branchID *int64, name string) (*domain.Faculty, error) {
+	f := &domain.Faculty{}
+	var query string
+	var err error
+	var dbBranchID sql.NullInt64
+	
+	if branchID == nil {
+		query = `SELECT id, branch_id, name, created_at, updated_at FROM faculties 
+				 WHERE branch_id IS NULL AND name = $1`
+		err = r.db.QueryRow(query, name).Scan(&f.ID, &dbBranchID, &f.Name, &f.CreatedAt, &f.UpdatedAt)
+	} else {
+		query = `SELECT id, branch_id, name, created_at, updated_at FROM faculties 
+				 WHERE branch_id = $1 AND name = $2`
+		err = r.db.QueryRow(query, *branchID, name).Scan(&f.ID, &dbBranchID, &f.Name, &f.CreatedAt, &f.UpdatedAt)
+	}
+	
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrFacultyNotFound
+	}
+	if dbBranchID.Valid {
+		f.BranchID = &dbBranchID.Int64
 	}
 	return f, err
 }
@@ -210,28 +257,57 @@ func (r *StructurePostgres) DeleteFaculty(id int64) error {
 
 // Group methods
 func (r *StructurePostgres) CreateGroup(g *domain.Group) error {
-	query := `INSERT INTO groups (faculty_id, course, number, chat_id, created_at, updated_at) 
-			  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	err := r.db.QueryRow(query, g.FacultyID, g.Course, g.Number, g.ChatID, time.Now(), time.Now()).Scan(&g.ID)
+	query := `INSERT INTO groups (faculty_id, course, number, chat_id, chat_url, chat_name, created_at, updated_at) 
+			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
+	err := r.db.QueryRow(query, g.FacultyID, g.Course, g.Number, g.ChatID, g.ChatURL, g.ChatName, time.Now(), time.Now()).Scan(&g.ID)
 	return err
 }
 
 func (r *StructurePostgres) GetGroupByID(id int64) (*domain.Group, error) {
 	g := &domain.Group{}
-	query := `SELECT id, faculty_id, course, number, chat_id, created_at, updated_at FROM groups WHERE id = $1`
+	query := `SELECT id, faculty_id, course, number, chat_id, chat_url, chat_name, created_at, updated_at FROM groups WHERE id = $1`
 	var chatID sql.NullInt64
-	err := r.db.QueryRow(query, id).Scan(&g.ID, &g.FacultyID, &g.Course, &g.Number, &chatID, &g.CreatedAt, &g.UpdatedAt)
+	var chatURL, chatName sql.NullString
+	err := r.db.QueryRow(query, id).Scan(&g.ID, &g.FacultyID, &g.Course, &g.Number, &chatID, &chatURL, &chatName, &g.CreatedAt, &g.UpdatedAt)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrGroupNotFound
 	}
 	if chatID.Valid {
 		g.ChatID = &chatID.Int64
 	}
+	if chatURL.Valid {
+		g.ChatURL = chatURL.String
+	}
+	if chatName.Valid {
+		g.ChatName = chatName.String
+	}
+	return g, err
+}
+
+func (r *StructurePostgres) GetGroupByFacultyAndNumber(facultyID int64, course int, number string) (*domain.Group, error) {
+	g := &domain.Group{}
+	query := `SELECT id, faculty_id, course, number, chat_id, chat_url, chat_name, created_at, updated_at 
+			  FROM groups WHERE faculty_id = $1 AND course = $2 AND number = $3`
+	var chatID sql.NullInt64
+	var chatURL, chatName sql.NullString
+	err := r.db.QueryRow(query, facultyID, course, number).Scan(&g.ID, &g.FacultyID, &g.Course, &g.Number, &chatID, &chatURL, &chatName, &g.CreatedAt, &g.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrGroupNotFound
+	}
+	if chatID.Valid {
+		g.ChatID = &chatID.Int64
+	}
+	if chatURL.Valid {
+		g.ChatURL = chatURL.String
+	}
+	if chatName.Valid {
+		g.ChatName = chatName.String
+	}
 	return g, err
 }
 
 func (r *StructurePostgres) GetGroupsByFacultyID(facultyID int64) ([]*domain.Group, error) {
-	query := `SELECT id, faculty_id, course, number, chat_id, created_at, updated_at 
+	query := `SELECT id, faculty_id, course, number, chat_id, chat_url, chat_name, created_at, updated_at 
 			  FROM groups WHERE faculty_id = $1 ORDER BY course, number`
 	rows, err := r.db.Query(query, facultyID)
 	if err != nil {
@@ -243,11 +319,18 @@ func (r *StructurePostgres) GetGroupsByFacultyID(facultyID int64) ([]*domain.Gro
 	for rows.Next() {
 		g := &domain.Group{}
 		var chatID sql.NullInt64
-		if err := rows.Scan(&g.ID, &g.FacultyID, &g.Course, &g.Number, &chatID, &g.CreatedAt, &g.UpdatedAt); err != nil {
+		var chatURL, chatName sql.NullString
+		if err := rows.Scan(&g.ID, &g.FacultyID, &g.Course, &g.Number, &chatID, &chatURL, &chatName, &g.CreatedAt, &g.UpdatedAt); err != nil {
 			return nil, err
 		}
 		if chatID.Valid {
 			g.ChatID = &chatID.Int64
+		}
+		if chatURL.Valid {
+			g.ChatURL = chatURL.String
+		}
+		if chatName.Valid {
+			g.ChatName = chatName.String
 		}
 		groups = append(groups, g)
 	}
@@ -255,9 +338,9 @@ func (r *StructurePostgres) GetGroupsByFacultyID(facultyID int64) ([]*domain.Gro
 }
 
 func (r *StructurePostgres) UpdateGroup(g *domain.Group) error {
-	query := `UPDATE groups SET faculty_id = $1, course = $2, number = $3, chat_id = $4, updated_at = $5 
-			  WHERE id = $6`
-	_, err := r.db.Exec(query, g.FacultyID, g.Course, g.Number, g.ChatID, time.Now(), g.ID)
+	query := `UPDATE groups SET faculty_id = $1, course = $2, number = $3, chat_id = $4, chat_url = $5, chat_name = $6, updated_at = $7 
+			  WHERE id = $8`
+	_, err := r.db.Exec(query, g.FacultyID, g.Course, g.Number, g.ChatID, g.ChatURL, g.ChatName, time.Now(), g.ID)
 	return err
 }
 

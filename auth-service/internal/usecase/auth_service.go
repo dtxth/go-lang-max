@@ -175,8 +175,7 @@ func (s *AuthService) GetUserPermissions(userID int64) ([]*domain.UserRoleWithDe
     return s.userRoleRepo.GetByUserID(userID)
 }
 
-// 
-AssignRoleToUser назначает роль пользователю
+// AssignRoleToUser назначает роль пользователю
 func (s *AuthService) AssignRoleToUser(userID int64, roleName string, universityID, branchID, facultyID *int64) error {
 	if s.userRoleRepo == nil {
 		return errors.New("user role repository not initialized")

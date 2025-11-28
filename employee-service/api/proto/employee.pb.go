@@ -401,6 +401,186 @@ func (x *University) GetUpdatedAt() string {
 	return ""
 }
 
+type GetEmployeeByIDRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEmployeeByIDRequest) Reset() {
+	*x = GetEmployeeByIDRequest{}
+	mi := &file_api_proto_employee_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEmployeeByIDRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEmployeeByIDRequest) ProtoMessage() {}
+
+func (x *GetEmployeeByIDRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_employee_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEmployeeByIDRequest.ProtoReflect.Descriptor instead.
+func (*GetEmployeeByIDRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_employee_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *GetEmployeeByIDRequest) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+type GetEmployeeByIDResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Employee      *Employee              `protobuf:"bytes,1,opt,name=employee,proto3" json:"employee,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetEmployeeByIDResponse) Reset() {
+	*x = GetEmployeeByIDResponse{}
+	mi := &file_api_proto_employee_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetEmployeeByIDResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetEmployeeByIDResponse) ProtoMessage() {}
+
+func (x *GetEmployeeByIDResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_employee_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetEmployeeByIDResponse.ProtoReflect.Descriptor instead.
+func (*GetEmployeeByIDResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_employee_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *GetEmployeeByIDResponse) GetEmployee() *Employee {
+	if x != nil {
+		return x.Employee
+	}
+	return nil
+}
+
+func (x *GetEmployeeByIDResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type Employee struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	FirstName     string                 `protobuf:"bytes,2,opt,name=first_name,json=firstName,proto3" json:"first_name,omitempty"`
+	LastName      string                 `protobuf:"bytes,3,opt,name=last_name,json=lastName,proto3" json:"last_name,omitempty"`
+	Phone         string                 `protobuf:"bytes,4,opt,name=phone,proto3" json:"phone,omitempty"`
+	Role          string                 `protobuf:"bytes,5,opt,name=role,proto3" json:"role,omitempty"`
+	UniversityId  int64                  `protobuf:"varint,6,opt,name=university_id,json=universityId,proto3" json:"university_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Employee) Reset() {
+	*x = Employee{}
+	mi := &file_api_proto_employee_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Employee) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Employee) ProtoMessage() {}
+
+func (x *Employee) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_employee_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Employee.ProtoReflect.Descriptor instead.
+func (*Employee) Descriptor() ([]byte, []int) {
+	return file_api_proto_employee_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *Employee) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *Employee) GetFirstName() string {
+	if x != nil {
+		return x.FirstName
+	}
+	return ""
+}
+
+func (x *Employee) GetLastName() string {
+	if x != nil {
+		return x.LastName
+	}
+	return ""
+}
+
+func (x *Employee) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *Employee) GetRole() string {
+	if x != nil {
+		return x.Role
+	}
+	return ""
+}
+
+func (x *Employee) GetUniversityId() int64 {
+	if x != nil {
+		return x.UniversityId
+	}
+	return 0
+}
+
 var File_api_proto_employee_proto protoreflect.FileDescriptor
 
 const file_api_proto_employee_proto_rawDesc = "" +
@@ -437,11 +617,25 @@ const file_api_proto_employee_proto_rawDesc = "" +
 	"\n" +
 	"created_at\x18\x05 \x01(\tR\tcreatedAt\x12\x1d\n" +
 	"\n" +
-	"updated_at\x18\x06 \x01(\tR\tupdatedAt2\xc3\x02\n" +
+	"updated_at\x18\x06 \x01(\tR\tupdatedAt\"(\n" +
+	"\x16GetEmployeeByIDRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\"_\n" +
+	"\x17GetEmployeeByIDResponse\x12.\n" +
+	"\bemployee\x18\x01 \x01(\v2\x12.employee.EmployeeR\bemployee\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"\xa5\x01\n" +
+	"\bEmployee\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x1d\n" +
+	"\n" +
+	"first_name\x18\x02 \x01(\tR\tfirstName\x12\x1b\n" +
+	"\tlast_name\x18\x03 \x01(\tR\blastName\x12\x14\n" +
+	"\x05phone\x18\x04 \x01(\tR\x05phone\x12\x12\n" +
+	"\x04role\x18\x05 \x01(\tR\x04role\x12#\n" +
+	"\runiversity_id\x18\x06 \x01(\x03R\funiversityId2\x9b\x03\n" +
 	"\x0fEmployeeService\x12\\\n" +
 	"\x11GetUniversityByID\x12\".employee.GetUniversityByIDRequest\x1a#.employee.GetUniversityByIDResponse\x12_\n" +
 	"\x12GetUniversityByINN\x12#.employee.GetUniversityByINNRequest\x1a$.employee.GetUniversityByINNResponse\x12q\n" +
-	"\x18GetUniversityByINNAndKPP\x12).employee.GetUniversityByINNAndKPPRequest\x1a*.employee.GetUniversityByINNAndKPPResponseB\"Z employee-service/api/proto;protob\x06proto3"
+	"\x18GetUniversityByINNAndKPP\x12).employee.GetUniversityByINNAndKPPRequest\x1a*.employee.GetUniversityByINNAndKPPResponse\x12V\n" +
+	"\x0fGetEmployeeByID\x12 .employee.GetEmployeeByIDRequest\x1a!.employee.GetEmployeeByIDResponseB\"Z employee-service/api/proto;protob\x06proto3"
 
 var (
 	file_api_proto_employee_proto_rawDescOnce sync.Once
@@ -455,7 +649,7 @@ func file_api_proto_employee_proto_rawDescGZIP() []byte {
 	return file_api_proto_employee_proto_rawDescData
 }
 
-var file_api_proto_employee_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_api_proto_employee_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
 var file_api_proto_employee_proto_goTypes = []any{
 	(*GetUniversityByIDRequest)(nil),         // 0: employee.GetUniversityByIDRequest
 	(*GetUniversityByIDResponse)(nil),        // 1: employee.GetUniversityByIDResponse
@@ -464,22 +658,28 @@ var file_api_proto_employee_proto_goTypes = []any{
 	(*GetUniversityByINNAndKPPRequest)(nil),  // 4: employee.GetUniversityByINNAndKPPRequest
 	(*GetUniversityByINNAndKPPResponse)(nil), // 5: employee.GetUniversityByINNAndKPPResponse
 	(*University)(nil),                       // 6: employee.University
+	(*GetEmployeeByIDRequest)(nil),           // 7: employee.GetEmployeeByIDRequest
+	(*GetEmployeeByIDResponse)(nil),          // 8: employee.GetEmployeeByIDResponse
+	(*Employee)(nil),                         // 9: employee.Employee
 }
 var file_api_proto_employee_proto_depIdxs = []int32{
 	6, // 0: employee.GetUniversityByIDResponse.university:type_name -> employee.University
 	6, // 1: employee.GetUniversityByINNResponse.university:type_name -> employee.University
 	6, // 2: employee.GetUniversityByINNAndKPPResponse.university:type_name -> employee.University
-	0, // 3: employee.EmployeeService.GetUniversityByID:input_type -> employee.GetUniversityByIDRequest
-	2, // 4: employee.EmployeeService.GetUniversityByINN:input_type -> employee.GetUniversityByINNRequest
-	4, // 5: employee.EmployeeService.GetUniversityByINNAndKPP:input_type -> employee.GetUniversityByINNAndKPPRequest
-	1, // 6: employee.EmployeeService.GetUniversityByID:output_type -> employee.GetUniversityByIDResponse
-	3, // 7: employee.EmployeeService.GetUniversityByINN:output_type -> employee.GetUniversityByINNResponse
-	5, // 8: employee.EmployeeService.GetUniversityByINNAndKPP:output_type -> employee.GetUniversityByINNAndKPPResponse
-	6, // [6:9] is the sub-list for method output_type
-	3, // [3:6] is the sub-list for method input_type
-	3, // [3:3] is the sub-list for extension type_name
-	3, // [3:3] is the sub-list for extension extendee
-	0, // [0:3] is the sub-list for field type_name
+	9, // 3: employee.GetEmployeeByIDResponse.employee:type_name -> employee.Employee
+	0, // 4: employee.EmployeeService.GetUniversityByID:input_type -> employee.GetUniversityByIDRequest
+	2, // 5: employee.EmployeeService.GetUniversityByINN:input_type -> employee.GetUniversityByINNRequest
+	4, // 6: employee.EmployeeService.GetUniversityByINNAndKPP:input_type -> employee.GetUniversityByINNAndKPPRequest
+	7, // 7: employee.EmployeeService.GetEmployeeByID:input_type -> employee.GetEmployeeByIDRequest
+	1, // 8: employee.EmployeeService.GetUniversityByID:output_type -> employee.GetUniversityByIDResponse
+	3, // 9: employee.EmployeeService.GetUniversityByINN:output_type -> employee.GetUniversityByINNResponse
+	5, // 10: employee.EmployeeService.GetUniversityByINNAndKPP:output_type -> employee.GetUniversityByINNAndKPPResponse
+	8, // 11: employee.EmployeeService.GetEmployeeByID:output_type -> employee.GetEmployeeByIDResponse
+	8, // [8:12] is the sub-list for method output_type
+	4, // [4:8] is the sub-list for method input_type
+	4, // [4:4] is the sub-list for extension type_name
+	4, // [4:4] is the sub-list for extension extendee
+	0, // [0:4] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_employee_proto_init() }
@@ -493,7 +693,7 @@ func file_api_proto_employee_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_employee_proto_rawDesc), len(file_api_proto_employee_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   7,
+			NumMessages:   10,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

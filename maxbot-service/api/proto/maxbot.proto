@@ -33,6 +33,12 @@ service MaxBotService {
   
   // CheckPhoneNumbers проверяет существование номеров телефонов в Max Messenger
   rpc CheckPhoneNumbers(CheckPhoneNumbersRequest) returns (CheckPhoneNumbersResponse);
+  
+  // NormalizePhone нормализует номер телефона в формат E.164
+  rpc NormalizePhone(NormalizePhoneRequest) returns (NormalizePhoneResponse);
+  
+  // BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
+  rpc BatchGetUsersByPhone(BatchGetUsersByPhoneRequest) returns (BatchGetUsersByPhoneResponse);
 }
 
 message GetMaxIDByPhoneRequest {
@@ -143,4 +149,32 @@ message CheckPhoneNumbersResponse {
   repeated string existing_phones = 1;
   ErrorCode error_code = 2;
   string error = 3;
+}
+
+// NormalizePhone
+message NormalizePhoneRequest {
+  string phone = 1;
+}
+
+message NormalizePhoneResponse {
+  string normalized_phone = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+// BatchGetUsersByPhone
+message BatchGetUsersByPhoneRequest {
+  repeated string phones = 1;
+}
+
+message BatchGetUsersByPhoneResponse {
+  repeated UserPhoneMapping mappings = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+message UserPhoneMapping {
+  string phone = 1;
+  string max_id = 2;
+  bool found = 3;
 }

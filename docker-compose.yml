@@ -181,11 +181,66 @@ services:
     networks:
       - microservices-network
 
+  # Migration Service Database
+  migration-db:
+    image: postgres:15-alpine
+    container_name: migration-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: migration_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - migration_db_data:/var/lib/postgresql/data
+      - ./migration-service/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Migration Service
+  migration-service:
+    build:
+      context: ./migration-service
+      dockerfile: Dockerfile
+    container_name: migration-service
+    environment:
+      SERVER_PORT: "8084"
+      DB_HOST: migration-db
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: migration_db
+      DB_SSLMODE: disable
+      CHAT_SERVICE_URL: http://chat-service:8082
+      STRUCTURE_SERVICE_URL: http://structure-service:8080
+      GOOGLE_CREDENTIALS_PATH: /app/credentials/google-credentials.json
+    ports:
+      - "8084:8084"
+    depends_on:
+      migration-db:
+        condition: service_healthy
+      chat-service:
+        condition: service_started
+      structure-service:
+        condition: service_started
+    volumes:
+      - ./migration-service/credentials:/app/credentials
+      - ./migration-service/uploads:/tmp/migration-uploads
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
 volumes:
   auth_pgdata:
   chat_db_data:
   employee_db_data:
   structure_pgdata:
+  migration_db_data:
 
 networks:
   microservices-network:
