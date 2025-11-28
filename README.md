@@ -239,11 +239,48 @@ make swagger  # или используйте swag init
 
 ## Тестирование
 
+### Unit Tests
+
 ```bash
 # Запуск тестов для конкретного сервиса
 cd auth-service
 go test ./...
 
-# Запуск всех тестов
+# Запуск всех unit тестов
 go test ./...
 ```
+
+### Integration Tests
+
+Проект включает комплексные end-to-end интеграционные тесты, которые проверяют взаимодействие всех сервисов.
+
+```bash
+# Запуск всех интеграционных тестов
+cd integration-tests
+./run_tests.sh
+
+# Или используя Make
+make test
+
+# Запуск конкретных тестовых наборов
+make test-employee    # Тесты Employee Service
+make test-chat        # Тесты Chat Service
+make test-structure   # Тесты Structure Service
+make test-migration   # Тесты Migration Service
+make test-grpc        # Тесты gRPC коммуникации
+```
+
+**Покрытие интеграционных тестов:**
+- ✅ Создание сотрудников с ролями и MAX_id (Employee → Auth → MaxBot)
+- ✅ Фильтрация чатов по ролям (Superadmin, Curator, Operator)
+- ✅ Импорт структуры из Excel с полной иерархией
+- ✅ Миграция из базы данных, Google Sheets и Excel
+- ✅ gRPC коммуникация между всеми сервисами
+- ✅ Пагинация и поиск
+- ✅ Управление администраторами чатов
+- ✅ Пакетные операции
+
+**Документация:**
+- Быстрый старт: [integration-tests/QUICK_START.md](./integration-tests/QUICK_START.md)
+- Полное руководство: [integration-tests/INTEGRATION_TEST_GUIDE.md](./integration-tests/INTEGRATION_TEST_GUIDE.md)
+- Требования: [.kiro/specs/digital-university-mvp-completion/requirements.md](./.kiro/specs/digital-university-mvp-completion/requirements.md)

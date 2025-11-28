@@ -33,13 +33,15 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
-      HTTP_ADDR: ":8080"
-      JWT_ACCESS_SECRET: "super-secret-access"
-      JWT_REFRESH_SECRET: "super-secret-refresh"
+      PORT: "8080"
+      GRPC_PORT: "9090"
+      ACCESS_SECRET: "super-secret-access"
+      REFRESH_SECRET: "super-secret-refresh"
       ACCESS_MINUTES: "15"
       REFRESH_HOURS: "168"
     ports:
       - "8080:8080"
+      - "9090:9090"
     restart: on-failure
     networks:
       - microservices-network
@@ -73,14 +75,22 @@ services:
     container_name: chat-service
     ports:
       - "8082:8082"
+      - "9092:9092"
     environment:
       DATABASE_URL: postgres://chat_user:chat_pass@chat-db:5432/chat_db?sslmode=disable
-      PORT: 8082
+      PORT: "8082"
+      GRPC_PORT: "9092"
       MAXBOT_GRPC_ADDR: maxbot-service:9095
       MAXBOT_TIMEOUT: 5s
+      AUTH_GRPC_ADDR: auth-service:9090
+      AUTH_TIMEOUT: 5s
     depends_on:
       chat-db:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      maxbot-service:
+        condition: service_started
     restart: unless-stopped
     networks:
       - microservices-network
@@ -114,14 +124,21 @@ services:
     container_name: employee-service
     ports:
       - "8081:8081"
+      - "9091:9091"
     environment:
       DATABASE_URL: postgres://employee_user:employee_pass@employee-db:5432/employee_db?sslmode=disable
-      PORT: 8081
+      PORT: "8081"
+      GRPC_PORT: "9091"
       MAXBOT_GRPC_ADDR: maxbot-service:9095
       MAXBOT_TIMEOUT: 5s
+      AUTH_GRPC_ADDR: auth-service:9090
     depends_on:
       employee-db:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      maxbot-service:
+        condition: service_started
     restart: unless-stopped
     networks:
       - microservices-network
@@ -156,11 +173,19 @@ services:
     depends_on:
       structure-db:
         condition: service_healthy
+      chat-service:
+        condition: service_started
+      employee-service:
+        condition: service_started
     environment:
       DATABASE_URL: postgres://postgres:postgres@structure-db:5432/postgres?sslmode=disable
-      PORT: "8080"
+      PORT: "8083"
+      GRPC_PORT: "9093"
+      CHAT_SERVICE_GRPC: chat-service:9092
+      EMPLOYEE_SERVICE_GRPC: employee-service:9091
     ports:
-      - "8083:8080"
+      - "8083:8083"
+      - "9093:9093"
     restart: on-failure
     networks:
       - microservices-network
@@ -217,8 +242,9 @@ services:
       DB_NAME: migration_db
       DB_SSLMODE: disable
       CHAT_SERVICE_URL: http://chat-service:8082
-      STRUCTURE_SERVICE_URL: http://structure-service:8080
+      STRUCTURE_SERVICE_URL: http://structure-service:8083
       GOOGLE_CREDENTIALS_PATH: /app/credentials/google-credentials.json
+      GOOGLE_SPREADSHEET_ID: ""
     ports:
       - "8084:8084"
     depends_on:
