@@ -2,6 +2,7 @@ package http
 
 import (
 	"chat-service/internal/domain"
+	"chat-service/internal/infrastructure/logger"
 	"chat-service/internal/usecase"
 	"encoding/json"
 	"net/http"
@@ -12,6 +13,7 @@ import (
 type Handler struct {
 	chatService    *usecase.ChatService
 	authMiddleware *AuthMiddleware
+	logger         *logger.Logger
 }
 
 // Chat представляет чат (для Swagger)
@@ -38,10 +40,11 @@ type DeleteResponse struct {
 	Status string `json:"status" example:"deleted"`
 }
 
-func NewHandler(chatService *usecase.ChatService, authMiddleware *AuthMiddleware) *Handler {
+func NewHandler(chatService *usecase.ChatService, authMiddleware *AuthMiddleware, log *logger.Logger) *Handler {
 	return &Handler{
 		chatService:    chatService,
 		authMiddleware: authMiddleware,
+		logger:         log,
 	}
 }
 

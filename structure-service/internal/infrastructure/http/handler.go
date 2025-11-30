@@ -9,6 +9,7 @@ import (
 
 	"structure-service/internal/domain"
 	"structure-service/internal/infrastructure/excel"
+	"structure-service/internal/infrastructure/logger"
 	"structure-service/internal/usecase"
 )
 
@@ -18,6 +19,7 @@ type Handler struct {
 	assignOperatorUseCase         *usecase.AssignOperatorToDepartmentUseCase
 	importStructureUseCase        *usecase.ImportStructureFromExcelUseCase
 	departmentManagerRepo         domain.DepartmentManagerRepository
+	logger                        *logger.Logger
 }
 
 func NewHandler(
@@ -26,6 +28,7 @@ func NewHandler(
 	assignOperatorUseCase *usecase.AssignOperatorToDepartmentUseCase,
 	importStructureUseCase *usecase.ImportStructureFromExcelUseCase,
 	departmentManagerRepo domain.DepartmentManagerRepository,
+	log *logger.Logger,
 ) *Handler {
 	return &Handler{
 		structureService:              structureService,
@@ -33,6 +36,7 @@ func NewHandler(
 		assignOperatorUseCase:         assignOperatorUseCase,
 		importStructureUseCase:        importStructureUseCase,
 		departmentManagerRepo:         departmentManagerRepo,
+		logger:                        log,
 	}
 }
 

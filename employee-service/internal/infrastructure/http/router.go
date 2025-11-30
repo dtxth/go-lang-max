@@ -96,6 +96,6 @@ func (h *Handler) Router() http.Handler {
 	})
 
 	// Wrap with request ID middleware
-	return middleware.RequestIDMiddleware(nil)(mux)
+	return middleware.RequestIDMiddleware(h.logger)(mux)
 }
 

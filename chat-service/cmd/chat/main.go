@@ -6,10 +6,13 @@ import (
 	"chat-service/internal/infrastructure/auth"
 	"chat-service/internal/infrastructure/grpc"
 	"chat-service/internal/infrastructure/http"
+	"chat-service/internal/infrastructure/logger"
 	"chat-service/internal/infrastructure/max"
 	"chat-service/internal/infrastructure/repository"
 	"chat-service/internal/usecase"
 	"database/sql"
+	"log"
+	"os"
 
 	_ "github.com/lib/pq"
 
@@ -24,6 +27,11 @@ import (
 // @schemes         http https
 func main() {
 	cfg := config.Load()
+
+	// Инициализируем logger
+	appLogger := logger.New(os.Stdout, logger.INFO)
+	log.Println("Starting chat-service server on port", cfg.Port)
+	log.Println("Starting gRPC server on port", cfg.GRPCPort)
 
 	db, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
@@ -61,8 +69,8 @@ func main() {
 	// Инициализируем middleware
 	authMiddleware := http.NewAuthMiddleware(authClient)
 
-	// Инициализируем HTTP handler
-	handler := http.NewHandler(chatService, authMiddleware)
+	// Инициализируем HTTP handler с logger
+	handler := http.NewHandler(chatService, authMiddleware, appLogger)
 
 	// HTTP server
 	httpServer := &app.Server{

@@ -7,10 +7,12 @@ import (
 	"employee-service/internal/infrastructure/auth"
 	"employee-service/internal/infrastructure/grpc"
 	"employee-service/internal/infrastructure/http"
+	"employee-service/internal/infrastructure/logger"
 	"employee-service/internal/infrastructure/max"
 	"employee-service/internal/infrastructure/repository"
 	"employee-service/internal/usecase"
 	"log"
+	"os"
 
 	_ "github.com/lib/pq"
 
@@ -25,6 +27,11 @@ import (
 // @schemes         http https
 func main() {
 	cfg := config.Load()
+
+	// Инициализируем logger
+	appLogger := logger.New(os.Stdout, logger.INFO)
+	log.Println("Starting employee-service server on port", cfg.Port)
+	log.Println("Starting gRPC server on port", cfg.GRPCPort)
 
 	db, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
@@ -69,8 +76,8 @@ func main() {
 		searchEmployeesWithRoleFilterUC = usecase.NewSearchEmployeesWithRoleFilterUseCase(employeeRepo, authClient)
 	}
 
-	// Инициализируем HTTP handler
-	handler := http.NewHandler(employeeService, batchUpdateMaxIdUseCase, searchEmployeesWithRoleFilterUC, authClient)
+	// Инициализируем HTTP handler с logger
+	handler := http.NewHandler(employeeService, batchUpdateMaxIdUseCase, searchEmployeesWithRoleFilterUC, authClient, appLogger)
 
 	// HTTP server
 	httpServer := &app.Server{

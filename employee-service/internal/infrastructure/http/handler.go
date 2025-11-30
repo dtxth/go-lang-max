@@ -4,6 +4,7 @@ import (
 	"employee-service/internal/domain"
 	"employee-service/internal/infrastructure/auth"
 	"employee-service/internal/infrastructure/errors"
+	"employee-service/internal/infrastructure/logger"
 	"employee-service/internal/infrastructure/middleware"
 	"employee-service/internal/usecase"
 	"encoding/json"
@@ -17,6 +18,7 @@ type Handler struct {
 	batchUpdateMaxIdUseCase         *usecase.BatchUpdateMaxIdUseCase
 	searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase
 	authClient                      *auth.AuthClient
+	logger                          *logger.Logger
 }
 
 // AddEmployeeRequest представляет запрос на добавление сотрудника
@@ -57,12 +59,14 @@ func NewHandler(
 	batchUpdateMaxIdUseCase *usecase.BatchUpdateMaxIdUseCase,
 	searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase,
 	authClient *auth.AuthClient,
+	log *logger.Logger,
 ) *Handler {
 	return &Handler{
 		employeeService:                 employeeService,
 		batchUpdateMaxIdUseCase:         batchUpdateMaxIdUseCase,
 		searchEmployeesWithRoleFilterUC: searchEmployeesWithRoleFilterUC,
 		authClient:                      authClient,
+		logger:                          log,
 	}
 }
 
