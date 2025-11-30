@@ -70,8 +70,8 @@ services:
   # Chat Service
   chat-service:
     build:
-      context: ./chat-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./chat-service/Dockerfile
     container_name: chat-service
     ports:
       - "8082:8082"
@@ -119,8 +119,8 @@ services:
   # Employee Service
   employee-service:
     build:
-      context: ./employee-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./employee-service/Dockerfile
     container_name: employee-service
     ports:
       - "8081:8081"
@@ -167,8 +167,8 @@ services:
   # Structure Service
   structure-service:
     build:
-      context: ./structure-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./structure-service/Dockerfile
     container_name: structure-service
     depends_on:
       structure-db:

@@ -3,12 +3,19 @@ module chat-service
 go 1.24.0
 
 require (
+	auth-service v0.0.0
 	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.7.0
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.6
 	google.golang.org/grpc v1.66.0
 	google.golang.org/protobuf v1.34.1
+	maxbot-service v0.0.0
+)
+
+replace (
+	auth-service => ../auth-service
+	maxbot-service => ../maxbot-service
 )
 
 require (
