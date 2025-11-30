@@ -20,6 +20,10 @@ RUN protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     api/proto/employee.proto
 
+# Генерируем Swagger документацию
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+RUN swag init -g cmd/employee/main.go -o internal/infrastructure/http/docs
+
 # Собираем приложение
 RUN CGO_ENABLED=0 GOOS=linux go build -o /app/employee-service ./cmd/employee
 
