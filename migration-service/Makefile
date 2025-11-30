@@ -1,25 +1,26 @@
-.PHONY: build run test clean migrate-up migrate-down
+.PHONY: swagger swagger-fmt run test
 
-build:
-	go build -o migration-service ./cmd/migration
+# Generate Swagger documentation
+swagger:
+	swag init -g cmd/migration/main.go -o internal/infrastructure/http/docs
 
+# Format Swagger comments
+swagger-fmt:
+	swag fmt
+
+# Run the service
 run:
-	go run ./cmd/migration/main.go
+	go run cmd/migration/main.go
 
+# Run tests
 test:
 	go test -v ./...
 
-clean:
-	rm -f migration-service
+# Install dependencies
+deps:
+	go mod download
+	go mod tidy
 
-migrate-up:
-	migrate -path migrations -database "postgresql://postgres:postgres@localhost:5436/migration_db?sslmode=disable" up
-
-migrate-down:
-	migrate -path migrations -database "postgresql://postgres:postgres@localhost:5436/migration_db?sslmode=disable" down
-
-docker-build:
-	docker build -t migration-service:latest .
-
-docker-run:
-	docker-compose up -d
+# Build the service
+build:
+	go build -o bin/migration-service cmd/migration/main.go

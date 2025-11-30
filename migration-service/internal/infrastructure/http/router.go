@@ -1,12 +1,14 @@
 package http
 
 import (
-	"migration-service/internal/infrastructure/middleware"
 	"net/http"
+
+	httpSwagger "github.com/swaggo/http-swagger"
+	_ "migration-service/internal/infrastructure/http/docs" // swagger docs
 )
 
 // SetupRoutes sets up HTTP routes
-func SetupRoutes(handler *Handler) http.Handler {
+func SetupRoutes(handler *Handler) *http.ServeMux {
 	mux := http.NewServeMux()
 
 	// Migration endpoints
@@ -19,9 +21,13 @@ func SetupRoutes(handler *Handler) http.Handler {
 	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	// Wrap with request ID middleware
-	return middleware.RequestIDMiddleware(nil)(mux)
+	// Swagger UI
+	mux.HandleFunc("/swagger/", httpSwagger.Handler(
+		httpSwagger.URL("/swagger/doc.json"),
+	))
+
+	return mux
 }

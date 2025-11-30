@@ -5,6 +5,22 @@ Migration Service handles the migration of chat data from three different source
 2. Google Sheets (bot_registrar source)
 3. Excel files (academic_group source) - ~155,000 chats
 
+## API Documentation
+
+После запуска сервиса, **Swagger UI** доступен по адресу:
+
+**http://localhost:8084/swagger/index.html**
+
+### Обновление Swagger документации
+
+```bash
+# Генерация Swagger документации
+make swagger
+
+# Или напрямую
+swag init -g cmd/migration/main.go -o internal/infrastructure/http/docs
+```
+
 ## Features
 
 - **Database Migration**: Import chats from existing database with INN, name, URL, and admin phone

@@ -13,6 +13,8 @@ definitions:
         type: string
       id:
         type: integer
+      role:
+        type: string
     type: object
 info:
   contact: {}
@@ -20,6 +22,22 @@ info:
   title: Auth Service API
   version: "1.0"
 paths:
+  /health:
+    get:
+      description: Returns service health status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Service is healthy
+          schema:
+            properties:
+              status:
+                type: string
+            type: object
+      summary: Health check
+      tags:
+      - health
   /login:
     post:
       consumes:
@@ -51,13 +69,82 @@ paths:
       summary: Login user
       tags:
       - auth
+  /logout:
+    post:
+      consumes:
+      - application/json
+      description: Invalidates refresh token and logs out user
+      parameters:
+      - description: Refresh token
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            refresh_token:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Successfully logged out
+          schema:
+            properties:
+              status:
+                type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Invalid refresh token
+          schema:
+            type: string
+      summary: Logout user
+      tags:
+      - auth
+  /refresh:
+    post:
+      consumes:
+      - application/json
+      description: Returns new access and refresh tokens using refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            refresh_token:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.TokenPair'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Invalid or expired refresh token
+          schema:
+            type: string
+      summary: Refresh access token
+      tags:
+      - auth
   /register:
     post:
       consumes:
       - application/json
       description: Creates user and stores hashed password
       parameters:
-      - description: User credentials
+      - description: User credentials (role is optional, defaults to operator)
         in: body
         name: input
         required: true
@@ -66,6 +153,8 @@ paths:
             email:
               type: string
             password:
+              type: string
+            role:
               type: string
           type: object
       produces:

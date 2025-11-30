@@ -68,6 +68,17 @@ type ErrorResponse struct {
 }
 
 // StartDatabaseMigration handles POST /migration/database
+// @Summary      Start database migration
+// @Description  Start migration from existing database (admin_panel source)
+// @Tags         migration
+// @Accept       json
+// @Produce      json
+// @Param        request body StartDatabaseMigrationRequest true "Database migration request"
+// @Success      202 {object} map[string]string "Migration started"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Security     Bearer
+// @Router       /migration/database [post]
 func (h *Handler) StartDatabaseMigration(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -94,6 +105,17 @@ func (h *Handler) StartDatabaseMigration(w http.ResponseWriter, r *http.Request)
 }
 
 // StartGoogleSheetsMigration handles POST /migration/google-sheets
+// @Summary      Start Google Sheets migration
+// @Description  Start migration from Google Sheets (bot_registrar source)
+// @Tags         migration
+// @Accept       json
+// @Produce      json
+// @Param        request body StartGoogleSheetsMigrationRequest true "Google Sheets migration request"
+// @Success      202 {object} map[string]string "Migration started"
+// @Failure      400 {object} ErrorResponse "Invalid request"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Security     Bearer
+// @Router       /migration/google-sheets [post]
 func (h *Handler) StartGoogleSheetsMigration(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -125,6 +147,17 @@ func (h *Handler) StartGoogleSheetsMigration(w http.ResponseWriter, r *http.Requ
 }
 
 // StartExcelMigration handles POST /migration/excel
+// @Summary      Start Excel migration
+// @Description  Start migration from Excel file (academic_group source) - supports up to 155,000+ chats
+// @Tags         migration
+// @Accept       multipart/form-data
+// @Produce      json
+// @Param        file formData file true "Excel file (.xlsx)"
+// @Success      202 {object} map[string]string "Migration started"
+// @Failure      400 {object} ErrorResponse "Invalid request or file format"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Security     Bearer
+// @Router       /migration/excel [post]
 func (h *Handler) StartExcelMigration(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -189,6 +222,18 @@ func (h *Handler) StartExcelMigration(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetMigrationJob handles GET /migration/jobs/{id}
+// @Summary      Get migration job status
+// @Description  Get detailed status of a specific migration job including progress and errors
+// @Tags         migration
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Migration Job ID"
+// @Success      200 {object} MigrationJobResponse "Migration job details"
+// @Failure      400 {object} ErrorResponse "Invalid job ID"
+// @Failure      404 {object} ErrorResponse "Migration job not found"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Security     Bearer
+// @Router       /migration/jobs/{id} [get]
 func (h *Handler) GetMigrationJob(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -225,6 +270,15 @@ func (h *Handler) GetMigrationJob(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListMigrationJobs handles GET /migration/jobs
+// @Summary      List all migration jobs
+// @Description  Get list of all migration jobs with their current status
+// @Tags         migration
+// @Accept       json
+// @Produce      json
+// @Success      200 {array} MigrationJobResponse "List of migration jobs"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Security     Bearer
+// @Router       /migration/jobs [get]
 func (h *Handler) ListMigrationJobs(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

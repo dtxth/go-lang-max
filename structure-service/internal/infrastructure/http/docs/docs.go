@@ -15,6 +15,108 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/departments/managers": {
+            "get": {
+                "description": "Возвращает список всех назначений операторов на подразделения",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "department-managers"
+                ],
+                "summary": "Получить все назначения операторов",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.DepartmentManager"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Назначает оператора на филиал или факультет",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "department-managers"
+                ],
+                "summary": "Назначить оператора на подразделение",
+                "parameters": [
+                    {
+                        "description": "Данные назначения",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.AssignOperatorRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/domain.DepartmentManager"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/departments/managers/{id}": {
+            "delete": {
+                "description": "Удаляет назначение оператора на подразделение",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "department-managers"
+                ],
+                "summary": "Удалить назначение оператора",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID назначения",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/import/excel": {
             "post": {
                 "description": "Импортирует структуру вуза из Excel файла",
@@ -41,10 +143,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/domain.ImportResult"
                         }
                     },
                     "400": {
@@ -215,6 +314,54 @@ const docTemplate = `{
                 }
             }
         },
+        "domain.DepartmentManager": {
+            "type": "object",
+            "properties": {
+                "assigned_at": {
+                    "type": "string"
+                },
+                "assigned_by": {
+                    "description": "User ID куратора",
+                    "type": "integer"
+                },
+                "branch_id": {
+                    "type": "integer"
+                },
+                "employee_id": {
+                    "type": "integer"
+                },
+                "faculty_id": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.ImportResult": {
+            "type": "object",
+            "properties": {
+                "created": {
+                    "description": "Количество созданных записей",
+                    "type": "integer"
+                },
+                "errors": {
+                    "description": "Список ошибок",
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "failed": {
+                    "description": "Количество неудачных записей",
+                    "type": "integer"
+                },
+                "updated": {
+                    "description": "Количество обновленных записей",
+                    "type": "integer"
+                }
+            }
+        },
         "domain.StructureNode": {
             "type": "object",
             "properties": {
@@ -269,6 +416,23 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "http.AssignOperatorRequest": {
+            "type": "object",
+            "properties": {
+                "assigned_by": {
+                    "type": "integer"
+                },
+                "branch_id": {
+                    "type": "integer"
+                },
+                "employee_id": {
+                    "type": "integer"
+                },
+                "faculty_id": {
+                    "type": "integer"
                 }
             }
         }

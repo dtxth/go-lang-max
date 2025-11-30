@@ -81,6 +81,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "Поисковый запрос (название чата)",
                         "name": "query",
                         "in": "query"
@@ -96,18 +103,6 @@ const docTemplate = `{
                         "description": "Смещение для пагинации",
                         "name": "offset",
                         "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Роль пользователя (superadmin, admin, user)",
-                        "name": "user_role",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID вуза (для фильтрации, если не superadmin)",
-                        "name": "university_id",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -119,6 +114,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "string"
                         }
@@ -141,6 +148,13 @@ const docTemplate = `{
                 "summary": "Получить все чаты",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
                         "description": "Лимит результатов (по умолчанию 50, максимум 100)",
                         "name": "limit",
@@ -150,18 +164,6 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Смещение для пагинации",
                         "name": "offset",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Роль пользователя (superadmin, admin, user)",
-                        "name": "user_role",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID вуза (для фильтрации, если не superadmin)",
-                        "name": "university_id",
                         "in": "query"
                     }
                 ],
@@ -174,6 +176,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "string"
                         }

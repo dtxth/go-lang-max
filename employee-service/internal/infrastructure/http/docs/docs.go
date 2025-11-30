@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/employees": {
             "get": {
-                "description": "Выполняет поиск сотрудников по имени, фамилии и названию вуза",
+                "description": "Выполняет поиск сотрудников по имени, фамилии и названию вуза с применением ролевой фильтрации",
                 "consumes": [
                     "application/json"
                 ],
@@ -46,6 +46,13 @@ const docTemplate = `{
                         "description": "Смещение для пагинации",
                         "name": "offset",
                         "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
                     }
                 ],
                 "responses": {
@@ -54,12 +61,24 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/http.Employee"
+                                "$ref": "#/definitions/usecase.SearchEmployeeResult"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "string"
                         }
@@ -150,6 +169,125 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/employees/batch-status": {
+            "get": {
+                "description": "Retrieves all batch update jobs with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "List all batch jobs",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Limit results (default 50, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset for pagination",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/domain.BatchUpdateJob"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/employees/batch-status/{id}": {
+            "get": {
+                "description": "Retrieves the status of a specific batch update job",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Get batch update status",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Batch job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.BatchUpdateJob"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/employees/batch-update-maxid": {
+            "post": {
+                "description": "Starts a batch update job to retrieve MAX_id for all employees without it",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "employees"
+                ],
+                "summary": "Trigger batch MAX_id update",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.BatchUpdateResult"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "type": "string"
                         }
@@ -284,6 +422,63 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "domain.BatchUpdateJob": {
+            "type": "object",
+            "properties": {
+                "completed_at": {
+                    "type": "string"
+                },
+                "failed": {
+                    "description": "Failed records",
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "job_type": {
+                    "description": "'max_id_update'",
+                    "type": "string"
+                },
+                "processed": {
+                    "description": "Successfully processed records",
+                    "type": "integer"
+                },
+                "started_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "description": "'running', 'completed', 'failed'",
+                    "type": "string"
+                },
+                "total": {
+                    "description": "Total records to process",
+                    "type": "integer"
+                }
+            }
+        },
+        "domain.BatchUpdateResult": {
+            "type": "object",
+            "properties": {
+                "errors": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "failed": {
+                    "type": "integer"
+                },
+                "job_id": {
+                    "type": "integer"
+                },
+                "success": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                }
+            }
+        },
         "domain.University": {
             "type": "object",
             "properties": {
@@ -381,11 +576,19 @@ const docTemplate = `{
                     "description": "MAX_id (заменяет телефон)",
                     "type": "string"
                 },
+                "max_id_updated_at": {
+                    "description": "Время последнего обновления MAX_id",
+                    "type": "string"
+                },
                 "middle_name": {
                     "type": "string"
                 },
                 "phone": {
                     "description": "Номер телефона",
+                    "type": "string"
+                },
+                "role": {
+                    "description": "Роль: curator, operator, или пусто",
                     "type": "string"
                 },
                 "university": {
@@ -396,6 +599,10 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                },
+                "user_id": {
+                    "description": "ID пользователя в auth-service",
+                    "type": "integer"
                 }
             }
         },
@@ -429,6 +636,26 @@ const docTemplate = `{
                 "university_id": {
                     "type": "integer",
                     "example": 1
+                }
+            }
+        },
+        "usecase.SearchEmployeeResult": {
+            "type": "object",
+            "properties": {
+                "full_name": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "phone": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "university_name": {
+                    "type": "string"
                 }
             }
         }

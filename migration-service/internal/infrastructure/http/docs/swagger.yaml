@@ -1,0 +1,220 @@
+basePath: /
+definitions:
+  http.ErrorResponse:
+    properties:
+      error:
+        type: string
+    type: object
+  http.MigrationJobResponse:
+    properties:
+      completed_at:
+        type: string
+      failed:
+        type: integer
+      id:
+        type: integer
+      processed:
+        type: integer
+      source_identifier:
+        type: string
+      source_type:
+        type: string
+      started_at:
+        type: string
+      status:
+        type: string
+      total:
+        type: integer
+    type: object
+  http.StartDatabaseMigrationRequest:
+    properties:
+      source_identifier:
+        type: string
+    type: object
+  http.StartGoogleSheetsMigrationRequest:
+    properties:
+      spreadsheet_id:
+        type: string
+    type: object
+host: localhost:8084
+info:
+  contact:
+    email: support@digitaluniversity.ru
+    name: API Support
+  description: Migration Service API for Digital University system - handles data
+    migration from multiple sources
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Migration Service API
+  version: "1.0"
+paths:
+  /migration/database:
+    post:
+      consumes:
+      - application/json
+      description: Start migration from existing database (admin_panel source)
+      parameters:
+      - description: Database migration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/http.StartDatabaseMigrationRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Migration started
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Start database migration
+      tags:
+      - migration
+  /migration/excel:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Start migration from Excel file (academic_group source) - supports
+        up to 155,000+ chats
+      parameters:
+      - description: Excel file (.xlsx)
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Migration started
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request or file format
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Start Excel migration
+      tags:
+      - migration
+  /migration/google-sheets:
+    post:
+      consumes:
+      - application/json
+      description: Start migration from Google Sheets (bot_registrar source)
+      parameters:
+      - description: Google Sheets migration request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/http.StartGoogleSheetsMigrationRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Migration started
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Start Google Sheets migration
+      tags:
+      - migration
+  /migration/jobs:
+    get:
+      consumes:
+      - application/json
+      description: Get list of all migration jobs with their current status
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of migration jobs
+          schema:
+            items:
+              $ref: '#/definitions/http.MigrationJobResponse'
+            type: array
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: List all migration jobs
+      tags:
+      - migration
+  /migration/jobs/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get detailed status of a specific migration job including progress
+        and errors
+      parameters:
+      - description: Migration Job ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Migration job details
+          schema:
+            $ref: '#/definitions/http.MigrationJobResponse'
+        "400":
+          description: Invalid job ID
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "404":
+          description: Migration job not found
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+        "500":
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/http.ErrorResponse'
+      security:
+      - Bearer: []
+      summary: Get migration job status
+      tags:
+      - migration
+securityDefinitions:
+  Bearer:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

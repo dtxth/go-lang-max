@@ -417,6 +417,9 @@ make migrate-status
 - **Employee Service**: http://localhost:8081/swagger/index.html
 - **Chat Service**: http://localhost:8082/swagger/index.html
 - **Structure Service**: http://localhost:8083/swagger/index.html
+- **Migration Service**: http://localhost:8084/swagger/index.html
+
+📖 **Полная документация Swagger:** [SWAGGER_ENDPOINTS.md](./SWAGGER_ENDPOINTS.md)
 
 ### Основные API endpoints
 
@@ -803,11 +806,30 @@ curl http://localhost:8084/migration/jobs/1/errors
 
 ### Генерация Swagger документации
 
-Для каждого сервиса:
+**Обновление всех сервисов одной командой:**
+
+```bash
+./update_swagger.sh
+```
+
+**Обновление конкретного сервиса:**
 
 ```bash
 cd <service-name>
-make swagger  # или используйте swag init
+make swagger
+
+# Или напрямую
+swag init -g cmd/<service>/main.go -o internal/infrastructure/http/docs
+```
+
+**Примеры:**
+
+```bash
+# Auth Service
+cd auth-service && make swagger
+
+# Migration Service  
+cd migration-service && make swagger
 ```
 
 ## Развертывание (Deployment)

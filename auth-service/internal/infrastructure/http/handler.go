@@ -106,6 +106,17 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
     })
 }
 
+// Refresh godoc
+// @Summary      Refresh access token
+// @Description  Returns new access and refresh tokens using refresh token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      object{refresh_token=string}  true  "Refresh token"
+// @Success      200    {object}  domain.TokenPair
+// @Failure      400    {string}  string  "Invalid request"
+// @Failure      401    {string}  string  "Invalid or expired refresh token"
+// @Router       /refresh [post]
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
     requestID := middleware.GetRequestID(r.Context())
     
@@ -136,6 +147,17 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
     })
 }
 
+// Logout godoc
+// @Summary      Logout user
+// @Description  Invalidates refresh token and logs out user
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      object{refresh_token=string}  true  "Refresh token"
+// @Success      200    {object}  object{status=string}  "Successfully logged out"
+// @Failure      400    {string}  string  "Invalid request"
+// @Failure      401    {string}  string  "Invalid refresh token"
+// @Router       /logout [post]
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
     requestID := middleware.GetRequestID(r.Context())
     
@@ -161,4 +183,17 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(map[string]string{"status": "logged_out"})
+}
+
+// Health godoc
+// @Summary      Health check
+// @Description  Returns service health status
+// @Tags         health
+// @Produce      json
+// @Success      200  {object}  object{status=string}  "Service is healthy"
+// @Router       /health [get]
+func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 }
