@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"log"
@@ -91,9 +92,11 @@ func (h *Handler) StartDatabaseMigration(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Start migration in background
+	// Start migration in background with independent context
+	// Use context.Background() instead of r.Context() to prevent cancellation
 	go func() {
-		jobID, err := h.databaseUseCase.Execute(r.Context(), req.SourceIdentifier)
+		ctx := context.Background()
+		jobID, err := h.databaseUseCase.Execute(ctx, req.SourceIdentifier)
 		if err != nil {
 			log.Printf("Database migration failed: %v", err)
 		} else {
@@ -133,9 +136,11 @@ func (h *Handler) StartGoogleSheetsMigration(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	// Start migration in background
+	// Start migration in background with independent context
+	// Use context.Background() instead of r.Context() to prevent cancellation
 	go func() {
-		jobID, err := h.googleSheetsUseCase.Execute(r.Context(), req.SpreadsheetID)
+		ctx := context.Background()
+		jobID, err := h.googleSheetsUseCase.Execute(ctx, req.SpreadsheetID)
 		if err != nil {
 			log.Printf("Google Sheets migration failed: %v", err)
 		} else {
@@ -205,9 +210,12 @@ func (h *Handler) StartExcelMigration(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Start migration in background
+	// Start migration in background with independent context
+	// Use context.Background() instead of r.Context() to prevent cancellation
+	// when HTTP request completes
 	go func() {
-		jobID, err := h.excelUseCase.Execute(r.Context(), filePath)
+		ctx := context.Background()
+		jobID, err := h.excelUseCase.Execute(ctx, filePath)
 		if err != nil {
 			log.Printf("Excel migration failed: %v", err)
 		} else {

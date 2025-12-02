@@ -1091,6 +1091,25 @@ gunzip < /backups/auth_db_20240115.sql.gz | psql -U postgres auth_db
 
 ## Тестирование
 
+### API Handler Tests
+
+Все API endpoints покрыты unit-тестами для проверки валидации входных данных и обработки ошибок.
+
+```bash
+# Запуск всех тестов API хендлеров
+./test_api_handlers.sh
+
+# Запуск тестов для конкретного сервиса
+cd auth-service && go test -v ./internal/infrastructure/http/
+cd employee-service && go test -v ./internal/infrastructure/http/
+cd chat-service && go test -v ./internal/infrastructure/http/
+cd structure-service && go test -v ./internal/infrastructure/http/
+cd migration-service && go test -v ./internal/infrastructure/http/
+```
+
+**Покрытие:** 29 endpoints, 49 тестов  
+**Документация:** [API_TESTS_COVERAGE.md](./API_TESTS_COVERAGE.md)
+
 ### Unit Tests
 
 ```bash
@@ -1136,6 +1155,32 @@ make test-grpc        # Тесты gRPC коммуникации
 - Быстрый старт: [integration-tests/QUICK_START.md](./integration-tests/QUICK_START.md)
 - Полное руководство: [integration-tests/INTEGRATION_TEST_GUIDE.md](./integration-tests/INTEGRATION_TEST_GUIDE.md)
 - Требования: [.kiro/specs/digital-university-mvp-completion/requirements.md](./.kiro/specs/digital-university-mvp-completion/requirements.md)
+
+### End-to-End Tests
+
+Полные E2E тесты проверяют весь flow от начала до конца:
+
+```bash
+# Запуск всех E2E тестов
+cd integration-tests
+./run_e2e_tests.sh
+
+# Запуск конкретного E2E теста
+go test -v -run TestE2E_CompleteUserJourney -timeout 5m
+go test -v -run TestE2E_RoleBasedAccessControl -timeout 5m
+go test -v -run TestE2E_ErrorHandling -timeout 5m
+```
+
+**Покрытие E2E тестов:**
+- ✅ Полный пользовательский journey (регистрация → создание данных → поиск)
+- ✅ Ролевая модель доступа (Superadmin, Curator, Operator)
+- ✅ Управление администраторами чатов (добавление, удаление, защита)
+- ✅ Пагинация и поиск
+- ✅ Обработка ошибок (400, 401, 404, 409)
+- ✅ Конкурентные операции
+- ✅ Консистентность данных
+
+**Документация:** [E2E_TESTS_GUIDE.md](./E2E_TESTS_GUIDE.md)
 
 ### Property-Based Testing
 
