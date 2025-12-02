@@ -1,14 +1,20 @@
 package domain
 
-import "errors"
-
-var (
-	ErrChatNotFound          = errors.New("chat not found")
-	ErrChatExists            = errors.New("chat already exists")
-	ErrAdministratorNotFound = errors.New("administrator not found")
-	ErrAdministratorExists   = errors.New("administrator already exists")
-	ErrInvalidPhone          = errors.New("invalid phone number")
-	ErrCannotDeleteLastAdmin = errors.New("cannot delete last administrator")
-	ErrUniversityNotFound    = errors.New("university not found")
+import (
+	"chat-service/internal/infrastructure/errors"
 )
 
+var (
+	ErrChatNotFound          = errors.NotFoundError("chat")
+	ErrChatExists            = errors.AlreadyExistsError("chat", "")
+	ErrAdministratorNotFound = errors.NotFoundError("administrator")
+	ErrAdministratorExists   = errors.AlreadyExistsError("administrator", "")
+	ErrInvalidPhone          = errors.InvalidPhoneError("")
+	ErrMaxIDNotFound         = errors.NotFoundError("MAX_id")
+	ErrCannotDeleteLastAdmin = errors.CannotDeleteError("administrator", "last administrator cannot be removed")
+	ErrUniversityNotFound    = errors.NotFoundError("university")
+	ErrInvalidToken          = errors.InvalidTokenError()
+	ErrUnauthorized          = errors.UnauthorizedError("unauthorized")
+	ErrForbidden             = errors.ForbiddenError("insufficient permissions")
+	ErrInvalidRole           = errors.ValidationError("invalid role")
+)

@@ -1,0 +1,180 @@
+syntax = "proto3";
+
+package maxbot;
+
+option go_package = "maxbot-service/api/proto;maxbotproto";
+
+// ErrorCode описывает тип ошибки, возвращаемый сервисом
+enum ErrorCode {
+  ERROR_CODE_UNSPECIFIED = 0;
+  ERROR_CODE_INVALID_PHONE = 1;
+  ERROR_CODE_MAX_ID_NOT_FOUND = 2;
+  ERROR_CODE_INTERNAL = 3;
+}
+
+// MaxBotService предоставляет методы взаимодействия с MAX API
+service MaxBotService {
+  // GetMaxIDByPhone возвращает MAX ID по номеру телефона
+  rpc GetMaxIDByPhone(GetMaxIDByPhoneRequest) returns (GetMaxIDByPhoneResponse);
+  // ValidatePhone проверяет корректность номера телефона
+  rpc ValidatePhone(ValidatePhoneRequest) returns (ValidatePhoneResponse);
+  
+  // SendMessage отправляет сообщение пользователю или в чат
+  rpc SendMessage(SendMessageRequest) returns (SendMessageResponse);
+  // SendNotification отправляет VIP-уведомление пользователю
+  rpc SendNotification(SendNotificationRequest) returns (SendNotificationResponse);
+  
+  // GetChatInfo получает информацию о чате
+  rpc GetChatInfo(GetChatInfoRequest) returns (GetChatInfoResponse);
+  // GetChatMembers получает список участников чата
+  rpc GetChatMembers(GetChatMembersRequest) returns (GetChatMembersResponse);
+  // GetChatAdmins получает список администраторов чата
+  rpc GetChatAdmins(GetChatAdminsRequest) returns (GetChatAdminsResponse);
+  
+  // CheckPhoneNumbers проверяет существование номеров телефонов в Max Messenger
+  rpc CheckPhoneNumbers(CheckPhoneNumbersRequest) returns (CheckPhoneNumbersResponse);
+  
+  // NormalizePhone нормализует номер телефона в формат E.164
+  rpc NormalizePhone(NormalizePhoneRequest) returns (NormalizePhoneResponse);
+  
+  // BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
+  rpc BatchGetUsersByPhone(BatchGetUsersByPhoneRequest) returns (BatchGetUsersByPhoneResponse);
+}
+
+message GetMaxIDByPhoneRequest {
+  string phone = 1;
+}
+
+message GetMaxIDByPhoneResponse {
+  string max_id = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+message ValidatePhoneRequest {
+  string phone = 1;
+}
+
+message ValidatePhoneResponse {
+  bool valid = 1;
+  string normalized_phone = 2;
+  ErrorCode error_code = 3;
+  string error = 4;
+}
+
+// SendMessage
+message SendMessageRequest {
+  oneof recipient {
+    int64 chat_id = 1;
+    int64 user_id = 2;
+  }
+  string text = 3;
+}
+
+message SendMessageResponse {
+  string message_id = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+// SendNotification
+message SendNotificationRequest {
+  string phone = 1;
+  string text = 2;
+}
+
+message SendNotificationResponse {
+  bool success = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+// GetChatInfo
+message GetChatInfoRequest {
+  int64 chat_id = 1;
+}
+
+message GetChatInfoResponse {
+  ChatInfo chat = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+message ChatInfo {
+  int64 chat_id = 1;
+  string title = 2;
+  string type = 3;
+  int32 participants_count = 4;
+  string description = 5;
+}
+
+// GetChatMembers
+message GetChatMembersRequest {
+  int64 chat_id = 1;
+  int32 limit = 2;
+  int64 marker = 3;
+}
+
+message GetChatMembersResponse {
+  repeated ChatMember members = 1;
+  int64 marker = 2;
+  ErrorCode error_code = 3;
+  string error = 4;
+}
+
+message ChatMember {
+  int64 user_id = 1;
+  string name = 2;
+  bool is_admin = 3;
+  bool is_owner = 4;
+}
+
+// GetChatAdmins
+message GetChatAdminsRequest {
+  int64 chat_id = 1;
+}
+
+message GetChatAdminsResponse {
+  repeated ChatMember admins = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+// CheckPhoneNumbers
+message CheckPhoneNumbersRequest {
+  repeated string phones = 1;
+}
+
+message CheckPhoneNumbersResponse {
+  repeated string existing_phones = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+// NormalizePhone
+message NormalizePhoneRequest {
+  string phone = 1;
+}
+
+message NormalizePhoneResponse {
+  string normalized_phone = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+// BatchGetUsersByPhone
+message BatchGetUsersByPhoneRequest {
+  repeated string phones = 1;
+}
+
+message BatchGetUsersByPhoneResponse {
+  repeated UserPhoneMapping mappings = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+message UserPhoneMapping {
+  string phone = 1;
+  string max_id = 2;
+  bool found = 3;
+}

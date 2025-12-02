@@ -33,13 +33,15 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
-      HTTP_ADDR: ":8080"
-      JWT_ACCESS_SECRET: "super-secret-access"
-      JWT_REFRESH_SECRET: "super-secret-refresh"
+      PORT: "8080"
+      GRPC_PORT: "9090"
+      ACCESS_SECRET: "super-secret-access"
+      REFRESH_SECRET: "super-secret-refresh"
       ACCESS_MINUTES: "15"
       REFRESH_HOURS: "168"
     ports:
       - "8080:8080"
+      - "9090:9090"
     restart: on-failure
     networks:
       - microservices-network
@@ -68,17 +70,27 @@ services:
   # Chat Service
   chat-service:
     build:
-      context: ./chat-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./chat-service/Dockerfile
     container_name: chat-service
     ports:
       - "8082:8082"
+      - "9092:9092"
     environment:
       DATABASE_URL: postgres://chat_user:chat_pass@chat-db:5432/chat_db?sslmode=disable
-      PORT: 8082
+      PORT: "8082"
+      GRPC_PORT: "9092"
+      MAXBOT_GRPC_ADDR: maxbot-service:9095
+      MAXBOT_TIMEOUT: 5s
+      AUTH_GRPC_ADDR: auth-service:9090
+      AUTH_TIMEOUT: 5s
     depends_on:
       chat-db:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      maxbot-service:
+        condition: service_started
     restart: unless-stopped
     networks:
       - microservices-network
@@ -107,17 +119,26 @@ services:
   # Employee Service
   employee-service:
     build:
-      context: ./employee-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./employee-service/Dockerfile
     container_name: employee-service
     ports:
       - "8081:8081"
+      - "9091:9091"
     environment:
       DATABASE_URL: postgres://employee_user:employee_pass@employee-db:5432/employee_db?sslmode=disable
-      PORT: 8081
+      PORT: "8081"
+      GRPC_PORT: "9091"
+      MAXBOT_GRPC_ADDR: maxbot-service:9095
+      MAXBOT_TIMEOUT: 5s
+      AUTH_GRPC_ADDR: auth-service:9090
     depends_on:
       employee-db:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      maxbot-service:
+        condition: service_started
     restart: unless-stopped
     networks:
       - microservices-network
@@ -146,18 +167,97 @@ services:
   # Structure Service
   structure-service:
     build:
-      context: ./structure-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./structure-service/Dockerfile
     container_name: structure-service
     depends_on:
       structure-db:
         condition: service_healthy
+      chat-service:
+        condition: service_started
+      employee-service:
+        condition: service_started
     environment:
       DATABASE_URL: postgres://postgres:postgres@structure-db:5432/postgres?sslmode=disable
-      PORT: "8080"
+      PORT: "8083"
+      GRPC_PORT: "9093"
+      CHAT_SERVICE_GRPC: chat-service:9092
+      EMPLOYEE_SERVICE_GRPC: employee-service:9091
     ports:
-      - "8083:8080"
+      - "8083:8083"
+      - "9093:9093"
     restart: on-failure
+    networks:
+      - microservices-network
+
+  maxbot-service:
+    build:
+      context: ./maxbot-service
+      dockerfile: Dockerfile
+    container_name: maxbot-service
+    environment:
+      GRPC_PORT: "9095"
+      MAX_API_URL: ""
+      MAX_API_TOKEN: ""
+      MAX_API_TIMEOUT: 5s
+    ports:
+      - "9095:9095"
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  # Migration Service Database
+  migration-db:
+    image: postgres:15-alpine
+    container_name: migration-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: migration_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - migration_db_data:/var/lib/postgresql/data
+      - ./migration-service/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Migration Service
+  migration-service:
+    build:
+      context: ./migration-service
+      dockerfile: Dockerfile
+    container_name: migration-service
+    environment:
+      SERVER_PORT: "8084"
+      DB_HOST: migration-db
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: migration_db
+      DB_SSLMODE: disable
+      CHAT_SERVICE_URL: http://chat-service:8082
+      STRUCTURE_SERVICE_URL: http://structure-service:8083
+      GOOGLE_CREDENTIALS_PATH: /app/credentials/google-credentials.json
+      GOOGLE_SPREADSHEET_ID: ""
+    ports:
+      - "8084:8084"
+    depends_on:
+      migration-db:
+        condition: service_healthy
+      chat-service:
+        condition: service_started
+      structure-service:
+        condition: service_started
+    volumes:
+      - ./migration-service/credentials:/app/credentials
+      - ./migration-service/uploads:/tmp/migration-uploads
+    restart: unless-stopped
     networks:
       - microservices-network
 
@@ -166,6 +266,7 @@ volumes:
   chat_db_data:
   employee_db_data:
   structure_pgdata:
+  migration_db_data:
 
 networks:
   microservices-network:

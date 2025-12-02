@@ -1,6 +1,7 @@
 package http
 
 import (
+	"employee-service/internal/infrastructure/middleware"
 	"net/http"
 	"strings"
 
@@ -28,6 +29,31 @@ func (h *Handler) Router() http.Handler {
 			return
 		}
 		h.GetAllEmployees(w, r)
+	})
+
+	// Batch operations
+	mux.HandleFunc("/employees/batch-update-maxid", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.BatchUpdateMaxID(w, r)
+	})
+
+	mux.HandleFunc("/employees/batch-status", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.GetAllBatchJobs(w, r)
+	})
+
+	mux.HandleFunc("/employees/batch-status/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.GetBatchStatus(w, r)
 	})
 
 	// Обработка /employees/{id}
@@ -69,6 +95,7 @@ func (h *Handler) Router() http.Handler {
 		w.Write([]byte("OK"))
 	})
 
-	return mux
+	// Wrap with request ID middleware
+	return middleware.RequestIDMiddleware(h.logger)(mux)
 }
 

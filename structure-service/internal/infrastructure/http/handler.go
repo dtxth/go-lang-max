@@ -9,15 +9,35 @@ import (
 
 	"structure-service/internal/domain"
 	"structure-service/internal/infrastructure/excel"
+	"structure-service/internal/infrastructure/logger"
 	"structure-service/internal/usecase"
 )
 
 type Handler struct {
-	structureService *usecase.StructureService
+	structureService              *usecase.StructureService
+	getUniversityStructureUseCase *usecase.GetUniversityStructureUseCase
+	assignOperatorUseCase         *usecase.AssignOperatorToDepartmentUseCase
+	importStructureUseCase        *usecase.ImportStructureFromExcelUseCase
+	departmentManagerRepo         domain.DepartmentManagerRepository
+	logger                        *logger.Logger
 }
 
-func NewHandler(structureService *usecase.StructureService) *Handler {
-	return &Handler{structureService: structureService}
+func NewHandler(
+	structureService *usecase.StructureService,
+	getUniversityStructureUseCase *usecase.GetUniversityStructureUseCase,
+	assignOperatorUseCase *usecase.AssignOperatorToDepartmentUseCase,
+	importStructureUseCase *usecase.ImportStructureFromExcelUseCase,
+	departmentManagerRepo domain.DepartmentManagerRepository,
+	log *logger.Logger,
+) *Handler {
+	return &Handler{
+		structureService:              structureService,
+		getUniversityStructureUseCase: getUniversityStructureUseCase,
+		assignOperatorUseCase:         assignOperatorUseCase,
+		importStructureUseCase:        importStructureUseCase,
+		departmentManagerRepo:         departmentManagerRepo,
+		logger:                        log,
+	}
 }
 
 // GetStructure godoc
@@ -39,7 +59,7 @@ func (h *Handler) GetStructure(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	structure, err := h.structureService.GetStructure(universityID)
+	structure, err := h.getUniversityStructureUseCase.Execute(r.Context(), universityID)
 	if err != nil {
 		if err == domain.ErrUniversityNotFound {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -138,7 +158,7 @@ func (h *Handler) CreateUniversity(w http.ResponseWriter, r *http.Request) {
 // @Accept       multipart/form-data
 // @Produce      json
 // @Param        file  formData  file  true  "Excel файл со структурой"
-// @Success      200   {object}  map[string]string
+// @Success      200   {object}  domain.ImportResult
 // @Failure      400   {string}  string
 // @Router       /import/excel [post]
 func (h *Handler) ImportExcel(w http.ResponseWriter, r *http.Request) {
@@ -147,10 +167,10 @@ func (h *Handler) ImportExcel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Парсим multipart form
-	err := r.ParseMultipartForm(10 << 20) // 10 MB
+	// Парсим multipart form с лимитом 50 MB
+	err := r.ParseMultipartForm(50 << 20) // 50 MB
 	if err != nil {
-		http.Error(w, "failed to parse form", http.StatusBadRequest)
+		http.Error(w, "failed to parse form or file too large (max 50MB)", http.StatusBadRequest)
 		return
 	}
 
@@ -182,16 +202,113 @@ func (h *Handler) ImportExcel(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Валидация: проверяем, что есть хотя бы одна строка
+	if len(rows) == 0 {
+		http.Error(w, "excel file contains no data rows", http.StatusBadRequest)
+		return
+	}
+
 	// Импортируем структуру
-	if err := h.structureService.ImportFromExcel(rows); err != nil {
+	result, err := h.importStructureUseCase.Execute(rows)
+	if err != nil {
 		http.Error(w, "failed to import: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{
-		"status": "success",
-		"message": "Structure imported successfully",
-	})
+	json.NewEncoder(w).Encode(result)
 }
 
+
+// AssignOperatorRequest представляет запрос на назначение оператора
+type AssignOperatorRequest struct {
+	EmployeeID int64  `json:"employee_id"`
+	BranchID   *int64 `json:"branch_id,omitempty"`
+	FacultyID  *int64 `json:"faculty_id,omitempty"`
+	AssignedBy *int64 `json:"assigned_by,omitempty"`
+}
+
+// AssignOperator godoc
+// @Summary      Назначить оператора на подразделение
+// @Description  Назначает оператора на филиал или факультет
+// @Tags         department-managers
+// @Accept       json
+// @Produce      json
+// @Param        input  body      AssignOperatorRequest  true  "Данные назначения"
+// @Success      201    {object}  domain.DepartmentManager
+// @Failure      400    {string}  string
+// @Router       /departments/managers [post]
+func (h *Handler) AssignOperator(w http.ResponseWriter, r *http.Request) {
+	var req AssignOperatorRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	dm, err := h.assignOperatorUseCase.Execute(req.EmployeeID, req.BranchID, req.FacultyID, req.AssignedBy)
+	if err != nil {
+		if err == domain.ErrEmployeeNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		if err == domain.ErrInvalidDepartment {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(dm)
+}
+
+// RemoveOperator godoc
+// @Summary      Удалить назначение оператора
+// @Description  Удаляет назначение оператора на подразделение
+// @Tags         department-managers
+// @Accept       json
+// @Produce      json
+// @Param        id   path      int  true  "ID назначения"
+// @Success      204  {string}  string
+// @Failure      404  {string}  string
+// @Router       /departments/managers/{id} [delete]
+func (h *Handler) RemoveOperator(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/departments/managers/")
+	id, err := strconv.ParseInt(path, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid id", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.departmentManagerRepo.DeleteDepartmentManager(id); err != nil {
+		if err == domain.ErrDepartmentManagerNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetAllDepartmentManagers godoc
+// @Summary      Получить все назначения операторов
+// @Description  Возвращает список всех назначений операторов на подразделения
+// @Tags         department-managers
+// @Accept       json
+// @Produce      json
+// @Success      200  {array}   domain.DepartmentManager
+// @Router       /departments/managers [get]
+func (h *Handler) GetAllDepartmentManagers(w http.ResponseWriter, r *http.Request) {
+	managers, err := h.departmentManagerRepo.GetAllDepartmentManagers()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(managers)
+}

@@ -2,14 +2,23 @@ package http
 
 import (
 	"employee-service/internal/domain"
+	"employee-service/internal/infrastructure/auth"
+	"employee-service/internal/infrastructure/errors"
+	"employee-service/internal/infrastructure/logger"
+	"employee-service/internal/infrastructure/middleware"
 	"employee-service/internal/usecase"
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type Handler struct {
-	employeeService *usecase.EmployeeService
+	employeeService                 *usecase.EmployeeService
+	batchUpdateMaxIdUseCase         *usecase.BatchUpdateMaxIdUseCase
+	searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase
+	authClient                      *auth.AuthClient
+	logger                          *logger.Logger
 }
 
 // AddEmployeeRequest представляет запрос на добавление сотрудника
@@ -45,27 +54,101 @@ type Employee domain.Employee
 // University представляет вуз (для Swagger)
 type University domain.University
 
-func NewHandler(employeeService *usecase.EmployeeService) *Handler {
-	return &Handler{employeeService: employeeService}
+func NewHandler(
+	employeeService *usecase.EmployeeService,
+	batchUpdateMaxIdUseCase *usecase.BatchUpdateMaxIdUseCase,
+	searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase,
+	authClient *auth.AuthClient,
+	log *logger.Logger,
+) *Handler {
+	return &Handler{
+		employeeService:                 employeeService,
+		batchUpdateMaxIdUseCase:         batchUpdateMaxIdUseCase,
+		searchEmployeesWithRoleFilterUC: searchEmployeesWithRoleFilterUC,
+		authClient:                      authClient,
+		logger:                          log,
+	}
 }
 
 // SearchEmployees godoc
 // @Summary      Поиск сотрудников
-// @Description  Выполняет поиск сотрудников по имени, фамилии и названию вуза
+// @Description  Выполняет поиск сотрудников по имени, фамилии и названию вуза с применением ролевой фильтрации
 // @Tags         employees
 // @Accept       json
 // @Produce      json
 // @Param        query   query     string  false  "Поисковый запрос"
 // @Param        limit   query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
 // @Param        offset  query     int     false  "Смещение для пагинации"
-// @Success      200     {array}   Employee
+// @Param        Authorization  header  string  true  "Bearer token"
+// @Success      200     {array}   usecase.SearchEmployeeResult
 // @Failure      400     {string}  string
+// @Failure      401     {string}  string
+// @Failure      403     {string}  string
 // @Router       /employees [get]
 func (h *Handler) SearchEmployees(w http.ResponseWriter, r *http.Request) {
+	requestID := middleware.GetRequestID(r.Context())
+	
+	// Requirements 14.5: Apply role-based filtering
+	// Extract JWT token from Authorization header
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		errors.WriteError(w, errors.UnauthorizedError("missing authorization header"), requestID)
+		return
+	}
+
+	// Extract token from "Bearer <token>"
+	token := strings.TrimPrefix(authHeader, "Bearer ")
+	if token == authHeader {
+		errors.WriteError(w, errors.UnauthorizedError("invalid authorization header format"), requestID)
+		return
+	}
+
+	// Validate token and get user info
+	ctx := r.Context()
+	tokenInfo, err := h.authClient.ValidateToken(ctx, token)
+	if err != nil {
+		http.Error(w, "invalid or expired token", http.StatusUnauthorized)
+		return
+	}
+
+	// Extract query parameters
 	query := r.URL.Query().Get("query")
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
 
+	// Prepare university ID for filtering
+	var universityID *int64
+	if tokenInfo.UniversityId > 0 {
+		uid := tokenInfo.UniversityId
+		universityID = &uid
+	}
+
+	// Use the new use case with role filtering if available
+	if h.searchEmployeesWithRoleFilterUC != nil {
+		results, err := h.searchEmployeesWithRoleFilterUC.Execute(
+			ctx,
+			query,
+			tokenInfo.Role,
+			universityID,
+			limit,
+			offset,
+		)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		// Requirements 14.5: Return empty array for no matches
+		if results == nil {
+			results = []*usecase.SearchEmployeeResult{}
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(results)
+		return
+	}
+
+	// Fallback to old implementation if new use case not available
 	employees, err := h.employeeService.SearchEmployees(query, limit, offset)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -298,4 +381,95 @@ func (h *Handler) DeleteEmployee(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
+}
+
+// BatchUpdateMaxID godoc
+// @Summary      Trigger batch MAX_id update
+// @Description  Starts a batch update job to retrieve MAX_id for all employees without it
+// @Tags         employees
+// @Accept       json
+// @Produce      json
+// @Success      200     {object}  domain.BatchUpdateResult
+// @Failure      500     {string}  string
+// @Router       /employees/batch-update-maxid [post]
+func (h *Handler) BatchUpdateMaxID(w http.ResponseWriter, r *http.Request) {
+	if h.batchUpdateMaxIdUseCase == nil {
+		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	result, err := h.batchUpdateMaxIdUseCase.StartBatchUpdate()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(result)
+}
+
+// GetBatchStatus godoc
+// @Summary      Get batch update status
+// @Description  Retrieves the status of a specific batch update job
+// @Tags         employees
+// @Accept       json
+// @Produce      json
+// @Param        id      path      int     true   "Batch job ID"
+// @Success      200     {object}  domain.BatchUpdateJob
+// @Failure      400     {string}  string
+// @Failure      404     {string}  string
+// @Router       /employees/batch-status/{id} [get]
+func (h *Handler) GetBatchStatus(w http.ResponseWriter, r *http.Request) {
+	if h.batchUpdateMaxIdUseCase == nil {
+		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Extract ID from path
+	path := r.URL.Path
+	idStr := path[len("/employees/batch-status/"):]
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid batch job id", http.StatusBadRequest)
+		return
+	}
+
+	job, err := h.batchUpdateMaxIdUseCase.GetBatchJobStatus(id)
+	if err != nil {
+		http.Error(w, "batch job not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(job)
+}
+
+// GetAllBatchJobs godoc
+// @Summary      List all batch jobs
+// @Description  Retrieves all batch update jobs with pagination
+// @Tags         employees
+// @Accept       json
+// @Produce      json
+// @Param        limit   query     int     false  "Limit results (default 50, max 100)"
+// @Param        offset  query     int     false  "Offset for pagination"
+// @Success      200     {array}   domain.BatchUpdateJob
+// @Failure      500     {string}  string
+// @Router       /employees/batch-status [get]
+func (h *Handler) GetAllBatchJobs(w http.ResponseWriter, r *http.Request) {
+	if h.batchUpdateMaxIdUseCase == nil {
+		http.Error(w, "batch update service not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+
+	jobs, err := h.batchUpdateMaxIdUseCase.GetAllBatchJobs(limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jobs)
 }

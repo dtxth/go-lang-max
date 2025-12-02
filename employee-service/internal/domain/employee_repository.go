@@ -25,5 +25,11 @@ type EmployeeRepository interface {
 	
 	// Delete удаляет сотрудника
 	Delete(id int64) error
+	
+	// GetEmployeesWithoutMaxID получает сотрудников без MAX_id
+	GetEmployeesWithoutMaxID(limit, offset int) ([]*Employee, error)
+	
+	// CountEmployeesWithoutMaxID подсчитывает количество сотрудников без MAX_id
+	CountEmployeesWithoutMaxID() (int, error)
 }
 

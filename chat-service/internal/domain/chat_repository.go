@@ -11,11 +11,11 @@ type ChatRepository interface {
 	// GetByMaxChatID получает чат по MAX chat ID
 	GetByMaxChatID(maxChatID string) (*Chat, error)
 
-	// Search выполняет поиск чатов по названию
-	Search(query string, limit, offset int, userRole string, universityID *int64) ([]*Chat, int, error)
+	// Search выполняет поиск чатов по названию с фильтрацией по роли
+	Search(query string, limit, offset int, filter *ChatFilter) ([]*Chat, int, error)
 
-	// GetAll получает все чаты с пагинацией (с учетом роли пользователя)
-	GetAll(limit, offset int, userRole string, universityID *int64) ([]*Chat, int, error)
+	// GetAll получает все чаты с пагинацией и фильтрацией по роли
+	GetAll(limit, offset int, filter *ChatFilter) ([]*Chat, int, error)
 
 	// Update обновляет данные чата
 	Update(chat *Chat) error

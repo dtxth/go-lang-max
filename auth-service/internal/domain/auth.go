@@ -12,12 +12,25 @@ type TokensWithJTI struct {
 	RefreshJTI string
 }
 
+// TokenContext содержит контекстную информацию для токена
+type TokenContext struct {
+	UniversityID *int64
+	BranchID     *int64
+	FacultyID    *int64
+}
+
 type JWTManager interface {
 	// Генерация токенов возвращает access + refresh и JTI refresh токена
 	GenerateTokens(userID int64, email, role string) (*TokensWithJTI, error)
+	
+	// Генерация токенов с контекстом роли
+	GenerateTokensWithContext(userID int64, email, role string, ctx *TokenContext) (*TokensWithJTI, error)
 
 	// Проверка access токена, возвращает userID, email и role
 	VerifyAccessToken(token string) (int64, string, string, error)
+	
+	// Проверка access токена с контекстом, возвращает userID, email, role и контекст
+	VerifyAccessTokenWithContext(token string) (int64, string, string, *TokenContext, error)
 
 	// Проверка refresh токена, возвращает claims (включая jti, userID, email, role)
 	VerifyRefreshToken(token string) (map[string]interface{}, error)

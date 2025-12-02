@@ -7,10 +7,13 @@ import (
 )
 
 type ChatService struct {
-	chatRepo          domain.ChatRepository
-	administratorRepo domain.AdministratorRepository
-	universityRepo    domain.UniversityRepository
-	maxService        domain.MaxService
+	chatRepo                              domain.ChatRepository
+	administratorRepo                     domain.AdministratorRepository
+	universityRepo                        domain.UniversityRepository
+	maxService                            domain.MaxService
+	listChatsWithRoleFilterUC             *ListChatsWithRoleFilterUseCase
+	addAdministratorWithPermissionCheckUC *AddAdministratorWithPermissionCheckUseCase
+	removeAdministratorWithValidationUC   *RemoveAdministratorWithValidationUseCase
 }
 
 func NewChatService(
@@ -20,41 +23,24 @@ func NewChatService(
 	maxService domain.MaxService,
 ) *ChatService {
 	return &ChatService{
-		chatRepo:          chatRepo,
-		administratorRepo: administratorRepo,
-		universityRepo:    universityRepo,
-		maxService:        maxService,
+		chatRepo:                              chatRepo,
+		administratorRepo:                     administratorRepo,
+		universityRepo:                        universityRepo,
+		maxService:                            maxService,
+		listChatsWithRoleFilterUC:             NewListChatsWithRoleFilterUseCase(chatRepo),
+		addAdministratorWithPermissionCheckUC: NewAddAdministratorWithPermissionCheckUseCase(administratorRepo, chatRepo, maxService),
+		removeAdministratorWithValidationUC:   NewRemoveAdministratorWithValidationUseCase(administratorRepo, chatRepo),
 	}
 }
 
-// SearchChats выполняет поиск чатов по названию с учетом роли пользователя
-func (s *ChatService) SearchChats(query string, limit, offset int, userRole string, universityID *int64) ([]*domain.Chat, int, error) {
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	return s.chatRepo.Search(query, limit, offset, userRole, universityID)
+// SearchChats выполняет поиск чатов по названию с фильтрацией по роли
+func (s *ChatService) SearchChats(query string, limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	return s.listChatsWithRoleFilterUC.Execute(query, limit, offset, filter)
 }
 
-// GetAllChats получает все чаты с пагинацией (с учетом роли пользователя)
-func (s *ChatService) GetAllChats(limit, offset int, userRole string, universityID *int64) ([]*domain.Chat, int, error) {
-	if limit <= 0 {
-		limit = 50
-	}
-	if limit > 100 {
-		limit = 100
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	return s.chatRepo.GetAll(limit, offset, userRole, universityID)
+// GetAllChats получает все чаты с пагинацией и фильтрацией по роли
+func (s *ChatService) GetAllChats(limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	return s.listChatsWithRoleFilterUC.GetAll(limit, offset, filter)
 }
 
 // GetChatByID получает чат по ID
@@ -66,7 +52,7 @@ func (s *ChatService) GetChatByID(id int64) (*domain.Chat, error) {
 	return chat, nil
 }
 
-// AddAdministrator добавляет администратора к чату
+// AddAdministrator добавляет администратора к чату (без проверки прав - для обратной совместимости)
 func (s *ChatService) AddAdministrator(chatID int64, phone string) (*domain.Administrator, error) {
 	// Валидация телефона
 	if !s.maxService.ValidatePhone(phone) {
@@ -105,27 +91,29 @@ func (s *ChatService) AddAdministrator(chatID int64, phone string) (*domain.Admi
 	return admin, nil
 }
 
+// AddAdministratorWithPermissionCheck добавляет администратора к чату с проверкой прав доступа
+func (s *ChatService) AddAdministratorWithPermissionCheck(
+	chatID int64,
+	phone string,
+	userRole string,
+	userUniversityID *int64,
+	userBranchID *int64,
+	userFacultyID *int64,
+) (*domain.Administrator, error) {
+	return s.addAdministratorWithPermissionCheckUC.Execute(
+		chatID,
+		phone,
+		userRole,
+		userUniversityID,
+		userBranchID,
+		userFacultyID,
+	)
+}
+
 // RemoveAdministrator удаляет администратора из чата
 // Нельзя удалить последнего администратора (должно быть минимум 2)
 func (s *ChatService) RemoveAdministrator(adminID int64) error {
-	// Получаем администратора
-	admin, err := s.administratorRepo.GetByID(adminID)
-	if err != nil {
-		return domain.ErrAdministratorNotFound
-	}
-
-	// Проверяем количество администраторов у чата
-	count, err := s.administratorRepo.CountByChatID(admin.ChatID)
-	if err != nil {
-		return err
-	}
-
-	if count < 2 {
-		return domain.ErrCannotDeleteLastAdmin
-	}
-
-	// Удаляем администратора
-	return s.administratorRepo.Delete(adminID)
+	return s.removeAdministratorWithValidationUC.Execute(adminID)
 }
 
 // CreateChat создает новый чат

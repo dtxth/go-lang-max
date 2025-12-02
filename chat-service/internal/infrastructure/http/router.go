@@ -1,6 +1,7 @@
 package http
 
 import (
+	"chat-service/internal/infrastructure/middleware"
 	"net/http"
 	"strings"
 
@@ -10,11 +11,11 @@ import (
 func (h *Handler) Router() http.Handler {
 	mux := http.NewServeMux()
 
-	// Чаты
+	// Чаты (с аутентификацией)
 	mux.HandleFunc("/chats", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			h.SearchChats(w, r)
+			h.authMiddleware.Authenticate(h.SearchChats)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -25,7 +26,7 @@ func (h *Handler) Router() http.Handler {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		h.GetAllChats(w, r)
+		h.authMiddleware.Authenticate(h.GetAllChats)(w, r)
 	})
 
 	// Обработка /chats/{id}
@@ -89,6 +90,7 @@ func (h *Handler) Router() http.Handler {
 		w.Write([]byte("OK"))
 	})
 
-	return mux
+	// Wrap with request ID middleware
+	return middleware.RequestIDMiddleware(h.logger)(mux)
 }
 

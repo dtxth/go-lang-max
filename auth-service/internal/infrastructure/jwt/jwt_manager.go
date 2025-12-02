@@ -28,8 +28,13 @@ func NewManager(access, refresh string, accessTTL, refreshTTL time.Duration) *Ma
     }
 }
 
-// GenerateTokens создаёт access и refresh токены с JTI
+// GenerateTokens создаёт access и refresh токены с JTI (без контекста)
 func (m *Manager) GenerateTokens(userID int64, email, role string) (*domain.TokensWithJTI, error) {
+    return m.GenerateTokensWithContext(userID, email, role, nil)
+}
+
+// GenerateTokensWithContext создаёт access и refresh токены с JTI и контекстом роли
+func (m *Manager) GenerateTokensWithContext(userID int64, email, role string, ctx *domain.TokenContext) (*domain.TokensWithJTI, error) {
     now := time.Now()
 
     // Access token
@@ -40,6 +45,20 @@ func (m *Manager) GenerateTokens(userID int64, email, role string) (*domain.Toke
         "exp":   now.Add(m.accessTTL).Unix(),
         "iat":   now.Unix(),
     }
+    
+    // Добавляем контекстную информацию, если она есть
+    if ctx != nil {
+        if ctx.UniversityID != nil {
+            accessClaims["university_id"] = *ctx.UniversityID
+        }
+        if ctx.BranchID != nil {
+            accessClaims["branch_id"] = *ctx.BranchID
+        }
+        if ctx.FacultyID != nil {
+            accessClaims["faculty_id"] = *ctx.FacultyID
+        }
+    }
+    
     access := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims)
     accessStr, err := access.SignedString(m.accessSecret)
     if err != nil {
@@ -56,6 +75,20 @@ func (m *Manager) GenerateTokens(userID int64, email, role string) (*domain.Toke
         "exp":   now.Add(m.refreshTTL).Unix(),
         "iat":   now.Unix(),
     }
+    
+    // Добавляем контекстную информацию в refresh token
+    if ctx != nil {
+        if ctx.UniversityID != nil {
+            refreshClaims["university_id"] = *ctx.UniversityID
+        }
+        if ctx.BranchID != nil {
+            refreshClaims["branch_id"] = *ctx.BranchID
+        }
+        if ctx.FacultyID != nil {
+            refreshClaims["faculty_id"] = *ctx.FacultyID
+        }
+    }
+    
     refresh := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims)
     refreshStr, err := refresh.SignedString(m.refreshSecret)
     if err != nil {
@@ -142,6 +175,52 @@ func (m *Manager) ParseRefreshToken(tokenStr string) (map[string]interface{}, er
 // VerifyAccessToken проверяет access токен и возвращает userID, email и role (реализация интерфейса domain.JWTManager)
 func (m *Manager) VerifyAccessToken(tokenStr string) (int64, string, string, error) {
     return m.ParseAccessToken(tokenStr)
+}
+
+// VerifyAccessTokenWithContext проверяет access токен и возвращает userID, email, role и контекст
+func (m *Manager) VerifyAccessTokenWithContext(tokenStr string) (int64, string, string, *domain.TokenContext, error) {
+    claims, err := m.JWTVerify(tokenStr)
+    if err != nil {
+        return 0, "", "", nil, err
+    }
+
+    sub, ok := claims["sub"].(string)
+    if !ok {
+        return 0, "", "", nil, fmt.Errorf("sub not found in token")
+    }
+    email, ok := claims["email"].(string)
+    if !ok {
+        return 0, "", "", nil, fmt.Errorf("email not found in token")
+    }
+    role, ok := claims["role"].(string)
+    if !ok {
+        return 0, "", "", nil, fmt.Errorf("role not found in token")
+    }
+
+    userID, err := strconv.ParseInt(sub, 10, 64)
+    if err != nil {
+        return 0, "", "", nil, err
+    }
+
+    // Извлекаем контекстную информацию
+    ctx := &domain.TokenContext{}
+    
+    if universityID, ok := claims["university_id"].(float64); ok {
+        id := int64(universityID)
+        ctx.UniversityID = &id
+    }
+    
+    if branchID, ok := claims["branch_id"].(float64); ok {
+        id := int64(branchID)
+        ctx.BranchID = &id
+    }
+    
+    if facultyID, ok := claims["faculty_id"].(float64); ok {
+        id := int64(facultyID)
+        ctx.FacultyID = &id
+    }
+
+    return userID, email, role, ctx, nil
 }
 
 // VerifyRefreshToken проверяет refresh токен и возвращает claims (реализация интерфейса domain.JWTManager)

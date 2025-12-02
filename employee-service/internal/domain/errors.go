@@ -1,13 +1,17 @@
 package domain
 
-import "errors"
+import (
+	"employee-service/internal/infrastructure/errors"
+)
 
 var (
-	ErrEmployeeNotFound   = errors.New("employee not found")
-	ErrEmployeeExists     = errors.New("employee already exists")
-	ErrUniversityNotFound = errors.New("university not found")
-	ErrUniversityExists   = errors.New("university already exists")
-	ErrInvalidPhone       = errors.New("invalid phone number")
-	ErrMaxIDNotFound      = errors.New("max_id not found for phone")
+	ErrEmployeeNotFound   = errors.NotFoundError("employee")
+	ErrEmployeeExists     = errors.AlreadyExistsError("employee", "")
+	ErrUniversityNotFound = errors.NotFoundError("university")
+	ErrUniversityExists   = errors.AlreadyExistsError("university", "INN")
+	ErrInvalidPhone       = errors.InvalidPhoneError("")
+	ErrMaxIDNotFound      = errors.NotFoundError("MAX_id")
+	ErrInvalidRole        = errors.ValidationError("invalid role")
+	ErrForbidden          = errors.ForbiddenError("insufficient permissions")
 )
 

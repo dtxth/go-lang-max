@@ -32,10 +32,11 @@ func main() {
 
 	repo := repository.NewUserPostgres(db)
 	refreshRepo := repository.NewRefreshPostgres(db)
+	userRoleRepo := repository.NewUserRolePostgres(db)
 	hasher := hash.NewBcryptHasher()
 	jwtManager := jwt.NewManager(cfg.AccessSecret, cfg.RefreshSecret, 15*time.Minute, 7*24*time.Hour)
 
-	authUC := usecase.NewAuthService(repo, refreshRepo, hasher, jwtManager)
+	authUC := usecase.NewAuthService(repo, refreshRepo, hasher, jwtManager, userRoleRepo)
 	handler := http.NewHandler(authUC)
 
 	// HTTP server

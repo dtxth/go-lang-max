@@ -8,22 +8,40 @@ RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ENV PATH=$PATH:/root/go/bin
 
-# Копируем go mod файлы
-COPY go.mod go.sum ./
+# Копируем proto файлы и go.mod из других сервисов сначала
+COPY chat-service/api/proto /app/chat-service/api/proto
+COPY chat-service/go.mod /app/chat-service/go.mod
+COPY employee-service/api/proto /app/employee-service/api/proto
+COPY employee-service/go.mod /app/employee-service/go.mod
+
+# Копируем go mod файлы structure-service
+COPY structure-service/go.mod structure-service/go.sum ./
+
+# Исправляем replace директивы для Docker окружения
+RUN sed -i 's|=> ../chat-service|=> /app/chat-service|g' go.mod && \
+    sed -i 's|=> ../employee-service|=> /app/employee-service|g' go.mod
+
 RUN go mod download
 
-# Копируем исходный код
-COPY . .
+# Копируем исходный код structure-service
+COPY structure-service/ .
 
-# Модифицируем go_package в proto файле для structure-service
-RUN sed -i 's|option go_package = "chat-service/api/proto;proto";|option go_package = "structure-service/api/proto/chat;chatproto";|' api/proto/chat/chat.proto || \
-    sed -i '' 's|option go_package = "chat-service/api/proto;proto";|option go_package = "structure-service/api/proto/chat;chatproto";|' api/proto/chat/chat.proto
+# Снова исправляем replace директивы после копирования
+RUN sed -i 's|=> ../chat-service|=> /app/chat-service|g' go.mod && \
+    sed -i 's|=> ../employee-service|=> /app/employee-service|g' go.mod
 
-# Генерируем proto файлы
+# Генерируем proto файлы для всех сервисов
 RUN protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-    api/proto/structure.proto \
-    api/proto/chat/chat.proto
+    api/proto/structure.proto
+
+RUN protoc --proto_path=/app/chat-service --go_out=/app/chat-service --go_opt=paths=source_relative \
+    --go-grpc_out=/app/chat-service --go-grpc_opt=paths=source_relative \
+    api/proto/chat.proto
+
+RUN protoc --proto_path=/app/employee-service --go_out=/app/employee-service --go_opt=paths=source_relative \
+    --go-grpc_out=/app/employee-service --go-grpc_opt=paths=source_relative \
+    api/proto/employee.proto
 
 # Генерируем Swagger документацию
 RUN go run github.com/swaggo/swag/cmd/swag@latest init -g cmd/structure/main.go -o internal/infrastructure/http/docs

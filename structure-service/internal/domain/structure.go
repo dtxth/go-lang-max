@@ -38,6 +38,8 @@ type Group struct {
 	Course     int       `json:"course"`      // Курс обучения
 	Number     string    `json:"number"`     // Номер группы
 	ChatID     *int64    `json:"chat_id,omitempty"` // ID чата (может быть NULL)
+	ChatURL    string    `json:"chat_url,omitempty"` // URL чата
+	ChatName   string    `json:"chat_name,omitempty"` // Название чата
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -75,5 +77,13 @@ type ExcelRow struct {
 	ChatName        string // Название чата
 	ChatURL         string // Ссылка на чат
 	ChatID          string // ID чата (из ссылки)
+}
+
+// ImportResult представляет результат импорта структуры
+type ImportResult struct {
+	Created int      `json:"created"` // Количество созданных записей
+	Updated int      `json:"updated"` // Количество обновленных записей
+	Failed  int      `json:"failed"`  // Количество неудачных записей
+	Errors  []string `json:"errors,omitempty"` // Список ошибок
 }
 
