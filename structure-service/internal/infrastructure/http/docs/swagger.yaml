@@ -1,0 +1,178 @@
+basePath: /
+definitions:
+  domain.Chat:
+    properties:
+      id:
+        type: integer
+      max_id:
+        type: string
+      name:
+        type: string
+      url:
+        type: string
+    type: object
+  domain.StructureNode:
+    properties:
+      chat:
+        $ref: '#/definitions/domain.Chat'
+      children:
+        items:
+          $ref: '#/definitions/domain.StructureNode'
+        type: array
+      course:
+        type: integer
+      group_num:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        description: '"university", "branch", "faculty", "group"'
+        type: string
+    type: object
+  domain.University:
+    properties:
+      created_at:
+        type: string
+      foiv:
+        description: ФОИВ
+        type: string
+      id:
+        type: integer
+      inn:
+        type: string
+      kpp:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Service for managing university structure hierarchy
+  title: Structure Service API
+  version: "1.0"
+paths:
+  /import/excel:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Импортирует структуру вуза из Excel файла
+      parameters:
+      - description: Excel файл со структурой
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Импортировать структуру из Excel
+      tags:
+      - import
+  /universities:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех вузов
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.University'
+            type: array
+      summary: Получить все вузы
+      tags:
+      - universities
+    post:
+      consumes:
+      - application/json
+      description: Создает новый вуз
+      parameters:
+      - description: Данные вуза
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/domain.University'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.University'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Создать вуз
+      tags:
+      - universities
+  /universities/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о вузе
+      parameters:
+      - description: ID вуза
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.University'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Получить вуз по ID
+      tags:
+      - universities
+  /universities/{university_id}/structure:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает иерархическую структуру вуза (университет -> филиал
+        -> факультет -> группа -> чат)
+      parameters:
+      - description: ID вуза
+        in: path
+        name: university_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.StructureNode'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Получить структуру вуза
+      tags:
+      - structure
+swagger: "2.0"

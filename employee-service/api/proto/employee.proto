@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package employee;
+
+option go_package = "employee-service/api/proto;proto";
+
+// EmployeeService предоставляет методы для работы с сотрудниками и университетами
+service EmployeeService {
+  // GetUniversityByID получает вуз по ID
+  rpc GetUniversityByID(GetUniversityByIDRequest) returns (GetUniversityByIDResponse);
+  
+  // GetUniversityByINN получает вуз по ИНН
+  rpc GetUniversityByINN(GetUniversityByINNRequest) returns (GetUniversityByINNResponse);
+  
+  // GetUniversityByINNAndKPP получает вуз по ИНН и КПП
+  rpc GetUniversityByINNAndKPP(GetUniversityByINNAndKPPRequest) returns (GetUniversityByINNAndKPPResponse);
+}
+
+message GetUniversityByIDRequest {
+  int64 id = 1;
+}
+
+message GetUniversityByIDResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message GetUniversityByINNRequest {
+  string inn = 1;
+}
+
+message GetUniversityByINNResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message GetUniversityByINNAndKPPRequest {
+  string inn = 1;
+  string kpp = 2;
+}
+
+message GetUniversityByINNAndKPPResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message University {
+  int64 id = 1;
+  string name = 2;
+  string inn = 3;
+  string kpp = 4;
+  string created_at = 5;
+  string updated_at = 6;
+}
+

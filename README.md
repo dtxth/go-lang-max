@@ -1,93 +1,228 @@
-# backend
+# go-lang-max
 
+Микросервисная архитектура для мини-приложения "Цифровой вуз" на базе Go.
 
+## Описание
 
-## Getting started
+Проект представляет собой систему микросервисов, обеспечивающих функциональность для управления университетами, сотрудниками, чатами и структурными подразделениями. Все сервисы взаимодействуют через HTTP REST API и gRPC.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+## Архитектура
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+Проект состоит из 4 основных микросервисов:
 
-## Add your files
+### 1. Auth Service (порт 8080, gRPC: 9090)
+Сервис аутентификации и авторизации пользователей.
+- Управление пользователями
+- JWT токены (access и refresh)
+- Валидация токенов через gRPC
+- Роли пользователей (superadmin, admin, user)
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+### 2. Chat Service (порт 8082, gRPC: 9092)
+Сервис управления групповыми чатами.
+- Создание и управление чатами
+- Управление администраторами чатов
+- Поиск и фильтрация чатов
+- Интеграция с MAX API
+
+### 3. Employee Service (порт 8081, gRPC: 9091)
+Сервис управления сотрудниками.
+- Управление сотрудниками вузов
+- Работа с данными университетов
+- Интеграция с MAX API
+
+### 4. Structure Service (порт 8083, gRPC: 9093)
+Сервис управления структурными подразделениями.
+- Импорт данных из Excel
+- Управление структурой университетов
+- Интеграция с Chat Service через gRPC
+
+## Технологический стек
+
+- **Язык**: Go
+- **База данных**: PostgreSQL 15
+- **API**: REST (HTTP) + gRPC
+- **Контейнеризация**: Docker, Docker Compose
+- **Документация API**: Swagger/OpenAPI
+
+## Быстрый старт
+
+### Требования
+
+- Go 1.21+
+- Docker и Docker Compose
+- protoc (для генерации gRPC кода)
+- PostgreSQL 15 (или используйте Docker Compose)
+
+### Установка зависимостей
+
+```bash
+# Установка protoc (macOS)
+brew install protobuf
+
+# Установка Go плагинов для gRPC
+go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+```
+
+### Генерация gRPC кода
+
+```bash
+# Из корневой директории проекта
+chmod +x generate_proto.sh
+./generate_proto.sh
+```
+
+### Запуск через Docker Compose
+
+```bash
+# Запуск всех сервисов и баз данных
+docker-compose up -d
+
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка всех сервисов
+docker-compose down
+
+# Остановка с удалением volumes
+docker-compose down -v
+```
+
+Все сервисы будут доступны по следующим адресам:
+- Auth Service: http://localhost:8080
+- Chat Service: http://localhost:8082
+- Employee Service: http://localhost:8081
+- Structure Service: http://localhost:8083
+
+### Запуск локально (без Docker)
+
+Для каждого сервиса:
+
+```bash
+# Перейти в директорию сервиса
+cd auth-service  # или chat-service, employee-service, structure-service
+
+# Установить зависимости
+go mod download
+
+# Запустить миграции (если необходимо)
+# Убедитесь, что PostgreSQL запущен и настроен
+
+# Запустить сервис
+go run cmd/auth/main.go  # или соответствующий путь для других сервисов
+```
+
+## Структура проекта
 
 ```
-cd existing_repo
-git remote add origin https://git.morizolabs.ru/max-msg/max-msg-university/backend.git
-git branch -M main
-git push -uf origin main
+go-lang-max/
+├── auth-service/          # Сервис аутентификации
+│   ├── api/proto/         # gRPC proto файлы
+│   ├── cmd/               # Точка входа
+│   ├── internal/          # Внутренняя логика
+│   │   ├── app/          # Инициализация приложения
+│   │   ├── config/       # Конфигурация
+│   │   ├── domain/       # Доменные модели
+│   │   ├── infrastructure/ # Реализации (HTTP, gRPC, репозитории)
+│   │   └── usecase/      # Бизнес-логика
+│   ├── migrations/       # Миграции БД
+│   └── Dockerfile
+├── chat-service/          # Сервис чатов
+├── employee-service/     # Сервис сотрудников
+├── structure-service/    # Сервис структуры
+├── docker-compose.yml    # Оркестрация всех сервисов
+├── generate_proto.sh     # Скрипт генерации gRPC кода
+└── GRPC_SETUP.md         # Документация по настройке gRPC
 ```
 
-## Integrate with your tools
+## gRPC взаимодействие
 
-- [ ] [Set up project integrations](https://git.morizolabs.ru/max-msg/max-msg-university/backend/-/settings/integrations)
+Сервисы взаимодействуют через gRPC для внутренней коммуникации:
 
-## Collaborate with your team
+- **Auth Service** предоставляет методы валидации токенов
+- **Chat Service** предоставляет методы для работы с чатами
+- **Employee Service** предоставляет методы для работы с университетами
+- **Structure Service** использует Chat Service для получения информации о чатах
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+Подробная информация о gRPC настройке и использовании описана в [GRPC_SETUP.md](./GRPC_SETUP.md).
 
-## Test and Deploy
+## Базы данных
 
-Use the built-in continuous integration in GitLab.
+Каждый сервис использует свою собственную базу данных PostgreSQL:
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+- **auth-db**: порт 5432
+- **employee-db**: порт 5433
+- **chat-db**: порт 5434
+- **structure-db**: порт 5435
 
-***
+Миграции автоматически применяются при первом запуске через Docker Compose.
 
-# Editing this README
+## API Документация
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+После запуска сервисов, Swagger документация доступна по адресам:
 
-## Suggestions for a good README
+- Auth Service: http://localhost:8080/swagger/index.html
+- Chat Service: http://localhost:8082/swagger/index.html
+- Employee Service: http://localhost:8081/swagger/index.html
+- Structure Service: http://localhost:8083/swagger/index.html
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## Переменные окружения
 
-## Name
-Choose a self-explaining name for your project.
+### Auth Service
+- `DATABASE_URL` - URL подключения к PostgreSQL
+- `HTTP_ADDR` - Адрес HTTP сервера (по умолчанию :8080)
+- `GRPC_PORT` - Порт gRPC сервера (по умолчанию 9090)
+- `JWT_ACCESS_SECRET` - Секретный ключ для access токенов
+- `JWT_REFRESH_SECRET` - Секретный ключ для refresh токенов
+- `ACCESS_MINUTES` - Время жизни access токена в минутах (по умолчанию 15)
+- `REFRESH_HOURS` - Время жизни refresh токена в часах (по умолчанию 168)
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+### Chat Service
+- `DATABASE_URL` - URL подключения к PostgreSQL
+- `PORT` - Порт HTTP сервера (по умолчанию 8082)
+- `GRPC_PORT` - Порт gRPC сервера (по умолчанию 9092)
+- `MAX_API_URL` - URL для MAX API (опционально)
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+### Employee Service
+- `DATABASE_URL` - URL подключения к PostgreSQL
+- `PORT` - Порт HTTP сервера (по умолчанию 8081)
+- `GRPC_PORT` - Порт gRPC сервера (по умолчанию 9091)
+- `MAX_API_URL` - URL для MAX API (опционально)
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+### Structure Service
+- `DATABASE_URL` - URL подключения к PostgreSQL
+- `PORT` - Порт HTTP сервера (по умолчанию 8080)
+- `GRPC_PORT` - Порт gRPC сервера (по умолчанию 9093)
+- `CHAT_SERVICE_GRPC` - Адрес chat-service gRPC (по умолчанию localhost:9092)
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Разработка
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Добавление нового сервиса
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+1. Создайте директорию для сервиса
+2. Инициализируйте Go модуль: `go mod init <service-name>`
+3. Добавьте структуру проекта (cmd, internal, migrations)
+4. Добавьте Dockerfile и docker-compose.yml для сервиса
+5. Обновите корневой docker-compose.yml
+6. Добавьте proto файлы в `api/proto/`
+7. Обновите `generate_proto.sh` для генерации кода
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+### Генерация Swagger документации
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+Для каждого сервиса:
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+```bash
+cd <service-name>
+make swagger  # или используйте swag init
+```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Тестирование
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```bash
+# Запуск тестов для конкретного сервиса
+cd auth-service
+go test ./...
 
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+# Запуск всех тестов
+go test ./...
+```

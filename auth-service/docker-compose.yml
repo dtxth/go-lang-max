@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+      HTTP_ADDR: ":8080"
+      JWT_ACCESS_SECRET: "super-secret-access"
+      JWT_REFRESH_SECRET: "super-secret-refresh"
+      ACCESS_MINUTES: "15"
+      REFRESH_HOURS: "168"
+    ports:
+      - "8080:8080"
+    restart: on-failure
+
+volumes:
+  pgdata:

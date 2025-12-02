@@ -1,0 +1,385 @@
+package repository
+
+import (
+	"database/sql"
+	"structure-service/internal/domain"
+	"time"
+)
+
+type StructurePostgres struct {
+	db *sql.DB
+}
+
+func NewStructurePostgres(db *sql.DB) domain.StructureRepository {
+	return &StructurePostgres{db: db}
+}
+
+// University methods
+func (r *StructurePostgres) CreateUniversity(u *domain.University) error {
+	query := `INSERT INTO universities (name, inn, kpp, foiv, created_at, updated_at) 
+			  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	err := r.db.QueryRow(query, u.Name, u.INN, u.KPP, u.FOIV, time.Now(), time.Now()).Scan(&u.ID)
+	return err
+}
+
+func (r *StructurePostgres) GetUniversityByID(id int64) (*domain.University, error) {
+	u := &domain.University{}
+	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
+			  FROM universities WHERE id = $1`
+	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrUniversityNotFound
+	}
+	return u, err
+}
+
+func (r *StructurePostgres) GetUniversityByINN(inn string) (*domain.University, error) {
+	u := &domain.University{}
+	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
+			  FROM universities WHERE inn = $1`
+	err := r.db.QueryRow(query, inn).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrUniversityNotFound
+	}
+	return u, err
+}
+
+func (r *StructurePostgres) UpdateUniversity(u *domain.University) error {
+	query := `UPDATE universities SET name = $1, inn = $2, kpp = $3, foiv = $4, updated_at = $5 
+			  WHERE id = $6`
+	_, err := r.db.Exec(query, u.Name, u.INN, u.KPP, u.FOIV, time.Now(), u.ID)
+	return err
+}
+
+func (r *StructurePostgres) DeleteUniversity(id int64) error {
+	_, err := r.db.Exec("DELETE FROM universities WHERE id = $1", id)
+	return err
+}
+
+func (r *StructurePostgres) GetAllUniversities() ([]*domain.University, error) {
+	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at FROM universities ORDER BY name`
+	rows, err := r.db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var universities []*domain.University
+	for rows.Next() {
+		u := &domain.University{}
+		if err := rows.Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt); err != nil {
+			return nil, err
+		}
+		universities = append(universities, u)
+	}
+	return universities, rows.Err()
+}
+
+// Branch methods
+func (r *StructurePostgres) CreateBranch(b *domain.Branch) error {
+	query := `INSERT INTO branches (university_id, name, created_at, updated_at) 
+			  VALUES ($1, $2, $3, $4) RETURNING id`
+	err := r.db.QueryRow(query, b.UniversityID, b.Name, time.Now(), time.Now()).Scan(&b.ID)
+	return err
+}
+
+func (r *StructurePostgres) GetBranchByID(id int64) (*domain.Branch, error) {
+	b := &domain.Branch{}
+	query := `SELECT id, university_id, name, created_at, updated_at FROM branches WHERE id = $1`
+	err := r.db.QueryRow(query, id).Scan(&b.ID, &b.UniversityID, &b.Name, &b.CreatedAt, &b.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrBranchNotFound
+	}
+	return b, err
+}
+
+func (r *StructurePostgres) GetBranchesByUniversityID(universityID int64) ([]*domain.Branch, error) {
+	query := `SELECT id, university_id, name, created_at, updated_at 
+			  FROM branches WHERE university_id = $1 ORDER BY name`
+	rows, err := r.db.Query(query, universityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var branches []*domain.Branch
+	for rows.Next() {
+		b := &domain.Branch{}
+		if err := rows.Scan(&b.ID, &b.UniversityID, &b.Name, &b.CreatedAt, &b.UpdatedAt); err != nil {
+			return nil, err
+		}
+		branches = append(branches, b)
+	}
+	return branches, rows.Err()
+}
+
+func (r *StructurePostgres) UpdateBranch(b *domain.Branch) error {
+	query := `UPDATE branches SET name = $1, updated_at = $2 WHERE id = $3`
+	_, err := r.db.Exec(query, b.Name, time.Now(), b.ID)
+	return err
+}
+
+func (r *StructurePostgres) DeleteBranch(id int64) error {
+	_, err := r.db.Exec("DELETE FROM branches WHERE id = $1", id)
+	return err
+}
+
+// Faculty methods
+func (r *StructurePostgres) CreateFaculty(f *domain.Faculty) error {
+	query := `INSERT INTO faculties (branch_id, name, created_at, updated_at) 
+			  VALUES ($1, $2, $3, $4) RETURNING id`
+	err := r.db.QueryRow(query, f.BranchID, f.Name, time.Now(), time.Now()).Scan(&f.ID)
+	return err
+}
+
+func (r *StructurePostgres) GetFacultyByID(id int64) (*domain.Faculty, error) {
+	f := &domain.Faculty{}
+	query := `SELECT id, branch_id, name, created_at, updated_at FROM faculties WHERE id = $1`
+	var branchID sql.NullInt64
+	err := r.db.QueryRow(query, id).Scan(&f.ID, &branchID, &f.Name, &f.CreatedAt, &f.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrFacultyNotFound
+	}
+	if branchID.Valid {
+		f.BranchID = &branchID.Int64
+	}
+	return f, err
+}
+
+func (r *StructurePostgres) GetFacultiesByBranchID(branchID int64) ([]*domain.Faculty, error) {
+	query := `SELECT id, branch_id, name, created_at, updated_at 
+			  FROM faculties WHERE branch_id = $1 ORDER BY name`
+	rows, err := r.db.Query(query, branchID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var faculties []*domain.Faculty
+	for rows.Next() {
+		f := &domain.Faculty{}
+		var branchID sql.NullInt64
+		if err := rows.Scan(&f.ID, &branchID, &f.Name, &f.CreatedAt, &f.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if branchID.Valid {
+			f.BranchID = &branchID.Int64
+		}
+		faculties = append(faculties, f)
+	}
+	return faculties, rows.Err()
+}
+
+func (r *StructurePostgres) GetFacultiesByUniversityID(universityID int64) ([]*domain.Faculty, error) {
+	query := `SELECT f.id, f.branch_id, f.name, f.created_at, f.updated_at 
+			  FROM faculties f
+			  LEFT JOIN branches b ON f.branch_id = b.id
+			  WHERE f.branch_id IS NULL OR b.university_id = $1
+			  ORDER BY f.name`
+	rows, err := r.db.Query(query, universityID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var faculties []*domain.Faculty
+	for rows.Next() {
+		f := &domain.Faculty{}
+		var branchID sql.NullInt64
+		if err := rows.Scan(&f.ID, &branchID, &f.Name, &f.CreatedAt, &f.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if branchID.Valid {
+			f.BranchID = &branchID.Int64
+		}
+		faculties = append(faculties, f)
+	}
+	return faculties, rows.Err()
+}
+
+func (r *StructurePostgres) UpdateFaculty(f *domain.Faculty) error {
+	query := `UPDATE faculties SET branch_id = $1, name = $2, updated_at = $3 WHERE id = $4`
+	_, err := r.db.Exec(query, f.BranchID, f.Name, time.Now(), f.ID)
+	return err
+}
+
+func (r *StructurePostgres) DeleteFaculty(id int64) error {
+	_, err := r.db.Exec("DELETE FROM faculties WHERE id = $1", id)
+	return err
+}
+
+// Group methods
+func (r *StructurePostgres) CreateGroup(g *domain.Group) error {
+	query := `INSERT INTO groups (faculty_id, course, number, chat_id, created_at, updated_at) 
+			  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
+	err := r.db.QueryRow(query, g.FacultyID, g.Course, g.Number, g.ChatID, time.Now(), time.Now()).Scan(&g.ID)
+	return err
+}
+
+func (r *StructurePostgres) GetGroupByID(id int64) (*domain.Group, error) {
+	g := &domain.Group{}
+	query := `SELECT id, faculty_id, course, number, chat_id, created_at, updated_at FROM groups WHERE id = $1`
+	var chatID sql.NullInt64
+	err := r.db.QueryRow(query, id).Scan(&g.ID, &g.FacultyID, &g.Course, &g.Number, &chatID, &g.CreatedAt, &g.UpdatedAt)
+	if err == sql.ErrNoRows {
+		return nil, domain.ErrGroupNotFound
+	}
+	if chatID.Valid {
+		g.ChatID = &chatID.Int64
+	}
+	return g, err
+}
+
+func (r *StructurePostgres) GetGroupsByFacultyID(facultyID int64) ([]*domain.Group, error) {
+	query := `SELECT id, faculty_id, course, number, chat_id, created_at, updated_at 
+			  FROM groups WHERE faculty_id = $1 ORDER BY course, number`
+	rows, err := r.db.Query(query, facultyID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var groups []*domain.Group
+	for rows.Next() {
+		g := &domain.Group{}
+		var chatID sql.NullInt64
+		if err := rows.Scan(&g.ID, &g.FacultyID, &g.Course, &g.Number, &chatID, &g.CreatedAt, &g.UpdatedAt); err != nil {
+			return nil, err
+		}
+		if chatID.Valid {
+			g.ChatID = &chatID.Int64
+		}
+		groups = append(groups, g)
+	}
+	return groups, rows.Err()
+}
+
+func (r *StructurePostgres) UpdateGroup(g *domain.Group) error {
+	query := `UPDATE groups SET faculty_id = $1, course = $2, number = $3, chat_id = $4, updated_at = $5 
+			  WHERE id = $6`
+	_, err := r.db.Exec(query, g.FacultyID, g.Course, g.Number, g.ChatID, time.Now(), g.ID)
+	return err
+}
+
+func (r *StructurePostgres) DeleteGroup(id int64) error {
+	_, err := r.db.Exec("DELETE FROM groups WHERE id = $1", id)
+	return err
+}
+
+// GetStructureByUniversityID получает полную иерархическую структуру
+func (r *StructurePostgres) GetStructureByUniversityID(universityID int64) (*domain.StructureNode, error) {
+	university, err := r.GetUniversityByID(universityID)
+	if err != nil {
+		return nil, err
+	}
+
+	node := &domain.StructureNode{
+		Type:     "university",
+		ID:       university.ID,
+		Name:     university.Name,
+		Children: []*domain.StructureNode{},
+	}
+
+	// Получаем филиалы
+	branches, err := r.GetBranchesByUniversityID(universityID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Если есть филиалы, создаем узлы для них
+	if len(branches) > 0 {
+		for _, branch := range branches {
+			branchNode := &domain.StructureNode{
+				Type:     "branch",
+				ID:       branch.ID,
+				Name:     branch.Name,
+				Children: []*domain.StructureNode{},
+			}
+
+			// Получаем факультеты для филиала
+			faculties, err := r.GetFacultiesByBranchID(branch.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, faculty := range faculties {
+				facultyNode := &domain.StructureNode{
+					Type:     "faculty",
+					ID:       faculty.ID,
+					Name:     faculty.Name,
+					Children: []*domain.StructureNode{},
+				}
+
+				// Получаем группы для факультета
+				groups, err := r.GetGroupsByFacultyID(faculty.ID)
+				if err != nil {
+					return nil, err
+				}
+
+				for _, group := range groups {
+					groupNode := &domain.StructureNode{
+						Type:     "group",
+						ID:       group.ID,
+						Name:     group.Number,
+						Course:   &group.Course,
+						GroupNum: &group.Number,
+					}
+
+					if group.ChatID != nil {
+						// Здесь можно получить информацию о чате из chat-service
+						// Пока оставляем только ID
+						groupNode.Chat = &domain.Chat{ID: *group.ChatID}
+					}
+
+					facultyNode.Children = append(facultyNode.Children, groupNode)
+				}
+
+				branchNode.Children = append(branchNode.Children, facultyNode)
+			}
+
+			node.Children = append(node.Children, branchNode)
+		}
+	} else {
+		// Если нет филиалов, получаем факультеты напрямую для вуза
+		faculties, err := r.GetFacultiesByUniversityID(universityID)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, faculty := range faculties {
+			facultyNode := &domain.StructureNode{
+				Type:     "faculty",
+				ID:       faculty.ID,
+				Name:     faculty.Name,
+				Children: []*domain.StructureNode{},
+			}
+
+			// Получаем группы для факультета
+			groups, err := r.GetGroupsByFacultyID(faculty.ID)
+			if err != nil {
+				return nil, err
+			}
+
+			for _, group := range groups {
+				groupNode := &domain.StructureNode{
+					Type:     "group",
+					ID:       group.ID,
+					Name:     group.Number,
+					Course:   &group.Course,
+					GroupNum: &group.Number,
+				}
+
+				if group.ChatID != nil {
+					groupNode.Chat = &domain.Chat{ID: *group.ChatID}
+				}
+
+				facultyNode.Children = append(facultyNode.Children, groupNode)
+			}
+
+			node.Children = append(node.Children, facultyNode)
+		}
+	}
+
+	return node, nil
+}
+

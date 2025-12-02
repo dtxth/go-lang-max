@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package structure;
+
+option go_package = "structure-service/api/proto;structurepb";
+
+// StructureService предоставляет методы для работы со структурой вузов
+service StructureService {
+  // GetUniversityByID получает вуз по ID
+  rpc GetUniversityByID(GetUniversityByIDRequest) returns (GetUniversityByIDResponse);
+  
+  // GetUniversityByINN получает вуз по ИНН
+  rpc GetUniversityByINN(GetUniversityByINNRequest) returns (GetUniversityByINNResponse);
+}
+
+message GetUniversityByIDRequest {
+  int64 id = 1;
+}
+
+message GetUniversityByIDResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message GetUniversityByINNRequest {
+  string inn = 1;
+}
+
+message GetUniversityByINNResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message University {
+  int64 id = 1;
+  string name = 2;
+  string inn = 3;
+  string kpp = 4;
+  string foiv = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+

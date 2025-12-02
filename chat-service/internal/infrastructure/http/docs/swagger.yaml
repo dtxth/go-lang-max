@@ -1,0 +1,301 @@
+basePath: /
+definitions:
+  domain.Administrator:
+    properties:
+      chat_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      max_id:
+        description: MAX_id администратора
+        type: string
+      phone:
+        description: Номер телефона администратора
+        type: string
+      updated_at:
+        type: string
+    type: object
+  domain.University:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: integer
+      inn:
+        type: string
+      kpp:
+        type: string
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  http.AddAdministratorRequest:
+    properties:
+      phone:
+        example: "+79001234567"
+        type: string
+    required:
+    - phone
+    type: object
+  http.Administrator:
+    properties:
+      chat_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      max_id:
+        description: MAX_id администратора
+        type: string
+      phone:
+        description: Номер телефона администратора
+        type: string
+      updated_at:
+        type: string
+    type: object
+  http.Chat:
+    properties:
+      administrators:
+        description: Администраторы чата
+        items:
+          $ref: '#/definitions/domain.Administrator'
+        type: array
+      created_at:
+        type: string
+      department:
+        description: Подразделение вуза
+        type: string
+      id:
+        type: integer
+      max_chat_id:
+        description: ID чата в MAX
+        type: string
+      name:
+        description: Название чата
+        type: string
+      participants_count:
+        description: Количество участников
+        type: integer
+      source:
+        description: 'Источник: "admin_panel", "bot_registrar", "academic_group"'
+        type: string
+      university:
+        allOf:
+        - $ref: '#/definitions/domain.University'
+        description: Вуз (для суперадмина)
+      university_id:
+        description: ID вуза (опционально)
+        type: integer
+      updated_at:
+        type: string
+      url:
+        description: Ссылка на чат
+        type: string
+    type: object
+  http.ChatListResponse:
+    properties:
+      chats:
+        items:
+          $ref: '#/definitions/http.Chat'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  http.DeleteResponse:
+    properties:
+      status:
+        example: deleted
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Сервис управления групповыми чатами для мини-приложения
+  title: Chat Service API
+  version: "1.0"
+paths:
+  /administrators/{admin_id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет администратора из чата. Нельзя удалить последнего администратора
+        (должно быть минимум 2)
+      parameters:
+      - description: ID администратора
+        in: path
+        name: admin_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.DeleteResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "409":
+          description: Conflict
+          schema:
+            type: string
+      summary: Удалить администратора из чата
+      tags:
+      - administrators
+  /chats:
+    get:
+      consumes:
+      - application/json
+      description: Выполняет поиск чатов по названию с учетом роли пользователя
+      parameters:
+      - description: Поисковый запрос (название чата)
+        in: query
+        name: query
+        type: string
+      - description: Лимит результатов (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      - description: Роль пользователя (superadmin, admin, user)
+        in: query
+        name: user_role
+        type: string
+      - description: ID вуза (для фильтрации, если не superadmin)
+        in: query
+        name: university_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.ChatListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Поиск чатов
+      tags:
+      - chats
+  /chats/{chat_id}/administrators:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет нового администратора к чату по номеру телефона
+      parameters:
+      - description: ID чата
+        in: path
+        name: chat_id
+        required: true
+        type: integer
+      - description: Данные администратора
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.AddAdministratorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.Administrator'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+        "409":
+          description: Conflict
+          schema:
+            type: string
+      summary: Добавить администратора к чату
+      tags:
+      - administrators
+  /chats/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию о чате по его ID
+      parameters:
+      - description: ID чата
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.Chat'
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Получить чат по ID
+      tags:
+      - chats
+  /chats/all:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех чатов с пагинацией (с учетом роли пользователя)
+      parameters:
+      - description: Лимит результатов (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      - description: Роль пользователя (superadmin, admin, user)
+        in: query
+        name: user_role
+        type: string
+      - description: ID вуза (для фильтрации, если не superadmin)
+        in: query
+        name: university_id
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.ChatListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Получить все чаты
+      tags:
+      - chats
+schemes:
+- http
+- https
+swagger: "2.0"

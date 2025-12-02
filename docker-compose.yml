@@ -1,0 +1,173 @@
+version: '3.8'
+
+services:
+  # Auth Service Database
+  auth-db:
+    image: postgres:15
+    container_name: auth-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - auth_pgdata:/var/lib/postgresql/data
+      - ./auth-service/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Auth Service
+  auth-service:
+    build:
+      context: ./auth-service
+      dockerfile: Dockerfile
+    container_name: auth-service
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
+      HTTP_ADDR: ":8080"
+      JWT_ACCESS_SECRET: "super-secret-access"
+      JWT_REFRESH_SECRET: "super-secret-refresh"
+      ACCESS_MINUTES: "15"
+      REFRESH_HOURS: "168"
+    ports:
+      - "8080:8080"
+    restart: on-failure
+    networks:
+      - microservices-network
+
+  # Chat Service Database
+  chat-db:
+    image: postgres:15-alpine
+    container_name: chat-db
+    environment:
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: chat_pass
+      POSTGRES_DB: chat_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - chat_db_data:/var/lib/postgresql/data
+      - ./chat-service/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat_user -d chat_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Chat Service
+  chat-service:
+    build:
+      context: ./chat-service
+      dockerfile: Dockerfile
+    container_name: chat-service
+    ports:
+      - "8082:8082"
+    environment:
+      DATABASE_URL: postgres://chat_user:chat_pass@chat-db:5432/chat_db?sslmode=disable
+      PORT: 8082
+    depends_on:
+      chat-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  # Employee Service Database
+  employee-db:
+    image: postgres:15-alpine
+    container_name: employee-db
+    environment:
+      POSTGRES_USER: employee_user
+      POSTGRES_PASSWORD: employee_pass
+      POSTGRES_DB: employee_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - employee_db_data:/var/lib/postgresql/data
+      - ./employee-service/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U employee_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Employee Service
+  employee-service:
+    build:
+      context: ./employee-service
+      dockerfile: Dockerfile
+    container_name: employee-service
+    ports:
+      - "8081:8081"
+    environment:
+      DATABASE_URL: postgres://employee_user:employee_pass@employee-db:5432/employee_db?sslmode=disable
+      PORT: 8081
+    depends_on:
+      employee-db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
+  # Structure Service Database
+  structure-db:
+    image: postgres:15
+    container_name: structure-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+    ports:
+      - "5435:5432"
+    volumes:
+      - structure_pgdata:/var/lib/postgresql/data
+      - ./structure-service/migrations:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - microservices-network
+
+  # Structure Service
+  structure-service:
+    build:
+      context: ./structure-service
+      dockerfile: Dockerfile
+    container_name: structure-service
+    depends_on:
+      structure-db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@structure-db:5432/postgres?sslmode=disable
+      PORT: "8080"
+    ports:
+      - "8083:8080"
+    restart: on-failure
+    networks:
+      - microservices-network
+
+volumes:
+  auth_pgdata:
+  chat_db_data:
+  employee_db_data:
+  structure_pgdata:
+
+networks:
+  microservices-network:
+    driver: bridge
+
