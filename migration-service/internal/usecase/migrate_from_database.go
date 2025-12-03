@@ -241,7 +241,11 @@ func (uc *MigrateFromDatabaseUseCase) processChat(ctx context.Context, jobID int
 
 	// Add administrator if phone is provided
 	if chat.AdminPhone != "" {
-		if err := uc.chatService.AddAdministrator(ctx, chatID, chat.AdminPhone); err != nil {
+		adminData := &domain.AdministratorData{
+			ChatID: chatID,
+			Phone:  chat.AdminPhone,
+		}
+		if err := uc.chatService.AddAdministrator(ctx, adminData); err != nil {
 			// Log error but don't fail the migration
 			uc.logger.Warn(ctx, "Failed to add administrator for chat", map[string]interface{}{
 				"chat_id": chatID,

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Быстрая проверка тестов (без race detector для скорости)
-# Использование: ./test_quick.sh [service-name]
+# Использование: ./tests/test_quick.sh [service-name]
 
 set -e
 

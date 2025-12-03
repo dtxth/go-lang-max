@@ -16,6 +16,8 @@ func (h *Handler) Router() http.Handler {
 		switch r.Method {
 		case http.MethodGet:
 			h.authMiddleware.Authenticate(h.SearchChats)(w, r)
+		case http.MethodPost:
+			h.CreateChat(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}

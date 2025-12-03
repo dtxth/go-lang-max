@@ -131,6 +131,44 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Создает новый чат",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Создать чат",
+                "parameters": [
+                    {
+                        "description": "Данные чата",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.CreateChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/http.Chat"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
             }
         },
         "/chats/all": {
@@ -297,6 +335,14 @@ const docTemplate = `{
         "domain.Administrator": {
             "type": "object",
             "properties": {
+                "add_admin": {
+                    "description": "Может ли добавлять администраторов",
+                    "type": "boolean"
+                },
+                "add_user": {
+                    "description": "Может ли добавлять пользователей",
+                    "type": "boolean"
+                },
                 "chat_id": {
                     "type": "integer"
                 },
@@ -348,6 +394,18 @@ const docTemplate = `{
                 "phone"
             ],
             "properties": {
+                "add_admin": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "add_user": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "max_id": {
+                    "type": "string",
+                    "example": "496728250"
+                },
                 "phone": {
                     "type": "string",
                     "example": "+79001234567"
@@ -357,6 +415,14 @@ const docTemplate = `{
         "http.Administrator": {
             "type": "object",
             "properties": {
+                "add_admin": {
+                    "description": "Может ли добавлять администраторов",
+                    "type": "boolean"
+                },
+                "add_user": {
+                    "description": "Может ли добавлять пользователей",
+                    "type": "boolean"
+                },
                 "chat_id": {
                     "type": "integer"
                 },
@@ -394,6 +460,10 @@ const docTemplate = `{
                 },
                 "department": {
                     "description": "Подразделение вуза",
+                    "type": "string"
+                },
+                "external_chat_id": {
+                    "description": "ID чата из внешней системы (Excel)",
                     "type": "string"
                 },
                 "id": {
@@ -453,6 +523,43 @@ const docTemplate = `{
                 },
                 "total_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "http.CreateChatRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "source",
+                "url"
+            ],
+            "properties": {
+                "branch_id": {
+                    "type": "integer"
+                },
+                "department": {
+                    "type": "string"
+                },
+                "external_chat_id": {
+                    "type": "string"
+                },
+                "faculty_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "participants_count": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "university_id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
                 }
             }
         },

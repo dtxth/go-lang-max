@@ -19,35 +19,39 @@ help: ## Показать эту справку
 
 test: ## Запустить все тесты с race detector
 	@echo "$(BLUE)Запуск всех тестов...$(NC)"
-	@./run_tests.sh
+	@./tests/run_tests.sh
 
 test-quick: ## Быстрая проверка тестов (без race detector)
 	@echo "$(BLUE)Быстрая проверка тестов...$(NC)"
-	@./test_quick.sh
+	@./tests/test_quick.sh
 
 test-verbose: ## Запустить тесты с подробным выводом
 	@echo "$(BLUE)Запуск тестов (подробный режим)...$(NC)"
-	@./run_tests.sh --verbose
+	@./tests/run_tests.sh --verbose
 
 test-coverage: ## Запустить тесты с отчетом о покрытии кода
 	@echo "$(BLUE)Запуск тестов с покрытием кода...$(NC)"
-	@./run_tests.sh --coverage
+	@./tests/run_tests.sh --coverage
 
 deploy: ## Полное развертывание: тесты → сборка → запуск
 	@echo "$(BLUE)Полное развертывание...$(NC)"
-	@./deploy.sh
+	@./bin/deploy.sh
 
 deploy-fast: ## Быстрое развертывание без тестов
 	@echo "$(YELLOW)Быстрое развертывание (без тестов)...$(NC)"
-	@./deploy.sh --skip-tests
+	@./bin/deploy.sh --skip-tests
 
-deploy-rebuild: ## Полная пересборка с тестами
+deploy-rebuild: ## Полная пересборка с тестами (медленно, 5-10 минут)
 	@echo "$(BLUE)Полная пересборка...$(NC)"
-	@./deploy.sh --no-cache
+	@./bin/deploy.sh --no-cache
+
+deploy-rebuild-fast: ## Полная пересборка без тестов
+	@echo "$(YELLOW)Полная пересборка без тестов...$(NC)"
+	@./bin/deploy.sh --no-cache --skip-tests
 
 deploy-verbose: ## Развертывание с подробным выводом
 	@echo "$(BLUE)Развертывание (подробный режим)...$(NC)"
-	@./deploy.sh --verbose
+	@./bin/deploy.sh --verbose
 
 build: ## Собрать Docker образы
 	@echo "$(BLUE)Сборка Docker образов...$(NC)"

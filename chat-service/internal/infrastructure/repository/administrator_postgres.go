@@ -15,9 +15,9 @@ func NewAdministratorPostgres(db *sql.DB) *AdministratorPostgres {
 
 func (r *AdministratorPostgres) Create(admin *domain.Administrator) error {
 	err := r.db.QueryRow(
-		`INSERT INTO administrators (chat_id, phone, max_id) 
-		 VALUES ($1, $2, $3) RETURNING id, created_at, updated_at`,
-		admin.ChatID, admin.Phone, admin.MaxID,
+		`INSERT INTO administrators (chat_id, phone, max_id, add_user, add_admin) 
+		 VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`,
+		admin.ChatID, admin.Phone, admin.MaxID, admin.AddUser, admin.AddAdmin,
 	).Scan(&admin.ID, &admin.CreatedAt, &admin.UpdatedAt)
 	return err
 }
@@ -25,17 +25,18 @@ func (r *AdministratorPostgres) Create(admin *domain.Administrator) error {
 func (r *AdministratorPostgres) GetByID(id int64) (*domain.Administrator, error) {
 	admin := &domain.Administrator{}
 	err := r.db.QueryRow(
-		`SELECT id, chat_id, phone, max_id, created_at, updated_at 
+		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE id = $1`,
 		id,
 	).Scan(&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+		&admin.AddUser, &admin.AddAdmin,
 		&admin.CreatedAt, &admin.UpdatedAt)
 	return admin, err
 }
 
 func (r *AdministratorPostgres) GetByChatID(chatID int64) ([]*domain.Administrator, error) {
 	rows, err := r.db.Query(
-		`SELECT id, chat_id, phone, max_id, created_at, updated_at 
+		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE chat_id = $1 ORDER BY created_at`,
 		chatID,
 	)
@@ -49,6 +50,7 @@ func (r *AdministratorPostgres) GetByChatID(chatID int64) ([]*domain.Administrat
 		admin := &domain.Administrator{}
 		err := rows.Scan(
 			&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+			&admin.AddUser, &admin.AddAdmin,
 			&admin.CreatedAt, &admin.UpdatedAt,
 		)
 		if err != nil {
@@ -62,10 +64,11 @@ func (r *AdministratorPostgres) GetByChatID(chatID int64) ([]*domain.Administrat
 func (r *AdministratorPostgres) GetByPhoneAndChatID(phone string, chatID int64) (*domain.Administrator, error) {
 	admin := &domain.Administrator{}
 	err := r.db.QueryRow(
-		`SELECT id, chat_id, phone, max_id, created_at, updated_at 
+		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE phone = $1 AND chat_id = $2`,
 		phone, chatID,
 	).Scan(&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+		&admin.AddUser, &admin.AddAdmin,
 		&admin.CreatedAt, &admin.UpdatedAt)
 	return admin, err
 }

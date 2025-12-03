@@ -83,6 +83,11 @@ func (s *StructureService) CreateGroup(g *domain.Group) error {
 	return s.repo.CreateGroup(g)
 }
 
+// GetGroupByID получает группу по ID
+func (s *StructureService) GetGroupByID(id int64) (*domain.Group, error) {
+	return s.repo.GetGroupByID(id)
+}
+
 // UpdateGroup обновляет информацию о группе
 func (s *StructureService) UpdateGroup(g *domain.Group) error {
 	return s.repo.UpdateGroup(g)

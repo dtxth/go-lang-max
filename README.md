@@ -53,9 +53,9 @@ make test
 - migration-service: 44.5MB
 
 **Доступные скрипты:**
-- `./deploy.sh` - Полное развертывание (тесты → сборка → запуск)
-- `./run_tests.sh` - Запуск всех тестов
-- `./test_quick.sh` - Быстрая проверка тестов
+- `./bin/deploy.sh` - Полное развертывание (тесты → сборка → запуск)
+- `./tests/run_tests.sh` - Запуск всех тестов
+- `./tests/test_quick.sh` - Быстрая проверка тестов
 - `make help` - Показать все доступные команды
 
 **⚠️ Известные проблемы:**
@@ -211,8 +211,8 @@ go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 
 ```bash
 # Из корневой директории проекта
-chmod +x generate_proto.sh
-./generate_proto.sh
+chmod +x bin/generate_proto.sh
+./bin/generate_proto.sh
 ```
 
 ### Запуск через Docker Compose
@@ -442,9 +442,9 @@ make migrate-status
 ```
 
 **Документация:**
-- [Руководство по миграциям](./MIGRATIONS.md)
-- [Скрипт проверки миграций](./verify_migrations.sh)
-- [Скрипт тестирования миграций](./test_migrations.sh)
+- [Руководство по миграциям](./docs/MIGRATIONS.md)
+- [Скрипт проверки миграций](./bin/verify_migrations.sh)
+- [Скрипт тестирования миграций](./tests/test_migrations.sh)
 
 ## API Документация
 
@@ -458,7 +458,13 @@ make migrate-status
 - **Structure Service**: http://localhost:8083/swagger/index.html
 - **Migration Service**: http://localhost:8084/swagger/index.html
 
-📖 **Полная документация Swagger:** [SWAGGER_ENDPOINTS.md](./SWAGGER_ENDPOINTS.md)
+📖 **Документация:**
+- [Swagger Endpoints](./docs/SWAGGER_ENDPOINTS.md) - Список всех эндпоинтов
+- [Swagger Types Summary](./docs/SWAGGER_TYPES_SUMMARY.md) - Описание всех типов данных (31 тип)
+- [Swagger Quick Reference](./SWAGGER_QUICK_REFERENCE.md) - Быстрая справка
+- [Swagger Validation Report](./docs/SWAGGER_VALIDATION_REPORT.md) - Отчет о валидации
+
+✅ **Все типы данных корректно определены** - 31 тип в 5 сервисах
 
 ### Основные API endpoints
 
@@ -848,7 +854,7 @@ curl http://localhost:8084/migration/jobs/1/errors
 **Обновление всех сервисов одной командой:**
 
 ```bash
-./update_swagger.sh
+./bin/update_swagger.sh
 ```
 
 **Обновление конкретного сервиса:**
@@ -911,7 +917,7 @@ psql -U postgres -c "CREATE DATABASE structure_db;"
 psql -U postgres -c "CREATE DATABASE migration_db;"
 
 # Примените миграции
-./verify_migrations.sh
+./bin/verify_migrations.sh
 ```
 
 #### 3. Настройка SSL/TLS
@@ -1097,7 +1103,7 @@ gunzip < /backups/auth_db_20240115.sql.gz | psql -U postgres auth_db
 
 ```bash
 # Запуск всех тестов API хендлеров
-./test_api_handlers.sh
+./tests/test_api_handlers.sh
 
 # Запуск тестов для конкретного сервиса
 cd auth-service && go test -v ./internal/infrastructure/http/

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Полный скрипт развертывания: тесты → сборка → запуск
-# Использование: ./deploy.sh [--skip-tests] [--no-cache] [--verbose]
+# Использование: ./bin/deploy.sh [--skip-tests] [--no-cache] [--verbose]
 
 set -e  # Остановить выполнение при первой ошибке
 
@@ -39,7 +39,7 @@ for arg in "$@"; do
             shift
             ;;
         --help|-h)
-            echo "Использование: ./deploy.sh [опции]"
+            echo "Использование: ./bin/deploy.sh [опции]"
             echo ""
             echo "Опции:"
             echo "  --skip-tests     Пропустить запуск тестов"
@@ -49,10 +49,10 @@ for arg in "$@"; do
             echo "  --help, -h       Показать эту справку"
             echo ""
             echo "Примеры:"
-            echo "  ./deploy.sh                    # Полное развертывание с тестами"
-            echo "  ./deploy.sh --skip-tests       # Быстрое развертывание без тестов"
-            echo "  ./deploy.sh --no-cache         # Полная пересборка"
-            echo "  ./deploy.sh --verbose --coverage  # С подробным выводом и покрытием"
+            echo "  ./bin/deploy.sh                    # Полное развертывание с тестами"
+            echo "  ./bin/deploy.sh --skip-tests       # Быстрое развертывание без тестов"
+            echo "  ./bin/deploy.sh --no-cache         # Полная пересборка"
+            echo "  ./bin/deploy.sh --verbose --coverage  # С подробным выводом и покрытием"
             exit 0
             ;;
     esac
@@ -115,7 +115,7 @@ if [ "$SKIP_TESTS" = false ]; then
     [ "$VERBOSE" = true ] && TEST_ARGS="$TEST_ARGS --verbose"
     [ "$COVERAGE" = true ] && TEST_ARGS="$TEST_ARGS --coverage"
     
-    if ./run_tests.sh $TEST_ARGS; then
+    if ./tests/run_tests.sh $TEST_ARGS; then
         print_success "Все тесты прошли успешно"
     else
         print_error "Тесты провалились!"
@@ -134,19 +134,23 @@ print_header "🔨 ШАГ 3/5: СБОРКА DOCKER ОБРАЗОВ"
 
 BUILD_ARGS=""
 if [ "$NO_CACHE" = true ]; then
-    BUILD_ARGS="--no-cache"
+    BUILD_ARGS="--no-cache --progress=plain"
     print_step "Пересборка всех образов без кеша..."
-else
+    print_warning "Это может занять 5-10 минут. Вывод сборки показан ниже..."
+    echo ""
+    # При --no-cache всегда показываем вывод, так как процесс долгий
+    docker-compose build $BUILD_ARGS
+elif [ "$VERBOSE" = true ]; then
+    BUILD_ARGS="--progress=plain"
     print_step "Сборка образов..."
-fi
-
-if [ "$VERBOSE" = true ]; then
     docker-compose build $BUILD_ARGS
 else
+    print_step "Сборка образов (это может занять время)..."
     docker-compose build $BUILD_ARGS > /dev/null 2>&1
 fi
 
 if [ $? -eq 0 ]; then
+    echo ""
     print_success "Все образы собраны успешно"
     
     # Показываем размеры образов
@@ -224,7 +228,7 @@ if [ $HEALTHY_COUNT -eq $TOTAL_SERVICES ]; then
     echo -e "  ${YELLOW}docker-compose logs -f [service]${NC}  - Просмотр логов"
     echo -e "  ${YELLOW}docker-compose ps${NC}                 - Статус контейнеров"
     echo -e "  ${YELLOW}docker-compose down${NC}               - Остановка всех сервисов"
-    echo -e "  ${YELLOW}./run_tests.sh${NC}                    - Запуск тестов"
+    echo -e "  ${YELLOW}./tests/run_tests.sh${NC}              - Запуск тестов"
     echo ""
     exit 0
 else

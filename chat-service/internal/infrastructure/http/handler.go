@@ -32,7 +32,10 @@ type ChatListResponse struct {
 
 // AddAdministratorRequest представляет запрос на добавление администратора
 type AddAdministratorRequest struct {
-	Phone string `json:"phone" example:"+79001234567" binding:"required"`
+	Phone    string `json:"phone" example:"+79001234567" binding:"required"`
+	MaxID    string `json:"max_id,omitempty" example:"496728250"`
+	AddUser  bool   `json:"add_user" example:"true"`
+	AddAdmin bool   `json:"add_admin" example:"true"`
 }
 
 // DeleteResponse представляет ответ на удаление
@@ -238,7 +241,8 @@ func (h *Handler) AddAdministrator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	admin, err := h.chatService.AddAdministrator(chatID, req.Phone)
+	// Используем новый метод с флагами
+	admin, err := h.chatService.AddAdministratorWithFlags(chatID, req.Phone, req.MaxID, req.AddUser, req.AddAdmin)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == domain.ErrChatNotFound {
@@ -294,3 +298,63 @@ func (h *Handler) RemoveAdministrator(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(map[string]string{"status": "deleted"})
 }
 
+
+// CreateChatRequest представляет запрос на создание чата
+type CreateChatRequest struct {
+	Name              string  `json:"name" binding:"required"`
+	URL               string  `json:"url" binding:"required"`
+	ExternalChatID    *string `json:"external_chat_id,omitempty"`
+	Source            string  `json:"source" binding:"required"`
+	UniversityID      *int64  `json:"university_id,omitempty"`
+	BranchID          *int64  `json:"branch_id,omitempty"`
+	FacultyID         *int64  `json:"faculty_id,omitempty"`
+	ParticipantsCount int     `json:"participants_count"`
+	Department        string  `json:"department,omitempty"`
+}
+
+// CreateChat godoc
+// @Summary      Создать чат
+// @Description  Создает новый чат
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Param        input  body      CreateChatRequest  true  "Данные чата"
+// @Success      201    {object}  Chat
+// @Failure      400    {string}  string
+// @Router       /chats [post]
+func (h *Handler) CreateChat(w http.ResponseWriter, r *http.Request) {
+	var req CreateChatRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Преобразуем external_chat_id в строку
+	maxChatID := ""
+	if req.ExternalChatID != nil {
+		maxChatID = *req.ExternalChatID
+	}
+
+	// Создаем чат
+	chat, err := h.chatService.CreateChat(
+		req.Name,
+		req.URL,
+		maxChatID,
+		req.Source,
+		req.ParticipantsCount,
+		req.UniversityID,
+		req.Department,
+	)
+	if err != nil {
+		if err == domain.ErrUniversityNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(chat)
+}

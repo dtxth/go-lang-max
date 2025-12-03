@@ -40,8 +40,26 @@ func (h *Handler) Router() http.Handler {
 		}
 	})
 
+	// Structure
+	mux.HandleFunc("/structure", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost {
+			h.CreateStructure(w, r)
+		} else {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
 	// Import
 	mux.HandleFunc("/import/excel", h.ImportExcel)
+
+	// Groups
+	mux.HandleFunc("/groups/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/chat") && r.Method == http.MethodPut {
+			h.LinkGroupToChat(w, r)
+		} else {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	// Department Managers
 	mux.HandleFunc("/departments/managers", func(w http.ResponseWriter, r *http.Request) {

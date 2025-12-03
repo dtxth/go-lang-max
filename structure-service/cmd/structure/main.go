@@ -60,7 +60,8 @@ func main() {
 	getUniversityStructureUC := usecase.NewGetUniversityStructureUseCase(repo, chatServiceAdapter)
 	assignOperatorUC := usecase.NewAssignOperatorToDepartmentUseCase(dmRepo, employeeClient)
 	importStructureUC := usecase.NewImportStructureFromExcelUseCase(repo, db)
-	handler := http.NewHandler(structureUC, getUniversityStructureUC, assignOperatorUC, importStructureUC, dmRepo, appLogger)
+	createStructureUC := usecase.NewCreateStructureFromRowUseCase(repo)
+	handler := http.NewHandler(structureUC, getUniversityStructureUC, assignOperatorUC, importStructureUC, createStructureUC, dmRepo, appLogger)
 
 	// HTTP server
 	httpServer := &app.Server{
@@ -69,7 +70,7 @@ func main() {
 	}
 
 	// gRPC server
-	grpcHandler := grpc.NewStructureHandler(structureUC)
+	grpcHandler := grpc.NewStructureHandler(structureUC, createStructureUC)
 	grpcServer := grpc.NewServer(grpcHandler, cfg.GRPCPort)
 
 	// Запускаем оба сервера

@@ -117,6 +117,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/groups/{group_id}/chat": {
+            "put": {
+                "description": "Обновляет chat_id для группы",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "groups"
+                ],
+                "summary": "Связать группу с чатом",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID группы",
+                        "name": "group_id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "ID чата",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.LinkGroupToChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/import/excel": {
             "post": {
                 "description": "Импортирует структуру вуза из Excel файла",
@@ -144,6 +191,46 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/domain.ImportResult"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/structure": {
+            "post": {
+                "description": "Создает или находит все элементы структуры (университет, филиал, факультет, группа)",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "structure"
+                ],
+                "summary": "Создать полную структуру",
+                "parameters": [
+                    {
+                        "description": "Данные структуры",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/usecase.CreateStructureRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/usecase.CreateStructureResponse"
                         }
                     },
                     "400": {
@@ -432,6 +519,60 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "faculty_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "http.LinkGroupToChatRequest": {
+            "type": "object",
+            "properties": {
+                "chat_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "usecase.CreateStructureRequest": {
+            "type": "object",
+            "properties": {
+                "branch_name": {
+                    "type": "string"
+                },
+                "course": {
+                    "type": "integer"
+                },
+                "faculty_name": {
+                    "type": "string"
+                },
+                "foiv": {
+                    "type": "string"
+                },
+                "group_number": {
+                    "type": "string"
+                },
+                "inn": {
+                    "type": "string"
+                },
+                "kpp": {
+                    "type": "string"
+                },
+                "org_name": {
+                    "type": "string"
+                }
+            }
+        },
+        "usecase.CreateStructureResponse": {
+            "type": "object",
+            "properties": {
+                "branch_id": {
+                    "type": "integer"
+                },
+                "faculty_id": {
+                    "type": "integer"
+                },
+                "group_id": {
+                    "type": "integer"
+                },
+                "university_id": {
                     "type": "integer"
                 }
             }

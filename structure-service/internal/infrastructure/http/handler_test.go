@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetUniversity_InvalidID(t *testing.T) {
-	handler := NewHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/universities/invalid", nil)
 	w := httptest.NewRecorder()
@@ -22,7 +22,7 @@ func TestGetUniversity_InvalidID(t *testing.T) {
 }
 
 func TestCreateUniversity_InvalidJSON(t *testing.T) {
-	handler := NewHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/universities", bytes.NewReader([]byte("invalid json")))
 	w := httptest.NewRecorder()
@@ -35,7 +35,7 @@ func TestCreateUniversity_InvalidJSON(t *testing.T) {
 }
 
 func TestGetStructure_InvalidID(t *testing.T) {
-	handler := NewHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/universities/invalid/structure", nil)
 	w := httptest.NewRecorder()
@@ -48,7 +48,7 @@ func TestGetStructure_InvalidID(t *testing.T) {
 }
 
 func TestAssignOperator_InvalidJSON(t *testing.T) {
-	handler := NewHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/departments/managers", bytes.NewReader([]byte("invalid json")))
 	w := httptest.NewRecorder()
@@ -61,7 +61,7 @@ func TestAssignOperator_InvalidJSON(t *testing.T) {
 }
 
 func TestRemoveOperator_InvalidID(t *testing.T) {
-	handler := NewHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodDelete, "/departments/managers/invalid", nil)
 	w := httptest.NewRecorder()
@@ -74,7 +74,7 @@ func TestRemoveOperator_InvalidID(t *testing.T) {
 }
 
 func TestImportExcel_InvalidMethod(t *testing.T) {
-	handler := NewHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/import/excel", nil)
 	w := httptest.NewRecorder()
@@ -87,7 +87,7 @@ func TestImportExcel_InvalidMethod(t *testing.T) {
 }
 
 func TestImportExcel_MissingFile(t *testing.T) {
-	handler := NewHandler(nil, nil, nil, nil, nil, nil)
+	handler := NewHandler(nil, nil, nil, nil, nil, nil, nil)
 
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)

@@ -30,8 +30,10 @@ type DatabaseConfig struct {
 
 // ServicesConfig holds external services configuration
 type ServicesConfig struct {
-	ChatServiceURL      string
-	StructureServiceURL string
+	ChatServiceURL       string
+	StructureServiceURL  string
+	ChatServiceGRPC      string
+	StructureServiceGRPC string
 }
 
 // GoogleConfig holds Google API configuration
@@ -55,8 +57,10 @@ func Load() *Config {
 			SSLMode:  getEnv("DB_SSLMODE", "disable"),
 		},
 		Services: ServicesConfig{
-			ChatServiceURL:      getEnv("CHAT_SERVICE_URL", "localhost:9092"),
-			StructureServiceURL: getEnv("STRUCTURE_SERVICE_URL", "localhost:9093"),
+			ChatServiceURL:       getEnv("CHAT_SERVICE_URL", "http://localhost:8082"),
+			StructureServiceURL:  getEnv("STRUCTURE_SERVICE_URL", "http://localhost:8083"),
+			ChatServiceGRPC:      getEnv("CHAT_SERVICE_GRPC", "chat-service:9092"),
+			StructureServiceGRPC: getEnv("STRUCTURE_SERVICE_GRPC", "structure-service:9093"),
 		},
 		Google: GoogleConfig{
 			CredentialsPath: getEnv("GOOGLE_CREDENTIALS_PATH", ""),

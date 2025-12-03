@@ -150,7 +150,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_DB: structure_db
     ports:
       - "5435:5432"
     volumes:
@@ -178,7 +178,7 @@ services:
       employee-service:
         condition: service_started
     environment:
-      DATABASE_URL: postgres://postgres:postgres@structure-db:5432/postgres?sslmode=disable
+      DATABASE_URL: postgres://postgres:postgres@structure-db:5432/structure_db?sslmode=disable
       PORT: "8083"
       GRPC_PORT: "9093"
       CHAT_SERVICE_GRPC: chat-service:9092
@@ -257,6 +257,8 @@ services:
     volumes:
       - ./migration-service/credentials:/app/credentials
       - ./migration-service/uploads:/tmp/migration-uploads
+    mem_limit: 512m          # Увеличен лимит для обработки больших Excel файлов
+    mem_reservation: 256m
     restart: unless-stopped
     networks:
       - microservices-network

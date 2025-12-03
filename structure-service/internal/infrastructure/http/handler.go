@@ -18,6 +18,7 @@ type Handler struct {
 	getUniversityStructureUseCase *usecase.GetUniversityStructureUseCase
 	assignOperatorUseCase         *usecase.AssignOperatorToDepartmentUseCase
 	importStructureUseCase        *usecase.ImportStructureFromExcelUseCase
+	createStructureUseCase        *usecase.CreateStructureFromRowUseCase
 	departmentManagerRepo         domain.DepartmentManagerRepository
 	logger                        *logger.Logger
 }
@@ -27,6 +28,7 @@ func NewHandler(
 	getUniversityStructureUseCase *usecase.GetUniversityStructureUseCase,
 	assignOperatorUseCase *usecase.AssignOperatorToDepartmentUseCase,
 	importStructureUseCase *usecase.ImportStructureFromExcelUseCase,
+	createStructureUseCase *usecase.CreateStructureFromRowUseCase,
 	departmentManagerRepo domain.DepartmentManagerRepository,
 	log *logger.Logger,
 ) *Handler {
@@ -35,6 +37,7 @@ func NewHandler(
 		getUniversityStructureUseCase: getUniversityStructureUseCase,
 		assignOperatorUseCase:         assignOperatorUseCase,
 		importStructureUseCase:        importStructureUseCase,
+		createStructureUseCase:        createStructureUseCase,
 		departmentManagerRepo:         departmentManagerRepo,
 		logger:                        log,
 	}
@@ -149,6 +152,33 @@ func (h *Handler) CreateUniversity(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(university)
+}
+
+// CreateStructure godoc
+// @Summary      Создать полную структуру
+// @Description  Создает или находит все элементы структуры (университет, филиал, факультет, группа)
+// @Tags         structure
+// @Accept       json
+// @Produce      json
+// @Param        input  body      usecase.CreateStructureRequest  true  "Данные структуры"
+// @Success      200    {object}  usecase.CreateStructureResponse
+// @Failure      400    {string}  string
+// @Router       /structure [post]
+func (h *Handler) CreateStructure(w http.ResponseWriter, r *http.Request) {
+	var req usecase.CreateStructureRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	response, err := h.createStructureUseCase.Execute(r.Context(), &req)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 // ImportExcel godoc
@@ -311,4 +341,54 @@ func (h *Handler) GetAllDepartmentManagers(w http.ResponseWriter, r *http.Reques
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(managers)
+}
+
+// LinkGroupToChatRequest represents request to link group to chat
+type LinkGroupToChatRequest struct {
+	ChatID int64 `json:"chat_id"`
+}
+
+// LinkGroupToChat godoc
+// @Summary      Связать группу с чатом
+// @Description  Обновляет chat_id для группы
+// @Tags         groups
+// @Accept       json
+// @Produce      json
+// @Param        group_id  path      int                      true  "ID группы"
+// @Param        input     body      LinkGroupToChatRequest  true  "ID чата"
+// @Success      200       {string}  string
+// @Failure      400       {string}  string
+// @Router       /groups/{group_id}/chat [put]
+func (h *Handler) LinkGroupToChat(w http.ResponseWriter, r *http.Request) {
+	// Extract group ID from URL
+	path := strings.TrimPrefix(r.URL.Path, "/groups/")
+	path = strings.TrimSuffix(path, "/chat")
+	groupID, err := strconv.ParseInt(path, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid group id", http.StatusBadRequest)
+		return
+	}
+
+	var req LinkGroupToChatRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Get group
+	group, err := h.structureService.GetGroupByID(groupID)
+	if err != nil {
+		http.Error(w, "group not found", http.StatusNotFound)
+		return
+	}
+
+	// Update chat_id
+	group.ChatID = &req.ChatID
+	if err := h.structureService.UpdateGroup(group); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message":"group linked to chat"}`))
 }

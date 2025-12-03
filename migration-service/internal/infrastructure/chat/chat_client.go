@@ -28,6 +28,7 @@ func NewHTTPClient(baseURL string) *HTTPClient {
 type CreateChatRequest struct {
 	Name              string  `json:"name"`
 	URL               string  `json:"url"`
+	ExternalChatID    *string `json:"external_chat_id,omitempty"`
 	Source            string  `json:"source"`
 	UniversityID      *int    `json:"university_id,omitempty"`
 	BranchID          *int    `json:"branch_id,omitempty"`
@@ -42,14 +43,23 @@ type CreateChatResponse struct {
 
 // AddAdministratorRequest represents the request to add an administrator
 type AddAdministratorRequest struct {
-	Phone string `json:"phone"`
+	Phone    string `json:"phone"`
+	MaxID    string `json:"max_id,omitempty"`
+	AddUser  bool   `json:"add_user"`
+	AddAdmin bool   `json:"add_admin"`
 }
 
 // CreateChat creates a new chat
 func (c *HTTPClient) CreateChat(ctx context.Context, chat *domain.ChatData) (int, error) {
+	var externalChatID *string
+	if chat.ExternalChatID != "" {
+		externalChatID = &chat.ExternalChatID
+	}
+
 	reqBody := CreateChatRequest{
 		Name:              chat.Name,
 		URL:               chat.URL,
+		ExternalChatID:    externalChatID,
 		Source:            chat.Source,
 		UniversityID:      &chat.UniversityID,
 		BranchID:          chat.BranchID,
@@ -88,9 +98,12 @@ func (c *HTTPClient) CreateChat(ctx context.Context, chat *domain.ChatData) (int
 }
 
 // AddAdministrator adds an administrator to a chat
-func (c *HTTPClient) AddAdministrator(ctx context.Context, chatID int, phone string) error {
+func (c *HTTPClient) AddAdministrator(ctx context.Context, admin *domain.AdministratorData) error {
 	reqBody := AddAdministratorRequest{
-		Phone: phone,
+		Phone:    admin.Phone,
+		MaxID:    admin.MaxID,
+		AddUser:  admin.AddUser,
+		AddAdmin: admin.AddAdmin,
 	}
 
 	jsonData, err := json.Marshal(reqBody)
@@ -98,7 +111,7 @@ func (c *HTTPClient) AddAdministrator(ctx context.Context, chatID int, phone str
 		return fmt.Errorf("failed to marshal request: %w", err)
 	}
 
-	url := fmt.Sprintf("%s/chats/%d/administrators", c.baseURL, chatID)
+	url := fmt.Sprintf("%s/chats/%d/administrators", c.baseURL, admin.ChatID)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(jsonData))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)

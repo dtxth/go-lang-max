@@ -5,10 +5,9 @@ import (
 	"fmt"
 	"log"
 	"migration-service/internal/config"
-	"migration-service/internal/infrastructure/chat"
+	"migration-service/internal/infrastructure/grpc"
 	httpHandler "migration-service/internal/infrastructure/http"
 	"migration-service/internal/infrastructure/repository"
-	"migration-service/internal/infrastructure/structure"
 	"migration-service/internal/usecase"
 	"net/http"
 
@@ -17,9 +16,11 @@ import (
 
 // Server represents the migration service server
 type Server struct {
-	config *config.Config
-	db     *sql.DB
-	server *http.Server
+	config           *config.Config
+	db               *sql.DB
+	server           *http.Server
+	chatClient       *grpc.ChatClient
+	structureClient  *grpc.StructureClient
 }
 
 // NewServer creates a new server instance
@@ -49,9 +50,19 @@ func (s *Server) Start() error {
 	errorRepo := repository.NewMigrationErrorPostgresRepository(s.db)
 	universityRepo := repository.NewUniversityHTTPRepository(s.config.Services.StructureServiceURL)
 
-	// Initialize external service clients
-	chatService := chat.NewHTTPClient(s.config.Services.ChatServiceURL)
-	structureService := structure.NewHTTPClient(s.config.Services.StructureServiceURL)
+	// Initialize gRPC clients
+	chatClient, err := grpc.NewChatClient(s.config.Services.ChatServiceGRPC)
+	if err != nil {
+		return fmt.Errorf("failed to create chat client: %w", err)
+	}
+	s.chatClient = chatClient
+
+	structureClient, err := grpc.NewStructureClient(s.config.Services.StructureServiceGRPC)
+	if err != nil {
+		chatClient.Close()
+		return fmt.Errorf("failed to create structure client: %w", err)
+	}
+	s.structureClient = structureClient
 
 	// Initialize use cases
 	databaseUseCase := usecase.NewMigrateFromDatabaseUseCase(
@@ -59,7 +70,7 @@ func (s *Server) Start() error {
 		jobRepo,
 		errorRepo,
 		universityRepo,
-		chatService,
+		chatClient,
 		nil, // logger
 	)
 
@@ -67,7 +78,7 @@ func (s *Server) Start() error {
 		jobRepo,
 		errorRepo,
 		universityRepo,
-		chatService,
+		chatClient,
 		s.config.Google.CredentialsPath,
 		nil, // logger
 	)
@@ -75,8 +86,8 @@ func (s *Server) Start() error {
 	excelUseCase := usecase.NewMigrateFromExcelUseCase(
 		jobRepo,
 		errorRepo,
-		structureService,
-		chatService,
+		structureClient,
+		chatClient,
 		nil, // logger
 	)
 
@@ -104,6 +115,12 @@ func (s *Server) Start() error {
 
 // Stop stops the server
 func (s *Server) Stop() error {
+	if s.chatClient != nil {
+		s.chatClient.Close()
+	}
+	if s.structureClient != nil {
+		s.structureClient.Close()
+	}
 	if s.db != nil {
 		s.db.Close()
 	}

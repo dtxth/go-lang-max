@@ -54,6 +54,11 @@ func (s *ChatService) GetChatByID(id int64) (*domain.Chat, error) {
 
 // AddAdministrator добавляет администратора к чату (без проверки прав - для обратной совместимости)
 func (s *ChatService) AddAdministrator(chatID int64, phone string) (*domain.Administrator, error) {
+	return s.AddAdministratorWithFlags(chatID, phone, "", true, true)
+}
+
+// AddAdministratorWithFlags добавляет администратора к чату с указанием флагов
+func (s *ChatService) AddAdministratorWithFlags(chatID int64, phone string, maxID string, addUser bool, addAdmin bool) (*domain.Administrator, error) {
 	// Валидация телефона
 	if !s.maxService.ValidatePhone(phone) {
 		return nil, domain.ErrInvalidPhone
@@ -71,17 +76,21 @@ func (s *ChatService) AddAdministrator(chatID int64, phone string) (*domain.Admi
 		return nil, domain.ErrAdministratorExists
 	}
 
-	// Получаем MAX_id по телефону
-	maxID, err := s.maxService.GetMaxIDByPhone(phone)
-	if err != nil {
-		return nil, err
+	// Если MAX_id не передан, получаем его по телефону
+	if maxID == "" {
+		maxID, err = s.maxService.GetMaxIDByPhone(phone)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Создаем администратора
 	admin := &domain.Administrator{
-		ChatID: chatID,
-		Phone:  phone,
-		MaxID:  maxID,
+		ChatID:   chatID,
+		Phone:    phone,
+		MaxID:    maxID,
+		AddUser:  addUser,
+		AddAdmin: addAdmin,
 	}
 
 	if err := s.administratorRepo.Create(admin); err != nil {

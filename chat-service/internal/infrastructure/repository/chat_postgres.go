@@ -23,10 +23,17 @@ func (r *ChatPostgres) Create(chat *domain.Chat) error {
 		universityID = nil
 	}
 
+	var externalChatID interface{}
+	if chat.ExternalChatID != nil {
+		externalChatID = *chat.ExternalChatID
+	} else {
+		externalChatID = nil
+	}
+
 	err := r.db.QueryRow(
-		`INSERT INTO chats (name, url, max_chat_id, participants_count, university_id, department, source) 
-		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at, updated_at`,
-		chat.Name, chat.URL, chat.MaxChatID, chat.ParticipantsCount, universityID, chat.Department, chat.Source,
+		`INSERT INTO chats (name, url, max_chat_id, external_chat_id, participants_count, university_id, department, source) 
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, updated_at`,
+		chat.Name, chat.URL, chat.MaxChatID, externalChatID, chat.ParticipantsCount, universityID, chat.Department, chat.Source,
 	).Scan(&chat.ID, &chat.CreatedAt, &chat.UpdatedAt)
 	return err
 }
@@ -39,8 +46,10 @@ func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {
 	var universityINN sql.NullString
 	var universityKPP sql.NullString
 
+	var externalChatID sql.NullString
+
 	err := r.db.QueryRow(
-		`SELECT c.id, c.name, c.url, c.max_chat_id, c.participants_count, 
+		`SELECT c.id, c.name, c.url, c.max_chat_id, c.external_chat_id, c.participants_count, 
 		        c.university_id, c.department, c.source, c.created_at, c.updated_at,
 		        u.id, u.name, u.inn, u.kpp
 		 FROM chats c
@@ -48,10 +57,18 @@ func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {
 		 WHERE c.id = $1`,
 		id,
 	).Scan(
-		&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &chat.ParticipantsCount,
+		&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &externalChatID, &chat.ParticipantsCount,
 		&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
 		&universityIDFromJoin, &universityName, &universityINN, &universityKPP,
 	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if externalChatID.Valid {
+		chat.ExternalChatID = &externalChatID.String
+	}
 
 	if err != nil {
 		return nil, err
@@ -88,9 +105,10 @@ func (r *ChatPostgres) GetByMaxChatID(maxChatID string) (*domain.Chat, error) {
 	var universityName sql.NullString
 	var universityINN sql.NullString
 	var universityKPP sql.NullString
+	var externalChatID sql.NullString
 
 	err := r.db.QueryRow(
-		`SELECT c.id, c.name, c.url, c.max_chat_id, c.participants_count, 
+		`SELECT c.id, c.name, c.url, c.max_chat_id, c.external_chat_id, c.participants_count, 
 		        c.university_id, c.department, c.source, c.created_at, c.updated_at,
 		        u.id, u.name, u.inn, u.kpp
 		 FROM chats c
@@ -98,13 +116,17 @@ func (r *ChatPostgres) GetByMaxChatID(maxChatID string) (*domain.Chat, error) {
 		 WHERE c.max_chat_id = $1`,
 		maxChatID,
 	).Scan(
-		&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &chat.ParticipantsCount,
+		&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &externalChatID, &chat.ParticipantsCount,
 		&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
 		&universityIDFromJoin, &universityName, &universityINN, &universityKPP,
 	)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if externalChatID.Valid {
+		chat.ExternalChatID = &externalChatID.String
 	}
 
 	// Загружаем администраторов
@@ -384,7 +406,7 @@ func (r *ChatPostgres) Delete(id int64) error {
 // loadAdministrators загружает администраторов для одного чата
 func (r *ChatPostgres) loadAdministrators(chatID int64) ([]domain.Administrator, error) {
 	rows, err := r.db.Query(
-		`SELECT id, chat_id, phone, max_id, created_at, updated_at 
+		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE chat_id = $1 ORDER BY created_at`,
 		chatID,
 	)
@@ -398,6 +420,7 @@ func (r *ChatPostgres) loadAdministrators(chatID int64) ([]domain.Administrator,
 		var admin domain.Administrator
 		err := rows.Scan(
 			&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+			&admin.AddUser, &admin.AddAdmin,
 			&admin.CreatedAt, &admin.UpdatedAt,
 		)
 		if err != nil {
@@ -423,7 +446,7 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 	}
 
 	rows, err := r.db.Query(
-		`SELECT id, chat_id, phone, max_id, created_at, updated_at 
+		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators 
 		 WHERE chat_id IN (`+strings.Join(placeholders, ",")+`)
 		 ORDER BY chat_id, created_at`,
@@ -439,6 +462,7 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 		var admin domain.Administrator
 		err := rows.Scan(
 			&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+			&admin.AddUser, &admin.AddAdmin,
 			&admin.CreatedAt, &admin.UpdatedAt,
 		)
 		if err != nil {

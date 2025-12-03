@@ -259,7 +259,11 @@ func (uc *MigrateFromGoogleSheetsUseCase) processRow(ctx context.Context, jobID 
 
 	// Add administrator if phone is provided
 	if row.AdminPhone != "" {
-		if err := uc.chatService.AddAdministrator(ctx, chatID, row.AdminPhone); err != nil {
+		adminData := &domain.AdministratorData{
+			ChatID: chatID,
+			Phone:  row.AdminPhone,
+		}
+		if err := uc.chatService.AddAdministrator(ctx, adminData); err != nil {
 			// Log error but don't fail the migration
 			uc.logger.Warn(ctx, "Failed to add administrator for chat", map[string]interface{}{
 				"chat_id": chatID,

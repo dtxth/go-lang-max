@@ -8,6 +8,7 @@ type Chat struct {
 	Name              string          `json:"name"`                    // Название чата
 	URL               string          `json:"url"`                     // Ссылка на чат
 	MaxChatID         string          `json:"max_chat_id"`             // ID чата в MAX
+	ExternalChatID    *string         `json:"external_chat_id,omitempty"` // ID чата из внешней системы (Excel)
 	ParticipantsCount int             `json:"participants_count"`      // Количество участников
 	UniversityID      *int64          `json:"university_id,omitempty"` // ID вуза (опционально)
 	University        *University     `json:"university,omitempty"`    // Вуз (для суперадмина)
