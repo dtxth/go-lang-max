@@ -27,12 +27,13 @@
 
 ### ✅ Chat Service
 - **База данных**: `chat-db` (chat_db)
-- **Версия миграций**: 2
+- **Версия миграций**: 3
 - **Таблицы**:
   - `chats` - чаты (с полями `external_chat_id`, `source`)
   - `administrators` - администраторы (с полями `max_id`, `add_user`, `add_admin`)
   - `universities` - университеты
   - `schema_migrations` - версии миграций
+- **Последнее изменение**: Добавлена колонка `source` (миграция 000003)
 
 ### ✅ Structure Service
 - **База данных**: `structure-db` (structure_db)
@@ -45,10 +46,13 @@
   - `department_managers` - менеджеры подразделений
   - `schema_migrations` - версии миграций
 
-### ⚠️ Migration Service
+### ✅ Migration Service
 - **База данных**: `migration-db` (migration_db)
-- **Статус**: База данных не запущена
-- **Примечание**: Миграции будут применены при первом запуске сервиса
+- **Версия миграций**: 1
+- **Таблицы**:
+  - `migration_jobs` - задачи миграции
+  - `migration_errors` - ошибки миграции
+  - `schema_migrations` - версии миграций
 
 ## Формат файлов миграций
 
@@ -107,6 +111,21 @@ docker exec structure-db psql -U postgres -d structure_db -c "SELECT version, di
 2. Для применения новых миграций используйте `golang-migrate` или docker-compose restart
 3. Всегда создавайте down-миграции для возможности отката изменений
 
+## Известные проблемы и решения
+
+### Проблема с колонкой source (4 декабря 2025)
+
+**Проблема**: При запуске Excel миграции все записи падали с ошибкой `column "source" of relation "chats" does not exist`.
+
+**Причина**: Миграция использовала `CREATE TABLE IF NOT EXISTS`, поэтому если таблица уже существовала, новые колонки не добавлялись.
+
+**Решение**: 
+1. Применены все миграции через `bin/apply_migrations.sh`
+2. Добавлена колонка `source` вручную
+3. Создана миграция `000003_add_source_column.up.sql` для будущих развертываний
+
+**Документация**: См. [MIGRATION_SOURCE_COLUMN_FIX.md](./MIGRATION_SOURCE_COLUMN_FIX.md)
+
 ## Дата последней проверки
 
-3 декабря 2025 г.
+4 декабря 2025 г.
