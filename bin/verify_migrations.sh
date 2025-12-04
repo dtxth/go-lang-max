@@ -46,7 +46,7 @@ for service in "${SERVICES[@]}"; do
     fi
     
     # Get list of up migrations
-    up_migrations=($(ls "$migrations_dir"/*.sql 2>/dev/null | grep -v "_down.sql" | sort))
+    up_migrations=($(ls "$migrations_dir"/*.up.sql 2>/dev/null | sort))
     
     if [ ${#up_migrations[@]} -eq 0 ]; then
         print_status "$YELLOW" "  ⚠ No migrations found"
@@ -58,7 +58,7 @@ for service in "${SERVICES[@]}"; do
     # Check each migration
     for up_migration in "${up_migrations[@]}"; do
         migration_name=$(basename "$up_migration")
-        down_migration="${up_migration%.sql}_down.sql"
+        down_migration="${up_migration%.up.sql}.down.sql"
         
         total_migrations=$((total_migrations + 1))
         

@@ -29,50 +29,45 @@ echo ""
 
 # Apply migrations for each service
 
-# Auth Service
-echo "=== Auth Service ==="
-if docker-compose exec -T auth-db psql -U postgres -d auth_db < auth-service/migrations/001_init.sql > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Auth Service migrations applied${NC}"
-else
-    echo -e "${YELLOW}⚠ Auth Service migrations may already be applied${NC}"
-fi
-echo ""
+# Function to apply all migrations for a service
+apply_migrations() {
+    local service=$1
+    local db_container=$2
+    local db_user=$3
+    local db_name=$4
+    local migrations_dir=$5
+    
+    echo "=== $service ==="
+    
+    # Find all .up.sql files and sort them
+    local migration_files=$(find "$migrations_dir" -name "*.up.sql" | sort)
+    
+    if [ -z "$migration_files" ]; then
+        echo -e "${YELLOW}⚠ No migrations found for $service${NC}"
+        echo ""
+        return
+    fi
+    
+    local success=true
+    for migration_file in $migration_files; do
+        local filename=$(basename "$migration_file")
+        if docker-compose exec -T "$db_container" psql -U "$db_user" -d "$db_name" < "$migration_file" > /dev/null 2>&1; then
+            echo -e "${GREEN}✓ Applied: $filename${NC}"
+        else
+            echo -e "${YELLOW}⚠ Skipped (may already be applied): $filename${NC}"
+        fi
+    done
+    
+    echo -e "${GREEN}✓ $service migrations completed${NC}"
+    echo ""
+}
 
-# Employee Service
-echo "=== Employee Service ==="
-if docker-compose exec -T employee-db psql -U employee_user -d employee_db < employee-service/migrations/001_init.sql > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Employee Service migrations applied${NC}"
-else
-    echo -e "${YELLOW}⚠ Employee Service migrations may already be applied${NC}"
-fi
-echo ""
-
-# Chat Service
-echo "=== Chat Service ==="
-if docker-compose exec -T chat-db psql -U chat_user -d chat_db < chat-service/migrations/001_init.sql > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Chat Service migrations applied${NC}"
-else
-    echo -e "${YELLOW}⚠ Chat Service migrations may already be applied${NC}"
-fi
-echo ""
-
-# Structure Service
-echo "=== Structure Service ==="
-if docker-compose exec -T structure-db psql -U postgres -d structure_db < structure-service/migrations/001_init.sql > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Structure Service migrations applied${NC}"
-else
-    echo -e "${YELLOW}⚠ Structure Service migrations may already be applied${NC}"
-fi
-echo ""
-
-# Migration Service
-echo "=== Migration Service ==="
-if docker-compose exec -T migration-db psql -U postgres -d migration_db < migration-service/migrations/001_init.sql > /dev/null 2>&1; then
-    echo -e "${GREEN}✓ Migration Service migrations applied${NC}"
-else
-    echo -e "${YELLOW}⚠ Migration Service migrations may already be applied${NC}"
-fi
-echo ""
+# Apply migrations for each service
+apply_migrations "Auth Service" "auth-db" "postgres" "auth_db" "auth-service/migrations"
+apply_migrations "Employee Service" "employee-db" "employee_user" "employee_db" "employee-service/migrations"
+apply_migrations "Chat Service" "chat-db" "chat_user" "chat_db" "chat-service/migrations"
+apply_migrations "Structure Service" "structure-db" "postgres" "structure_db" "structure-service/migrations"
+apply_migrations "Migration Service" "migration-db" "postgres" "migration_db" "migration-service/migrations"
 
 echo "========================================="
 echo -e "${GREEN}Migration process completed!${NC}"
