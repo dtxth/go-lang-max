@@ -161,25 +161,39 @@ func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.Ch
 		return r.GetAll(limit, offset, filter)
 	}
 
-	// Подготавливаем поисковый запрос для full-text search
-	// Разбиваем на слова и создаем tsquery для поиска всех слов
-	words := strings.Fields(query)
+	// Используем ILIKE для поиска, так как он более гибкий с специальными символами
+	// Разбиваем запрос на слова, используя пробелы и специальные символы как разделители
+	// Заменяем специальные символы на пробелы для правильного разбиения
+	normalizedQuery := strings.Map(func(r rune) rune {
+		if (r >= 'а' && r <= 'я') || (r >= 'А' && r <= 'Я') ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') || r == 'ё' || r == 'Ё' {
+			return r
+		}
+		return ' ' // Заменяем специальные символы на пробелы
+	}, query)
+	
+	words := strings.Fields(normalizedQuery)
 	if len(words) == 0 {
 		return r.GetAll(limit, offset, filter)
 	}
 
-	// Создаем tsquery: каждое слово должно присутствовать (AND)
-	tsqueryParts := make([]string, len(words))
+	// Строим WHERE условие с ILIKE для каждого слова
+	whereClause := "WHERE "
+	whereParts := make([]string, len(words))
+	args := []interface{}{}
+	
 	for i, word := range words {
-		// Экранируем специальные символы и добавляем :* для префиксного поиска
-		tsqueryParts[i] = strings.ReplaceAll(word, "'", "''") + ":*"
+		// Экранируем специальные символы LIKE
+		escapedWord := strings.ReplaceAll(word, "%", "\\%")
+		escapedWord = strings.ReplaceAll(escapedWord, "_", "\\_")
+		
+		whereParts[i] = "c.name ILIKE $" + strconv.Itoa(i+1)
+		args = append(args, "%"+escapedWord+"%")
 	}
-	tsquery := strings.Join(tsqueryParts, " & ")
-
-	// Строим WHERE условие с full-text search
-	whereClause := "WHERE to_tsvector('russian', c.name) @@ to_tsquery('russian', $1)"
-	args := []interface{}{tsquery}
-	argIndex := 2
+	
+	whereClause += strings.Join(whereParts, " AND ")
+	argIndex := len(words) + 1
 
 	// Фильтрация по роли и контексту
 	if filter != nil {
@@ -216,7 +230,7 @@ func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.Ch
 		 FROM chats c
 		 LEFT JOIN universities u ON c.university_id = u.id
 		 `+whereClause+`
-		 ORDER BY ts_rank(to_tsvector('russian', c.name), to_tsquery('russian', $1)) DESC, c.name
+		 ORDER BY c.name
 		 LIMIT $`+strconv.Itoa(argIndex)+` OFFSET $`+strconv.Itoa(argIndex+1),
 		args...,
 	)
