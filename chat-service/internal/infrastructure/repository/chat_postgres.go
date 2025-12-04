@@ -3,6 +3,7 @@ package repository
 import (
 	"chat-service/internal/domain"
 	"database/sql"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -179,21 +180,27 @@ func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.Ch
 	}
 
 	// Строим WHERE условие с ILIKE для каждого слова
+	// Ищем по нескольким полям: название чата, department, название университета
 	whereClause := "WHERE "
 	whereParts := make([]string, len(words))
 	args := []interface{}{}
+	argIndex := 1
 	
 	for i, word := range words {
 		// Экранируем специальные символы LIKE
 		escapedWord := strings.ReplaceAll(word, "%", "\\%")
 		escapedWord = strings.ReplaceAll(escapedWord, "_", "\\_")
 		
-		whereParts[i] = "c.name ILIKE $" + strconv.Itoa(i+1)
+		// Для каждого слова ищем в любом из полей (OR внутри, AND между словами)
+		whereParts[i] = fmt.Sprintf(
+			"(c.name ILIKE $%d OR c.department ILIKE $%d OR u.name ILIKE $%d)",
+			argIndex, argIndex, argIndex,
+		)
 		args = append(args, "%"+escapedWord+"%")
+		argIndex++
 	}
 	
 	whereClause += strings.Join(whereParts, " AND ")
-	argIndex := len(words) + 1
 
 	// Фильтрация по роли и контексту
 	if filter != nil {
@@ -215,13 +222,13 @@ func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.Ch
 
 	// Подсчет общего количества
 	var totalCount int
-	countQuery := `SELECT COUNT(*) FROM chats c ` + whereClause
+	countQuery := `SELECT COUNT(*) FROM chats c LEFT JOIN universities u ON c.university_id = u.id ` + whereClause
 	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Получение данных с сортировкой по релевантности
+	// Получение данных с сортировкой по имени
 	args = append(args, limit, offset)
 	rows, err := r.db.Query(
 		`SELECT c.id, c.name, c.url, c.max_chat_id, c.participants_count, 
