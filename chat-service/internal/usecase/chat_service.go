@@ -54,13 +54,13 @@ func (s *ChatService) GetChatByID(id int64) (*domain.Chat, error) {
 
 // AddAdministrator добавляет администратора к чату (без проверки прав - для обратной совместимости)
 func (s *ChatService) AddAdministrator(chatID int64, phone string) (*domain.Administrator, error) {
-	return s.AddAdministratorWithFlags(chatID, phone, "", true, true)
+	return s.AddAdministratorWithFlags(chatID, phone, "", true, true, false)
 }
 
 // AddAdministratorWithFlags добавляет администратора к чату с указанием флагов
-func (s *ChatService) AddAdministratorWithFlags(chatID int64, phone string, maxID string, addUser bool, addAdmin bool) (*domain.Administrator, error) {
-	// Валидация телефона
-	if !s.maxService.ValidatePhone(phone) {
+func (s *ChatService) AddAdministratorWithFlags(chatID int64, phone string, maxID string, addUser bool, addAdmin bool, skipPhoneValidation bool) (*domain.Administrator, error) {
+	// Валидация телефона (пропускаем для миграции)
+	if !skipPhoneValidation && !s.maxService.ValidatePhone(phone) {
 		return nil, domain.ErrInvalidPhone
 	}
 
@@ -71,13 +71,13 @@ func (s *ChatService) AddAdministratorWithFlags(chatID int64, phone string, maxI
 	}
 
 	// Проверяем, не существует ли уже администратор с таким телефоном в этом чате
-	existing, _ := s.administratorRepo.GetByPhoneAndChatID(phone, chatID)
-	if existing != nil {
+	existing, err := s.administratorRepo.GetByPhoneAndChatID(phone, chatID)
+	if err == nil && existing != nil {
 		return nil, domain.ErrAdministratorExists
 	}
 
-	// Если MAX_id не передан, получаем его по телефону
-	if maxID == "" {
+	// Если MAX_id не передан, получаем его по телефону (только если не пропускаем валидацию)
+	if maxID == "" && !skipPhoneValidation {
 		maxID, err = s.maxService.GetMaxIDByPhone(phone)
 		if err != nil {
 			return nil, err
@@ -207,5 +207,27 @@ func (s *ChatService) DeleteChat(id int64) error {
 	}
 
 	return s.chatRepo.Delete(id)
+}
+
+// CreateOrGetUniversity создает или получает университет по INN/KPP
+func (s *ChatService) CreateOrGetUniversity(inn, kpp, name string) (*domain.University, error) {
+	// Пытаемся найти существующий университет
+	university, err := s.universityRepo.GetByINNAndKPP(inn, kpp)
+	if err == nil {
+		return university, nil
+	}
+
+	// Если не найден, создаем новый
+	university = &domain.University{
+		INN:  inn,
+		KPP:  kpp,
+		Name: name,
+	}
+
+	if err := s.universityRepo.Create(university); err != nil {
+		return nil, err
+	}
+
+	return university, nil
 }
 

@@ -32,10 +32,11 @@ type ChatListResponse struct {
 
 // AddAdministratorRequest представляет запрос на добавление администратора
 type AddAdministratorRequest struct {
-	Phone    string `json:"phone" example:"+79001234567" binding:"required"`
-	MaxID    string `json:"max_id,omitempty" example:"496728250"`
-	AddUser  bool   `json:"add_user" example:"true"`
-	AddAdmin bool   `json:"add_admin" example:"true"`
+	Phone                string `json:"phone" example:"+79001234567" binding:"required"`
+	MaxID                string `json:"max_id,omitempty" example:"496728250"`
+	AddUser              bool   `json:"add_user" example:"true"`
+	AddAdmin             bool   `json:"add_admin" example:"true"`
+	SkipPhoneValidation  bool   `json:"skip_phone_validation,omitempty" example:"false"`
 }
 
 // DeleteResponse представляет ответ на удаление
@@ -242,7 +243,7 @@ func (h *Handler) AddAdministrator(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Используем новый метод с флагами
-	admin, err := h.chatService.AddAdministratorWithFlags(chatID, req.Phone, req.MaxID, req.AddUser, req.AddAdmin)
+	admin, err := h.chatService.AddAdministratorWithFlags(chatID, req.Phone, req.MaxID, req.AddUser, req.AddAdmin, req.SkipPhoneValidation)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == domain.ErrChatNotFound {
@@ -310,6 +311,47 @@ type CreateChatRequest struct {
 	FacultyID         *int64  `json:"faculty_id,omitempty"`
 	ParticipantsCount int     `json:"participants_count"`
 	Department        string  `json:"department,omitempty"`
+}
+
+// CreateUniversityRequest представляет запрос на создание университета
+type CreateUniversityRequest struct {
+	INN  string `json:"inn" binding:"required"`
+	KPP  string `json:"kpp"`
+	Name string `json:"name" binding:"required"`
+}
+
+// CreateUniversity godoc
+// @Summary      Создать или получить университет
+// @Description  Создает новый университет или возвращает существующий по INN/KPP
+// @Tags         universities
+// @Accept       json
+// @Produce      json
+// @Param        input  body      CreateUniversityRequest  true  "Данные университета"
+// @Success      201    {object}  map[string]int
+// @Failure      400    {string}  string
+// @Router       /universities [post]
+func (h *Handler) CreateUniversity(w http.ResponseWriter, r *http.Request) {
+	var req CreateUniversityRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.INN == "" || req.Name == "" {
+		http.Error(w, "inn and name are required", http.StatusBadRequest)
+		return
+	}
+
+	// Создаем или получаем университет
+	university, err := h.chatService.CreateOrGetUniversity(req.INN, req.KPP, req.Name)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]int{"id": int(university.ID)})
 }
 
 // CreateChat godoc

@@ -23,6 +23,13 @@ type AdministratorData struct {
 	AddAdmin bool // Может ли добавлять администраторов (Excel колонка 17)
 }
 
+// UniversityData represents university data for migration
+type UniversityData struct {
+	INN  string
+	KPP  string
+	Name string
+}
+
 // ChatService defines the interface for interacting with Chat Service
 type ChatService interface {
 	// CreateChat creates a new chat
@@ -30,4 +37,7 @@ type ChatService interface {
 
 	// AddAdministrator adds an administrator to a chat
 	AddAdministrator(ctx context.Context, admin *AdministratorData) error
+
+	// CreateOrGetUniversity creates or gets a university by INN/KPP
+	CreateOrGetUniversity(ctx context.Context, university *UniversityData) (int, error)
 }

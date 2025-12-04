@@ -52,3 +52,14 @@ func (r *UniversityPostgres) GetByINNAndKPP(inn, kpp string) (*domain.University
 	return university, err
 }
 
+func (r *UniversityPostgres) Create(university *domain.University) error {
+	err := r.db.QueryRow(
+		`INSERT INTO universities (name, inn, kpp) 
+		 VALUES ($1, $2, $3) 
+		 ON CONFLICT (inn, kpp) DO UPDATE SET name = EXCLUDED.name
+		 RETURNING id, created_at, updated_at`,
+		university.Name, university.INN, university.KPP,
+	).Scan(&university.ID, &university.CreatedAt, &university.UpdatedAt)
+	return err
+}
+

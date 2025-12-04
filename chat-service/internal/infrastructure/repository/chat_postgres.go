@@ -406,7 +406,7 @@ func (r *ChatPostgres) Delete(id int64) error {
 // loadAdministrators загружает администраторов для одного чата
 func (r *ChatPostgres) loadAdministrators(chatID int64) ([]domain.Administrator, error) {
 	rows, err := r.db.Query(
-		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
+		`SELECT id, chat_id, phone, COALESCE(max_id, ''), add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE chat_id = $1 ORDER BY created_at`,
 		chatID,
 	)
@@ -446,7 +446,7 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 	}
 
 	rows, err := r.db.Query(
-		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
+		`SELECT id, chat_id, phone, COALESCE(max_id, ''), add_user, add_admin, created_at, updated_at 
 		 FROM administrators 
 		 WHERE chat_id IN (`+strings.Join(placeholders, ",")+`)
 		 ORDER BY chat_id, created_at`,

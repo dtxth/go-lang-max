@@ -1,10 +1,13 @@
 package app
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"log"
 	"migration-service/internal/config"
+	"migration-service/internal/domain"
+	"migration-service/internal/infrastructure/chat"
 	"migration-service/internal/infrastructure/grpc"
 	httpHandler "migration-service/internal/infrastructure/http"
 	"migration-service/internal/infrastructure/repository"
@@ -16,11 +19,10 @@ import (
 
 // Server represents the migration service server
 type Server struct {
-	config           *config.Config
-	db               *sql.DB
-	server           *http.Server
-	chatClient       *grpc.ChatClient
-	structureClient  *grpc.StructureClient
+	config          *config.Config
+	db              *sql.DB
+	server          *http.Server
+	structureClient *grpc.StructureClient
 }
 
 // NewServer creates a new server instance
@@ -50,19 +52,24 @@ func (s *Server) Start() error {
 	errorRepo := repository.NewMigrationErrorPostgresRepository(s.db)
 	universityRepo := repository.NewUniversityHTTPRepository(s.config.Services.StructureServiceURL)
 
-	// Initialize gRPC clients
-	chatClient, err := grpc.NewChatClient(s.config.Services.ChatServiceGRPC)
-	if err != nil {
-		return fmt.Errorf("failed to create chat client: %w", err)
-	}
-	s.chatClient = chatClient
+	// Initialize HTTP client for Chat Service (для поддержки CreateOrGetUniversity)
+	chatHTTPClient := chat.NewHTTPClient(s.config.Services.ChatServiceURL)
 
+	// Initialize gRPC clients
 	structureClient, err := grpc.NewStructureClient(s.config.Services.StructureServiceGRPC)
 	if err != nil {
-		chatClient.Close()
 		return fmt.Errorf("failed to create structure client: %w", err)
 	}
 	s.structureClient = structureClient
+
+	// Initialize gRPC client for Chat Service (для добавления администраторов без валидации)
+	chatGRPCClient, err := grpc.NewChatClient(s.config.Services.ChatServiceGRPC)
+	if err != nil {
+		log.Printf("Warning: failed to create chat gRPC client: %v. Will use HTTP client.", err)
+		chatGRPCClient = nil
+	} else {
+		log.Printf("Chat gRPC client initialized successfully at %s", s.config.Services.ChatServiceGRPC)
+	}
 
 	// Initialize use cases
 	databaseUseCase := usecase.NewMigrateFromDatabaseUseCase(
@@ -70,7 +77,7 @@ func (s *Server) Start() error {
 		jobRepo,
 		errorRepo,
 		universityRepo,
-		chatClient,
+		chatHTTPClient,
 		nil, // logger
 	)
 
@@ -78,16 +85,34 @@ func (s *Server) Start() error {
 		jobRepo,
 		errorRepo,
 		universityRepo,
-		chatClient,
+		chatHTTPClient,
 		s.config.Google.CredentialsPath,
 		nil, // logger
 	)
+
+	// Используем gRPC клиент для администраторов, если доступен, иначе HTTP
+	var chatClientForAdmins interface {
+		CreateOrGetUniversity(ctx context.Context, university *domain.UniversityData) (int, error)
+		CreateChat(ctx context.Context, chat *domain.ChatData) (int, error)
+		AddAdministrator(ctx context.Context, admin *domain.AdministratorData) error
+	}
+	if chatGRPCClient != nil {
+		// Создаем композитный клиент: gRPC для администраторов, HTTP для остального
+		log.Println("Using composite client: gRPC for administrators, HTTP for other operations")
+		chatClientForAdmins = &chat.CompositeClient{
+			HTTPClient: chatHTTPClient,
+			GRPCClient: chatGRPCClient,
+		}
+	} else {
+		log.Println("Using HTTP client for all chat operations (gRPC not available)")
+		chatClientForAdmins = chatHTTPClient
+	}
 
 	excelUseCase := usecase.NewMigrateFromExcelUseCase(
 		jobRepo,
 		errorRepo,
 		structureClient,
-		chatClient,
+		chatClientForAdmins,
 		nil, // logger
 	)
 
@@ -115,9 +140,6 @@ func (s *Server) Start() error {
 
 // Stop stops the server
 func (s *Server) Stop() error {
-	if s.chatClient != nil {
-		s.chatClient.Close()
-	}
 	if s.structureClient != nil {
 		s.structureClient.Close()
 	}

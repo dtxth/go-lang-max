@@ -274,7 +274,7 @@ func (uc *MigrateFromExcelUseCase) processExcelStreaming(ctx context.Context, jo
 			FacultyName:   strings.TrimSpace(row[8]),
 			Course:        course,
 			GroupNumber:   strings.TrimSpace(row[10]),
-			ChatName:      strings.TrimSpace(row[11]),
+			ChatName:      cleanChatName(row[11]),
 			AdminPhone2:   strings.TrimSpace(row[12]),
 			FileName:      strings.TrimSpace(row[13]),
 			ChatID:        strings.TrimSpace(row[14]),
@@ -430,7 +430,7 @@ func (uc *MigrateFromExcelUseCase) readFromExcel(filePath string) ([]ExcelRow, e
 			FacultyName:   strings.TrimSpace(row[8]),
 			Course:        course,
 			GroupNumber:   strings.TrimSpace(row[10]),
-			ChatName:      strings.TrimSpace(row[11]),
+			ChatName:      cleanChatName(row[11]),
 			AdminPhone2:   strings.TrimSpace(row[12]),
 			FileName:      strings.TrimSpace(row[13]),
 			ChatID:        strings.TrimSpace(row[14]),
@@ -495,13 +495,26 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 		return fmt.Errorf("failed to create structure: %w", err)
 	}
 
-	// 2. Создать чат через Chat Service
-	// Note: не передаем UniversityID чтобы избежать проверки FK в chat-service
+	// 2. Создать или получить университет в Chat Service
+	// Так как chat-service и structure-service используют разные БД,
+	// нужно создать университет в обеих базах
+	universityData := &domain.UniversityData{
+		INN:  row.INN,
+		KPP:  row.KPP,
+		Name: row.OrgNameRef,
+	}
+	
+	chatUniversityID, err := uc.chatService.CreateOrGetUniversity(ctx, universityData)
+	if err != nil {
+		return fmt.Errorf("failed to create university in chat service: %w", err)
+	}
+
+	// 3. Создать чат через Chat Service
 	chatData := &domain.ChatData{
 		Name:           row.ChatName,
 		URL:            row.ChatURL,
 		ExternalChatID: row.ChatID, // Колонка 14
-		UniversityID:   0,           // Не передаем, связь через группу
+		UniversityID:   chatUniversityID, // Используем ID из chat-service
 		Source:         "academic_group",
 	}
 
@@ -510,7 +523,7 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 		return fmt.Errorf("failed to create chat: %w", err)
 	}
 
-	// 3. Связать группу с чатом
+	// 4. Связать группу с чатом
 	if err := uc.structureService.LinkGroupToChat(ctx, structureResult.GroupID, chatID); err != nil {
 		// Log error but don't fail the migration
 		uc.logWarn(ctx, "Failed to link group to chat", map[string]interface{}{
@@ -520,46 +533,77 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 		})
 	}
 
-	// 4. Добавить администратора (если add_admin = ИСТИНА)
+	// 5. Добавить администратора
+	// Проверяем, есть ли телефон администратора
+	phone := row.AdminPhone1
+	if phone == "" {
+		phone = row.AdminPhone2
+	}
+	
+	// DEBUG: Логируем первые 5 строк
+	if row.RowNumber <= 5 {
+		fmt.Printf("[DEBUG] Row %d: phone1='%s', phone2='%s', normalized='%s', maxid='%s'\n",
+			row.RowNumber, row.AdminPhone1, row.AdminPhone2, normalizePhone(phone), row.MaxID)
+	}
+	
+	// Нормализуем телефон
+	phone = normalizePhone(phone)
+	
+	// Если есть телефон, создаем администратора
+	if phone != "" {
+		// Парсим флаги add_user и add_admin
+		addAdmin := strings.ToUpper(row.AddAdmin) == "ИСТИНА" || 
+		            strings.ToUpper(row.AddAdmin) == "TRUE" ||
+		            row.AddAdmin != "" // Если не пусто, считаем что нужно добавить
+		addUser := strings.ToUpper(row.AddUser) == "ИСТИНА" || 
+		           strings.ToUpper(row.AddUser) == "TRUE" ||
+		           row.AddUser != "" // Если не пусто, считаем что нужно добавить
+		
+		// Если оба флага пустые, устанавливаем по умолчанию
+		if row.AddAdmin == "" && row.AddUser == "" {
+			addAdmin = true
+			addUser = true
+		}
+
+		adminData := &domain.AdministratorData{
+			ChatID:   chatID,
+			Phone:    phone,
+			MaxID:    row.MaxID,
+			AddUser:  addUser,
+			AddAdmin: addAdmin,
+		}
+
+		// DEBUG: Log first 5 administrator creations
+		if row.RowNumber <= 5 {
+			fmt.Printf("[DEBUG] Adding administrator: chat_id=%d, phone=%s, max_id=%s, add_user=%v, add_admin=%v\n",
+				chatID, phone, row.MaxID, addUser, addAdmin)
+		}
+
+		if err := uc.chatService.AddAdministrator(ctx, adminData); err != nil {
+			// Log error but don't fail the migration
+			uc.logWarn(ctx, "Failed to add administrator", map[string]interface{}{
+				"chat_id": chatID,
+				"phone":   phone,
+				"error":   err.Error(),
+			})
+			// DEBUG: Log first 5 errors
+			if row.RowNumber <= 5 {
+				fmt.Printf("[DEBUG] Error adding administrator: %v\n", err)
+			}
+		} else if row.RowNumber <= 5 {
+			fmt.Printf("[DEBUG] Administrator added successfully\n")
+		}
+	}
+
+	// Старый код для справки (закомментирован)
+	/*
 	addAdmin := strings.ToUpper(row.AddAdmin) == "ИСТИНА" || 
 	            strings.ToUpper(row.AddAdmin) == "TRUE"
 	addUser := strings.ToUpper(row.AddUser) == "ИСТИНА" || 
 	           strings.ToUpper(row.AddUser) == "TRUE"
 
 	if addAdmin {
-		// Выбираем телефон (приоритет AdminPhone1)
-		phone := row.AdminPhone1
-		if phone == "" {
-			phone = row.AdminPhone2
-		}
-		
-		// Нормализуем телефон
-		phone = normalizePhone(phone)
-		
-		if phone == "" {
-			uc.logWarn(ctx, "Skipping administrator: no phone provided", map[string]interface{}{
-				"chat_id":    chatID,
-				"row_number": row.RowNumber,
-			})
-		} else {
-			adminData := &domain.AdministratorData{
-				ChatID:   chatID,
-				Phone:    phone,
-				MaxID:    row.MaxID,
-				AddUser:  addUser,
-				AddAdmin: addAdmin,
-			}
-
-			if err := uc.chatService.AddAdministrator(ctx, adminData); err != nil {
-				// Log error but don't fail the migration
-				uc.logWarn(ctx, "Failed to add administrator", map[string]interface{}{
-					"chat_id": chatID,
-					"phone":   phone,
-					"error":   err.Error(),
-				})
-			}
-		}
-	}
+	*/
 
 	return nil
 }
@@ -579,20 +623,45 @@ func normalizePhone(phone string) string {
 		return ""
 	}
 	
-	// Добавляем + если начинается с 7 и длина 11
-	if len(digits) == 11 && digits[0] == '7' {
-		return "+" + digits
-	}
-	
 	// Если начинается с 8 и длина 11, заменяем на +7
 	if len(digits) == 11 && digits[0] == '8' {
 		return "+7" + digits[1:]
 	}
 	
-	// Если длина 10, добавляем +7
+	// Если начинается с 7 и длина 11, добавляем +
+	if len(digits) == 11 && digits[0] == '7' {
+		return "+" + digits
+	}
+	
+	// Если длина 10 и НЕ начинается с 7 или 8, добавляем +7 (российский номер без кода страны)
+	// Например: 9884753064 -> +79884753064
+	if len(digits) == 10 && digits[0] != '7' && digits[0] != '8' {
+		return "+7" + digits
+	}
+	
+	// Если длина 10 и начинается с 7 или 8, это неправильный номер
+	// Но мы все равно попробуем добавить +7
 	if len(digits) == 10 {
 		return "+7" + digits
 	}
 	
+	// Если другая длина, возвращаем как есть
 	return digits
+}
+
+// cleanChatName очищает название чата от лишних кавычек и пробелов
+func cleanChatName(name string) string {
+	// Убираем пробелы по краям
+	cleaned := strings.TrimSpace(name)
+	
+	// Убираем одинарные кавычки по краям
+	cleaned = strings.Trim(cleaned, "'")
+	
+	// Убираем двойные кавычки по краям
+	cleaned = strings.Trim(cleaned, "\"")
+	
+	// Убираем пробелы еще раз после удаления кавычек
+	cleaned = strings.TrimSpace(cleaned)
+	
+	return cleaned
 }

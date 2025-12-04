@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.1
-// source: api/proto/chat.proto
+// source: chat-service/api/proto/chat.proto
 
 package proto
 
@@ -19,8 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	ChatService_GetChatByID_FullMethodName = "/chat.ChatService/GetChatByID"
-	ChatService_CreateChat_FullMethodName  = "/chat.ChatService/CreateChat"
+	ChatService_GetChatByID_FullMethodName                  = "/chat.ChatService/GetChatByID"
+	ChatService_CreateChat_FullMethodName                   = "/chat.ChatService/CreateChat"
+	ChatService_AddAdministratorForMigration_FullMethodName = "/chat.ChatService/AddAdministratorForMigration"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -33,6 +34,8 @@ type ChatServiceClient interface {
 	GetChatByID(ctx context.Context, in *GetChatByIDRequest, opts ...grpc.CallOption) (*GetChatByIDResponse, error)
 	// CreateChat создает новый чат
 	CreateChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*CreateChatResponse, error)
+	// AddAdministratorForMigration добавляет администратора без валидации телефона (только для миграции)
+	AddAdministratorForMigration(ctx context.Context, in *AddAdministratorForMigrationRequest, opts ...grpc.CallOption) (*AddAdministratorForMigrationResponse, error)
 }
 
 type chatServiceClient struct {
@@ -63,6 +66,16 @@ func (c *chatServiceClient) CreateChat(ctx context.Context, in *CreateChatReques
 	return out, nil
 }
 
+func (c *chatServiceClient) AddAdministratorForMigration(ctx context.Context, in *AddAdministratorForMigrationRequest, opts ...grpc.CallOption) (*AddAdministratorForMigrationResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddAdministratorForMigrationResponse)
+	err := c.cc.Invoke(ctx, ChatService_AddAdministratorForMigration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServiceServer is the server API for ChatService service.
 // All implementations must embed UnimplementedChatServiceServer
 // for forward compatibility.
@@ -73,6 +86,8 @@ type ChatServiceServer interface {
 	GetChatByID(context.Context, *GetChatByIDRequest) (*GetChatByIDResponse, error)
 	// CreateChat создает новый чат
 	CreateChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error)
+	// AddAdministratorForMigration добавляет администратора без валидации телефона (только для миграции)
+	AddAdministratorForMigration(context.Context, *AddAdministratorForMigrationRequest) (*AddAdministratorForMigrationResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -88,6 +103,9 @@ func (UnimplementedChatServiceServer) GetChatByID(context.Context, *GetChatByIDR
 }
 func (UnimplementedChatServiceServer) CreateChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateChat not implemented")
+}
+func (UnimplementedChatServiceServer) AddAdministratorForMigration(context.Context, *AddAdministratorForMigrationRequest) (*AddAdministratorForMigrationResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddAdministratorForMigration not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -146,6 +164,24 @@ func _ChatService_CreateChat_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_AddAdministratorForMigration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddAdministratorForMigrationRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).AddAdministratorForMigration(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_AddAdministratorForMigration_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).AddAdministratorForMigration(ctx, req.(*AddAdministratorForMigrationRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -161,7 +197,11 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			MethodName: "CreateChat",
 			Handler:    _ChatService_CreateChat_Handler,
 		},
+		{
+			MethodName: "AddAdministratorForMigration",
+			Handler:    _ChatService_AddAdministratorForMigration_Handler,
+		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "api/proto/chat.proto",
+	Metadata: "chat-service/api/proto/chat.proto",
 }

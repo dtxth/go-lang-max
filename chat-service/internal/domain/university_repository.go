@@ -10,5 +10,8 @@ type UniversityRepository interface {
 
 	// GetByINNAndKPP получает вуз по ИНН и КПП
 	GetByINNAndKPP(inn, kpp string) (*University, error)
+
+	// Create создает новый университет
+	Create(university *University) error
 }
 

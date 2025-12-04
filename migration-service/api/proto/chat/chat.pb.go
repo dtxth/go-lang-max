@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.10
 // 	protoc        v6.33.1
-// source: api/proto/chat.proto
+// source: migration-service/api/proto/chat/chat.proto
 
 package proto
 
@@ -30,7 +30,7 @@ type GetChatByIDRequest struct {
 
 func (x *GetChatByIDRequest) Reset() {
 	*x = GetChatByIDRequest{}
-	mi := &file_api_proto_chat_proto_msgTypes[0]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -42,7 +42,7 @@ func (x *GetChatByIDRequest) String() string {
 func (*GetChatByIDRequest) ProtoMessage() {}
 
 func (x *GetChatByIDRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_chat_proto_msgTypes[0]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -55,7 +55,7 @@ func (x *GetChatByIDRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatByIDRequest.ProtoReflect.Descriptor instead.
 func (*GetChatByIDRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_chat_proto_rawDescGZIP(), []int{0}
+	return file_migration_service_api_proto_chat_chat_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *GetChatByIDRequest) GetId() int64 {
@@ -75,7 +75,7 @@ type GetChatByIDResponse struct {
 
 func (x *GetChatByIDResponse) Reset() {
 	*x = GetChatByIDResponse{}
-	mi := &file_api_proto_chat_proto_msgTypes[1]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -87,7 +87,7 @@ func (x *GetChatByIDResponse) String() string {
 func (*GetChatByIDResponse) ProtoMessage() {}
 
 func (x *GetChatByIDResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_chat_proto_msgTypes[1]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -100,7 +100,7 @@ func (x *GetChatByIDResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetChatByIDResponse.ProtoReflect.Descriptor instead.
 func (*GetChatByIDResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_chat_proto_rawDescGZIP(), []int{1}
+	return file_migration_service_api_proto_chat_chat_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *GetChatByIDResponse) GetChat() *Chat {
@@ -132,7 +132,7 @@ type CreateChatRequest struct {
 
 func (x *CreateChatRequest) Reset() {
 	*x = CreateChatRequest{}
-	mi := &file_api_proto_chat_proto_msgTypes[2]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -144,7 +144,7 @@ func (x *CreateChatRequest) String() string {
 func (*CreateChatRequest) ProtoMessage() {}
 
 func (x *CreateChatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_chat_proto_msgTypes[2]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -157,7 +157,7 @@ func (x *CreateChatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateChatRequest.ProtoReflect.Descriptor instead.
 func (*CreateChatRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_chat_proto_rawDescGZIP(), []int{2}
+	return file_migration_service_api_proto_chat_chat_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *CreateChatRequest) GetName() string {
@@ -219,7 +219,7 @@ type CreateChatResponse struct {
 
 func (x *CreateChatResponse) Reset() {
 	*x = CreateChatResponse{}
-	mi := &file_api_proto_chat_proto_msgTypes[3]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -231,7 +231,7 @@ func (x *CreateChatResponse) String() string {
 func (*CreateChatResponse) ProtoMessage() {}
 
 func (x *CreateChatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_chat_proto_msgTypes[3]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -244,7 +244,7 @@ func (x *CreateChatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateChatResponse.ProtoReflect.Descriptor instead.
 func (*CreateChatResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_chat_proto_rawDescGZIP(), []int{3}
+	return file_migration_service_api_proto_chat_chat_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *CreateChatResponse) GetChat() *Chat {
@@ -279,7 +279,7 @@ type Chat struct {
 
 func (x *Chat) Reset() {
 	*x = Chat{}
-	mi := &file_api_proto_chat_proto_msgTypes[4]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -291,7 +291,7 @@ func (x *Chat) String() string {
 func (*Chat) ProtoMessage() {}
 
 func (x *Chat) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_chat_proto_msgTypes[4]
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -304,7 +304,7 @@ func (x *Chat) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Chat.ProtoReflect.Descriptor instead.
 func (*Chat) Descriptor() ([]byte, []int) {
-	return file_api_proto_chat_proto_rawDescGZIP(), []int{4}
+	return file_migration_service_api_proto_chat_chat_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *Chat) GetId() int64 {
@@ -377,11 +377,231 @@ func (x *Chat) GetUpdatedAt() string {
 	return ""
 }
 
-var File_api_proto_chat_proto protoreflect.FileDescriptor
+type AddAdministratorForMigrationRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ChatId        int64                  `protobuf:"varint,1,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	Phone         string                 `protobuf:"bytes,2,opt,name=phone,proto3" json:"phone,omitempty"`
+	MaxId         string                 `protobuf:"bytes,3,opt,name=max_id,json=maxId,proto3" json:"max_id,omitempty"`
+	AddUser       bool                   `protobuf:"varint,4,opt,name=add_user,json=addUser,proto3" json:"add_user,omitempty"`
+	AddAdmin      bool                   `protobuf:"varint,5,opt,name=add_admin,json=addAdmin,proto3" json:"add_admin,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
 
-const file_api_proto_chat_proto_rawDesc = "" +
+func (x *AddAdministratorForMigrationRequest) Reset() {
+	*x = AddAdministratorForMigrationRequest{}
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddAdministratorForMigrationRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddAdministratorForMigrationRequest) ProtoMessage() {}
+
+func (x *AddAdministratorForMigrationRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddAdministratorForMigrationRequest.ProtoReflect.Descriptor instead.
+func (*AddAdministratorForMigrationRequest) Descriptor() ([]byte, []int) {
+	return file_migration_service_api_proto_chat_chat_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *AddAdministratorForMigrationRequest) GetChatId() int64 {
+	if x != nil {
+		return x.ChatId
+	}
+	return 0
+}
+
+func (x *AddAdministratorForMigrationRequest) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *AddAdministratorForMigrationRequest) GetMaxId() string {
+	if x != nil {
+		return x.MaxId
+	}
+	return ""
+}
+
+func (x *AddAdministratorForMigrationRequest) GetAddUser() bool {
+	if x != nil {
+		return x.AddUser
+	}
+	return false
+}
+
+func (x *AddAdministratorForMigrationRequest) GetAddAdmin() bool {
+	if x != nil {
+		return x.AddAdmin
+	}
+	return false
+}
+
+type AddAdministratorForMigrationResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Administrator *Administrator         `protobuf:"bytes,1,opt,name=administrator,proto3" json:"administrator,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddAdministratorForMigrationResponse) Reset() {
+	*x = AddAdministratorForMigrationResponse{}
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[6]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddAdministratorForMigrationResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddAdministratorForMigrationResponse) ProtoMessage() {}
+
+func (x *AddAdministratorForMigrationResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[6]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddAdministratorForMigrationResponse.ProtoReflect.Descriptor instead.
+func (*AddAdministratorForMigrationResponse) Descriptor() ([]byte, []int) {
+	return file_migration_service_api_proto_chat_chat_proto_rawDescGZIP(), []int{6}
+}
+
+func (x *AddAdministratorForMigrationResponse) GetAdministrator() *Administrator {
+	if x != nil {
+		return x.Administrator
+	}
+	return nil
+}
+
+func (x *AddAdministratorForMigrationResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
+type Administrator struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
+	ChatId        int64                  `protobuf:"varint,2,opt,name=chat_id,json=chatId,proto3" json:"chat_id,omitempty"`
+	Phone         string                 `protobuf:"bytes,3,opt,name=phone,proto3" json:"phone,omitempty"`
+	MaxId         string                 `protobuf:"bytes,4,opt,name=max_id,json=maxId,proto3" json:"max_id,omitempty"`
+	AddUser       bool                   `protobuf:"varint,5,opt,name=add_user,json=addUser,proto3" json:"add_user,omitempty"`
+	AddAdmin      bool                   `protobuf:"varint,6,opt,name=add_admin,json=addAdmin,proto3" json:"add_admin,omitempty"`
+	CreatedAt     string                 `protobuf:"bytes,7,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Administrator) Reset() {
+	*x = Administrator{}
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Administrator) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Administrator) ProtoMessage() {}
+
+func (x *Administrator) ProtoReflect() protoreflect.Message {
+	mi := &file_migration_service_api_proto_chat_chat_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Administrator.ProtoReflect.Descriptor instead.
+func (*Administrator) Descriptor() ([]byte, []int) {
+	return file_migration_service_api_proto_chat_chat_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *Administrator) GetId() int64 {
+	if x != nil {
+		return x.Id
+	}
+	return 0
+}
+
+func (x *Administrator) GetChatId() int64 {
+	if x != nil {
+		return x.ChatId
+	}
+	return 0
+}
+
+func (x *Administrator) GetPhone() string {
+	if x != nil {
+		return x.Phone
+	}
+	return ""
+}
+
+func (x *Administrator) GetMaxId() string {
+	if x != nil {
+		return x.MaxId
+	}
+	return ""
+}
+
+func (x *Administrator) GetAddUser() bool {
+	if x != nil {
+		return x.AddUser
+	}
+	return false
+}
+
+func (x *Administrator) GetAddAdmin() bool {
+	if x != nil {
+		return x.AddAdmin
+	}
+	return false
+}
+
+func (x *Administrator) GetCreatedAt() string {
+	if x != nil {
+		return x.CreatedAt
+	}
+	return ""
+}
+
+var File_migration_service_api_proto_chat_chat_proto protoreflect.FileDescriptor
+
+const file_migration_service_api_proto_chat_chat_proto_rawDesc = "" +
 	"\n" +
-	"\x14api/proto/chat.proto\x12\x04chat\"$\n" +
+	"+migration-service/api/proto/chat/chat.proto\x12\x04chat\"$\n" +
 	"\x12GetChatByIDRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\x03R\x02id\"K\n" +
 	"\x13GetChatByIDResponse\x12\x1e\n" +
@@ -419,68 +639,93 @@ const file_api_proto_chat_proto_rawDesc = "" +
 	"\n" +
 	"updated_at\x18\n" +
 	" \x01(\tR\tupdatedAtB\x10\n" +
-	"\x0e_university_id2\x92\x01\n" +
+	"\x0e_university_id\"\xa3\x01\n" +
+	"#AddAdministratorForMigrationRequest\x12\x17\n" +
+	"\achat_id\x18\x01 \x01(\x03R\x06chatId\x12\x14\n" +
+	"\x05phone\x18\x02 \x01(\tR\x05phone\x12\x15\n" +
+	"\x06max_id\x18\x03 \x01(\tR\x05maxId\x12\x19\n" +
+	"\badd_user\x18\x04 \x01(\bR\aaddUser\x12\x1b\n" +
+	"\tadd_admin\x18\x05 \x01(\bR\baddAdmin\"w\n" +
+	"$AddAdministratorForMigrationResponse\x129\n" +
+	"\radministrator\x18\x01 \x01(\v2\x13.chat.AdministratorR\radministrator\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"\xbc\x01\n" +
+	"\rAdministrator\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\x03R\x02id\x12\x17\n" +
+	"\achat_id\x18\x02 \x01(\x03R\x06chatId\x12\x14\n" +
+	"\x05phone\x18\x03 \x01(\tR\x05phone\x12\x15\n" +
+	"\x06max_id\x18\x04 \x01(\tR\x05maxId\x12\x19\n" +
+	"\badd_user\x18\x05 \x01(\bR\aaddUser\x12\x1b\n" +
+	"\tadd_admin\x18\x06 \x01(\bR\baddAdmin\x12\x1d\n" +
+	"\n" +
+	"created_at\x18\a \x01(\tR\tcreatedAt2\x89\x02\n" +
 	"\vChatService\x12B\n" +
 	"\vGetChatByID\x12\x18.chat.GetChatByIDRequest\x1a\x19.chat.GetChatByIDResponse\x12?\n" +
 	"\n" +
-	"CreateChat\x12\x17.chat.CreateChatRequest\x1a\x18.chat.CreateChatResponseB\x1eZ\x1cchat-service/api/proto;protob\x06proto3"
+	"CreateChat\x12\x17.chat.CreateChatRequest\x1a\x18.chat.CreateChatResponse\x12u\n" +
+	"\x1cAddAdministratorForMigration\x12).chat.AddAdministratorForMigrationRequest\x1a*.chat.AddAdministratorForMigrationResponseB\x1eZ\x1cchat-service/api/proto;protob\x06proto3"
 
 var (
-	file_api_proto_chat_proto_rawDescOnce sync.Once
-	file_api_proto_chat_proto_rawDescData []byte
+	file_migration_service_api_proto_chat_chat_proto_rawDescOnce sync.Once
+	file_migration_service_api_proto_chat_chat_proto_rawDescData []byte
 )
 
-func file_api_proto_chat_proto_rawDescGZIP() []byte {
-	file_api_proto_chat_proto_rawDescOnce.Do(func() {
-		file_api_proto_chat_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_api_proto_chat_proto_rawDesc), len(file_api_proto_chat_proto_rawDesc)))
+func file_migration_service_api_proto_chat_chat_proto_rawDescGZIP() []byte {
+	file_migration_service_api_proto_chat_chat_proto_rawDescOnce.Do(func() {
+		file_migration_service_api_proto_chat_chat_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_migration_service_api_proto_chat_chat_proto_rawDesc), len(file_migration_service_api_proto_chat_chat_proto_rawDesc)))
 	})
-	return file_api_proto_chat_proto_rawDescData
+	return file_migration_service_api_proto_chat_chat_proto_rawDescData
 }
 
-var file_api_proto_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 5)
-var file_api_proto_chat_proto_goTypes = []any{
-	(*GetChatByIDRequest)(nil),  // 0: chat.GetChatByIDRequest
-	(*GetChatByIDResponse)(nil), // 1: chat.GetChatByIDResponse
-	(*CreateChatRequest)(nil),   // 2: chat.CreateChatRequest
-	(*CreateChatResponse)(nil),  // 3: chat.CreateChatResponse
-	(*Chat)(nil),                // 4: chat.Chat
+var file_migration_service_api_proto_chat_chat_proto_msgTypes = make([]protoimpl.MessageInfo, 8)
+var file_migration_service_api_proto_chat_chat_proto_goTypes = []any{
+	(*GetChatByIDRequest)(nil),                   // 0: chat.GetChatByIDRequest
+	(*GetChatByIDResponse)(nil),                  // 1: chat.GetChatByIDResponse
+	(*CreateChatRequest)(nil),                    // 2: chat.CreateChatRequest
+	(*CreateChatResponse)(nil),                   // 3: chat.CreateChatResponse
+	(*Chat)(nil),                                 // 4: chat.Chat
+	(*AddAdministratorForMigrationRequest)(nil),  // 5: chat.AddAdministratorForMigrationRequest
+	(*AddAdministratorForMigrationResponse)(nil), // 6: chat.AddAdministratorForMigrationResponse
+	(*Administrator)(nil),                        // 7: chat.Administrator
 }
-var file_api_proto_chat_proto_depIdxs = []int32{
+var file_migration_service_api_proto_chat_chat_proto_depIdxs = []int32{
 	4, // 0: chat.GetChatByIDResponse.chat:type_name -> chat.Chat
 	4, // 1: chat.CreateChatResponse.chat:type_name -> chat.Chat
-	0, // 2: chat.ChatService.GetChatByID:input_type -> chat.GetChatByIDRequest
-	2, // 3: chat.ChatService.CreateChat:input_type -> chat.CreateChatRequest
-	1, // 4: chat.ChatService.GetChatByID:output_type -> chat.GetChatByIDResponse
-	3, // 5: chat.ChatService.CreateChat:output_type -> chat.CreateChatResponse
-	4, // [4:6] is the sub-list for method output_type
-	2, // [2:4] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	7, // 2: chat.AddAdministratorForMigrationResponse.administrator:type_name -> chat.Administrator
+	0, // 3: chat.ChatService.GetChatByID:input_type -> chat.GetChatByIDRequest
+	2, // 4: chat.ChatService.CreateChat:input_type -> chat.CreateChatRequest
+	5, // 5: chat.ChatService.AddAdministratorForMigration:input_type -> chat.AddAdministratorForMigrationRequest
+	1, // 6: chat.ChatService.GetChatByID:output_type -> chat.GetChatByIDResponse
+	3, // 7: chat.ChatService.CreateChat:output_type -> chat.CreateChatResponse
+	6, // 8: chat.ChatService.AddAdministratorForMigration:output_type -> chat.AddAdministratorForMigrationResponse
+	6, // [6:9] is the sub-list for method output_type
+	3, // [3:6] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
-func init() { file_api_proto_chat_proto_init() }
-func file_api_proto_chat_proto_init() {
-	if File_api_proto_chat_proto != nil {
+func init() { file_migration_service_api_proto_chat_chat_proto_init() }
+func file_migration_service_api_proto_chat_chat_proto_init() {
+	if File_migration_service_api_proto_chat_chat_proto != nil {
 		return
 	}
-	file_api_proto_chat_proto_msgTypes[2].OneofWrappers = []any{}
-	file_api_proto_chat_proto_msgTypes[4].OneofWrappers = []any{}
+	file_migration_service_api_proto_chat_chat_proto_msgTypes[2].OneofWrappers = []any{}
+	file_migration_service_api_proto_chat_chat_proto_msgTypes[4].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_chat_proto_rawDesc), len(file_api_proto_chat_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_migration_service_api_proto_chat_chat_proto_rawDesc), len(file_migration_service_api_proto_chat_chat_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   5,
+			NumMessages:   8,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_api_proto_chat_proto_goTypes,
-		DependencyIndexes: file_api_proto_chat_proto_depIdxs,
-		MessageInfos:      file_api_proto_chat_proto_msgTypes,
+		GoTypes:           file_migration_service_api_proto_chat_chat_proto_goTypes,
+		DependencyIndexes: file_migration_service_api_proto_chat_chat_proto_depIdxs,
+		MessageInfos:      file_migration_service_api_proto_chat_chat_proto_msgTypes,
 	}.Build()
-	File_api_proto_chat_proto = out.File
-	file_api_proto_chat_proto_goTypes = nil
-	file_api_proto_chat_proto_depIdxs = nil
+	File_migration_service_api_proto_chat_chat_proto = out.File
+	file_migration_service_api_proto_chat_chat_proto_goTypes = nil
+	file_migration_service_api_proto_chat_chat_proto_depIdxs = nil
 }

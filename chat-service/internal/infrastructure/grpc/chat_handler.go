@@ -79,3 +79,33 @@ func (h *ChatHandler) CreateChat(ctx context.Context, req *proto.CreateChatReque
 	}, nil
 }
 
+func (h *ChatHandler) AddAdministratorForMigration(ctx context.Context, req *proto.AddAdministratorForMigrationRequest) (*proto.AddAdministratorForMigrationResponse, error) {
+	// Используем метод с флагом skipPhoneValidation=true для миграции
+	admin, err := h.chatService.AddAdministratorWithFlags(
+		req.ChatId,
+		req.Phone,
+		req.MaxId,
+		req.AddUser,
+		req.AddAdmin,
+		true, // skipPhoneValidation = true для миграции
+	)
+	if err != nil {
+		// Log error for debugging
+		return &proto.AddAdministratorForMigrationResponse{
+			Error: err.Error(),
+		}, nil
+	}
+
+	return &proto.AddAdministratorForMigrationResponse{
+		Administrator: &proto.Administrator{
+			Id:        admin.ID,
+			ChatId:    admin.ChatID,
+			Phone:     admin.Phone,
+			MaxId:     admin.MaxID,
+			AddUser:   admin.AddUser,
+			AddAdmin:  admin.AddAdmin,
+			CreatedAt: admin.CreatedAt.Format(time.RFC3339),
+		},
+	}, nil
+}
+

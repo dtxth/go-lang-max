@@ -73,9 +73,24 @@ func (c *ChatClient) CreateChat(ctx context.Context, chat *domain.ChatData) (int
 	return int(resp.Chat.Id), nil
 }
 
-// AddAdministrator adds an administrator to a chat
-// Note: This method is not implemented via gRPC yet, needs to be added to proto
+// AddAdministrator adds an administrator to a chat using gRPC (without phone validation for migration)
 func (c *ChatClient) AddAdministrator(ctx context.Context, admin *domain.AdministratorData) error {
-	// TODO: Implement when AddAdministrator is added to chat.proto
-	return fmt.Errorf("AddAdministrator not implemented via gRPC yet")
+	req := &chatpb.AddAdministratorForMigrationRequest{
+		ChatId:   int64(admin.ChatID),
+		Phone:    admin.Phone,
+		MaxId:    admin.MaxID,
+		AddUser:  admin.AddUser,
+		AddAdmin: admin.AddAdmin,
+	}
+
+	resp, err := c.client.AddAdministratorForMigration(ctx, req)
+	if err != nil {
+		return fmt.Errorf("gRPC call failed: %w", err)
+	}
+
+	if resp.Error != "" {
+		return fmt.Errorf("chat service returned error: %s", resp.Error)
+	}
+
+	return nil
 }
