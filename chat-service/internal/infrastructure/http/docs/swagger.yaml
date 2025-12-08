@@ -2,6 +2,12 @@ basePath: /
 definitions:
   domain.Administrator:
     properties:
+      add_admin:
+        description: Может ли добавлять администраторов
+        type: boolean
+      add_user:
+        description: Может ли добавлять пользователей
+        type: boolean
       chat_id:
         type: integer
       created_at:
@@ -34,14 +40,32 @@ definitions:
     type: object
   http.AddAdministratorRequest:
     properties:
+      add_admin:
+        example: true
+        type: boolean
+      add_user:
+        example: true
+        type: boolean
+      max_id:
+        example: "496728250"
+        type: string
       phone:
         example: "+79001234567"
         type: string
+      skip_phone_validation:
+        example: false
+        type: boolean
     required:
     - phone
     type: object
   http.Administrator:
     properties:
+      add_admin:
+        description: Может ли добавлять администраторов
+        type: boolean
+      add_user:
+        description: Может ли добавлять пользователей
+        type: boolean
       chat_id:
         type: integer
       created_at:
@@ -57,6 +81,19 @@ definitions:
       updated_at:
         type: string
     type: object
+  http.AdministratorListResponse:
+    properties:
+      administrators:
+        items:
+          $ref: '#/definitions/http.Administrator'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total_count:
+        type: integer
+    type: object
   http.Chat:
     properties:
       administrators:
@@ -68,6 +105,9 @@ definitions:
         type: string
       department:
         description: Подразделение вуза
+        type: string
+      external_chat_id:
+        description: ID чата из внешней системы (Excel)
         type: string
       id:
         type: integer
@@ -109,6 +149,43 @@ definitions:
       total_count:
         type: integer
     type: object
+  http.CreateChatRequest:
+    properties:
+      branch_id:
+        type: integer
+      department:
+        type: string
+      external_chat_id:
+        type: string
+      faculty_id:
+        type: integer
+      name:
+        type: string
+      participants_count:
+        type: integer
+      source:
+        type: string
+      university_id:
+        type: integer
+      url:
+        type: string
+    required:
+    - name
+    - source
+    - url
+    type: object
+  http.CreateUniversityRequest:
+    properties:
+      inn:
+        type: string
+      kpp:
+        type: string
+      name:
+        type: string
+    required:
+    - inn
+    - name
+    type: object
   http.DeleteResponse:
     properties:
       status:
@@ -121,6 +198,42 @@ info:
   title: Chat Service API
   version: "1.0"
 paths:
+  /administrators:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех администраторов с пагинацией и поиском
+      parameters:
+      - description: Поисковый запрос (телефон, MAX ID или название чата)
+        in: query
+        name: query
+        type: string
+      - description: Лимит результатов (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.AdministratorListResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "500":
+          description: Internal Server Error
+          schema:
+            type: string
+      summary: Получить всех администраторов
+      tags:
+      - administrators
   /administrators/{admin_id}:
     delete:
       consumes:
@@ -155,12 +268,45 @@ paths:
       summary: Удалить администратора из чата
       tags:
       - administrators
+    get:
+      consumes:
+      - application/json
+      description: Возвращает информацию об администраторе по его ID
+      parameters:
+      - description: ID администратора
+        in: path
+        name: admin_id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.Administrator'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Получить администратора по ID
+      tags:
+      - administrators
   /chats:
     get:
       consumes:
       - application/json
       description: Выполняет поиск чатов по названию с учетом роли пользователя
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Поисковый запрос (название чата)
         in: query
         name: query
@@ -173,14 +319,6 @@ paths:
         in: query
         name: offset
         type: integer
-      - description: Роль пользователя (superadmin, admin, user)
-        in: query
-        name: user_role
-        type: string
-      - description: ID вуза (для фильтрации, если не superadmin)
-        in: query
-        name: university_id
-        type: integer
       produces:
       - application/json
       responses:
@@ -192,7 +330,40 @@ paths:
           description: Bad Request
           schema:
             type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
       summary: Поиск чатов
+      tags:
+      - chats
+    post:
+      consumes:
+      - application/json
+      description: Создает новый чат
+      parameters:
+      - description: Данные чата
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreateChatRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/http.Chat'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Создать чат
       tags:
       - chats
   /chats/{chat_id}/administrators:
@@ -265,6 +436,11 @@ paths:
       - application/json
       description: Возвращает список всех чатов с пагинацией (с учетом роли пользователя)
       parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
       - description: Лимит результатов (по умолчанию 50, максимум 100)
         in: query
         name: limit
@@ -272,14 +448,6 @@ paths:
       - description: Смещение для пагинации
         in: query
         name: offset
-        type: integer
-      - description: Роль пользователя (superadmin, admin, user)
-        in: query
-        name: user_role
-        type: string
-      - description: ID вуза (для фильтрации, если не superadmin)
-        in: query
-        name: university_id
         type: integer
       produces:
       - application/json
@@ -292,9 +460,45 @@ paths:
           description: Bad Request
           schema:
             type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+        "403":
+          description: Forbidden
+          schema:
+            type: string
       summary: Получить все чаты
       tags:
       - chats
+  /universities:
+    post:
+      consumes:
+      - application/json
+      description: Создает новый университет или возвращает существующий по INN/KPP
+      parameters:
+      - description: Данные университета
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.CreateUniversityRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Создать или получить университет
+      tags:
+      - universities
 schemes:
 - http
 - https

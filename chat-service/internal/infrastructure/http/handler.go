@@ -39,6 +39,14 @@ type AddAdministratorRequest struct {
 	SkipPhoneValidation  bool   `json:"skip_phone_validation,omitempty" example:"false"`
 }
 
+// AdministratorListResponse представляет ответ со списком администраторов и пагинацией
+type AdministratorListResponse struct {
+	Administrators []*Administrator `json:"administrators"`
+	TotalCount     int              `json:"total_count"`
+	Limit          int              `json:"limit"`
+	Offset         int              `json:"offset"`
+}
+
 // DeleteResponse представляет ответ на удаление
 type DeleteResponse struct {
 	Status string `json:"status" example:"deleted"`
@@ -261,6 +269,82 @@ func (h *Handler) AddAdministrator(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(a)
+}
+
+// GetAdministratorByID godoc
+// @Summary      Получить администратора по ID
+// @Description  Возвращает информацию об администраторе по его ID
+// @Tags         administrators
+// @Accept       json
+// @Produce      json
+// @Param        admin_id  path      int     true  "ID администратора"
+// @Success      200      {object}  Administrator
+// @Failure      400      {string}  string
+// @Failure      404      {string}  string
+// @Router       /administrators/{admin_id} [get]
+func (h *Handler) GetAdministratorByID(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/administrators/")
+	adminID, err := strconv.ParseInt(path, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid administrator id", http.StatusBadRequest)
+		return
+	}
+
+	admin, err := h.chatService.GetAdministratorByID(adminID)
+	if err != nil {
+		statusCode := http.StatusNotFound
+		if err == domain.ErrAdministratorNotFound {
+			statusCode = http.StatusNotFound
+		}
+		http.Error(w, err.Error(), statusCode)
+		return
+	}
+
+	a := Administrator(*admin)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(a)
+}
+
+// GetAllAdministrators godoc
+// @Summary      Получить всех администраторов
+// @Description  Возвращает список всех администраторов с пагинацией и поиском
+// @Tags         administrators
+// @Accept       json
+// @Produce      json
+// @Param        query   query     string  false  "Поисковый запрос (телефон, MAX ID или название чата)"
+// @Param        limit   query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
+// @Param        offset  query     int     false  "Смещение для пагинации"
+// @Success      200     {object}  AdministratorListResponse
+// @Failure      400     {string}  string
+// @Failure      500     {string}  string
+// @Router       /administrators [get]
+func (h *Handler) GetAllAdministrators(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("query")
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+
+	administrators, totalCount, err := h.chatService.GetAllAdministrators(query, limit, offset)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	// Конвертируем domain.Administrator в Administrator для ответа
+	responseAdmins := make([]*Administrator, len(administrators))
+	for i, admin := range administrators {
+		a := Administrator(*admin)
+		responseAdmins[i] = &a
+	}
+
+	response := AdministratorListResponse{
+		Administrators: responseAdmins,
+		TotalCount:     totalCount,
+		Limit:          limit,
+		Offset:         offset,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 // RemoveAdministrator godoc

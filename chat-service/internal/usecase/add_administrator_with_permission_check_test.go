@@ -63,6 +63,10 @@ func (m *mockAdminRepoForAdd) CountByChatID(chatID int64) (int, error) {
 	return 0, nil
 }
 
+func (m *mockAdminRepoForAdd) GetAll(query string, limit, offset int) ([]*domain.Administrator, int, error) {
+	return nil, 0, nil
+}
+
 type mockChatRepoForAdd struct {
 	chats map[int64]*domain.Chat
 }

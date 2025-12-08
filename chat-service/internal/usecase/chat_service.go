@@ -125,6 +125,20 @@ func (s *ChatService) RemoveAdministrator(adminID int64) error {
 	return s.removeAdministratorWithValidationUC.Execute(adminID)
 }
 
+// GetAdministratorByID получает администратора по ID
+func (s *ChatService) GetAdministratorByID(id int64) (*domain.Administrator, error) {
+	admin, err := s.administratorRepo.GetByID(id)
+	if err != nil {
+		return nil, domain.ErrAdministratorNotFound
+	}
+	return admin, nil
+}
+
+// GetAllAdministrators получает всех администраторов с пагинацией и поиском
+func (s *ChatService) GetAllAdministrators(query string, limit, offset int) ([]*domain.Administrator, int, error) {
+	return s.administratorRepo.GetAll(query, limit, offset)
+}
+
 // CreateChat создает новый чат
 func (s *ChatService) CreateChat(
 	name, url, maxChatID, source string,

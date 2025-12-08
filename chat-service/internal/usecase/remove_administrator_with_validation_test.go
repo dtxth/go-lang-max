@@ -47,6 +47,10 @@ func (m *mockAdminRepoForRemove) GetByPhoneAndChatID(phone string, chatID int64)
 	return nil, nil
 }
 
+func (m *mockAdminRepoForRemove) GetAll(query string, limit, offset int) ([]*domain.Administrator, int, error) {
+	return nil, 0, nil
+}
+
 type mockChatRepoForRemove struct {
 	chats map[int64]*domain.Chat
 }

@@ -15,7 +15,104 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/administrators": {
+            "get": {
+                "description": "Возвращает список всех администраторов с пагинацией и поиском",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "administrators"
+                ],
+                "summary": "Получить всех администраторов",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поисковый запрос (телефон, MAX ID или название чата)",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Лимит результатов (по умолчанию 50, максимум 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Смещение для пагинации",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.AdministratorListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/administrators/{admin_id}": {
+            "get": {
+                "description": "Возвращает информацию об администраторе по его ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "administrators"
+                ],
+                "summary": "Получить администратора по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID администратора",
+                        "name": "admin_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.Administrator"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "description": "Удаляет администратора из чата. Нельзя удалить последнего администратора (должно быть минимум 2)",
                 "consumes": [
@@ -329,6 +426,49 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/universities": {
+            "post": {
+                "description": "Создает новый университет или возвращает существующий по INN/KPP",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "universities"
+                ],
+                "summary": "Создать или получить университет",
+                "parameters": [
+                    {
+                        "description": "Данные университета",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.CreateUniversityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -409,6 +549,10 @@ const docTemplate = `{
                 "phone": {
                     "type": "string",
                     "example": "+79001234567"
+                },
+                "skip_phone_validation": {
+                    "type": "boolean",
+                    "example": false
                 }
             }
         },
@@ -442,6 +586,26 @@ const docTemplate = `{
                 },
                 "updated_at": {
                     "type": "string"
+                }
+            }
+        },
+        "http.AdministratorListResponse": {
+            "type": "object",
+            "properties": {
+                "administrators": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.Administrator"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
                 }
             }
         },
@@ -559,6 +723,24 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.CreateUniversityRequest": {
+            "type": "object",
+            "required": [
+                "inn",
+                "name"
+            ],
+            "properties": {
+                "inn": {
+                    "type": "string"
+                },
+                "kpp": {
+                    "type": "string"
+                },
+                "name": {
                     "type": "string"
                 }
             }

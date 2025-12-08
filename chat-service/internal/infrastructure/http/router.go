@@ -67,15 +67,38 @@ func (h *Handler) Router() http.Handler {
 		}
 	})
 
+	// Обработка /administrators (список всех)
+	mux.HandleFunc("/administrators", func(w http.ResponseWriter, r *http.Request) {
+		// Точное совпадение пути
+		if r.URL.Path != "/administrators" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.GetAllAdministrators(w, r)
+	})
+
 	// Обработка /administrators/{id}
 	mux.HandleFunc("/administrators/", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/administrators/")
+		
+		// Если путь пустой после /administrators/, это тоже список всех
 		if path == "" {
-			http.Error(w, "administrator id is required", http.StatusBadRequest)
+			if r.Method != http.MethodGet {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			h.GetAllAdministrators(w, r)
 			return
 		}
 
+		// Иначе это запрос к /administrators/{id}
 		switch r.Method {
+		case http.MethodGet:
+			h.GetAdministratorByID(w, r)
 		case http.MethodDelete:
 			h.RemoveAdministrator(w, r)
 		default:
