@@ -8,6 +8,7 @@ import (
 	"employee-service/internal/infrastructure/middleware"
 	"employee-service/internal/usecase"
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -30,6 +31,7 @@ type AddEmployeeRequest struct {
 	INN            string `json:"inn,omitempty" example:"1234567890"`
 	KPP            string `json:"kpp,omitempty" example:"123456789"`
 	UniversityName string `json:"university_name,omitempty" example:"МГУ"`
+	Role           string `json:"role,omitempty" example:"curator" enums:"curator,operator"`
 }
 
 // UpdateEmployeeRequest представляет запрос на обновление сотрудника
@@ -232,6 +234,7 @@ func (h *Handler) AddEmployee(w http.ResponseWriter, r *http.Request) {
 		INN            string `json:"inn"`
 		KPP            string `json:"kpp"`
 		UniversityName string `json:"university_name"`
+		Role           string `json:"role"`
 	}
 
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -249,15 +252,39 @@ func (h *Handler) AddEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	employee, err := h.employeeService.AddEmployeeByPhone(
-		req.Phone,
-		req.FirstName,
-		req.LastName,
-		req.MiddleName,
-		req.INN,
-		req.KPP,
-		req.UniversityName,
-	)
+	// Если роль указана, используем CreateEmployeeWithRole
+	var employee *domain.Employee
+	var err error
+	
+	if req.Role != "" {
+		// TODO: Получить роль запрашивающего пользователя из JWT токена
+		// Пока используем "superadmin" для тестирования
+		requesterRole := "superadmin"
+		
+		employee, err = h.employeeService.CreateEmployeeWithRole(
+			r.Context(),
+			req.Phone,
+			req.FirstName,
+			req.LastName,
+			req.MiddleName,
+			req.INN,
+			req.KPP,
+			req.UniversityName,
+			req.Role,
+			requesterRole,
+		)
+	} else {
+		// Используем старый метод без роли
+		employee, err = h.employeeService.AddEmployeeByPhone(
+			req.Phone,
+			req.FirstName,
+			req.LastName,
+			req.MiddleName,
+			req.INN,
+			req.KPP,
+			req.UniversityName,
+		)
+	}
 
 	if err != nil {
 		statusCode := http.StatusInternalServerError

@@ -3,6 +3,7 @@ package usecase
 import (
 	"errors"
 	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -39,6 +40,33 @@ func (s *AuthService) Register(email, password, role string) (*domain.User, erro
         return nil, domain.ErrUserExists
     }
     return user, nil
+}
+
+// CreateUser создает нового пользователя без роли (роль назначается отдельно через AssignRole)
+func (s *AuthService) CreateUser(phone, password string) (int64, error) {
+    // Проверяем, не существует ли уже пользователь с таким телефоном
+    existingUser, err := s.repo.GetByPhone(phone)
+    if err == nil && existingUser != nil && existingUser.ID > 0 {
+        return existingUser.ID, nil // Возвращаем существующего пользователя
+    }
+
+    hashed, err := s.hasher.Hash(password)
+    if err != nil {
+        return 0, fmt.Errorf("failed to hash password: %w", err)
+    }
+
+    user := &domain.User{
+        Phone:    phone,
+        Email:    "", // Email опциональный
+        Password: hashed,
+        Role:     "", // Роль будет назначена через AssignRole
+    }
+    
+    if err := s.repo.Create(user); err != nil {
+        return 0, fmt.Errorf("failed to create user: %w", err)
+    }
+    
+    return user.ID, nil
 }
 
 func (s *AuthService) Login(email, password string) (*TokensWithJTIResult, error) {

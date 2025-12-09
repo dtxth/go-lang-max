@@ -9,7 +9,8 @@ const (
 
 type User struct {
     ID       int64  `json:"id"`
-    Email    string `json:"email"`
+    Phone    string `json:"phone"`    // Основной идентификатор (телефон)
+    Email    string `json:"email,omitempty"` // Опциональный email
     Password string `json:"-"`
     Role     string `json:"role"`
 }

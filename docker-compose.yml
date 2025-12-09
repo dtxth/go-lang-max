@@ -198,7 +198,7 @@ services:
     environment:
       GRPC_PORT: "9095"
       MAX_API_URL: ""
-      MAX_API_TOKEN: ""
+      MAX_API_TOKEN: "test-token-for-development"
       MAX_API_TIMEOUT: 5s
     ports:
       - "9095:9095"

@@ -356,15 +356,15 @@ func (c *Client) normalizePhone(phone string) string {
 	}
 
 	if strings.HasPrefix(digits, "7") && len(digits) == 11 {
-		return digits
+		return "+" + digits
 	}
 
 	if len(digits) == 10 {
-		return "7" + digits
+		return "+7" + digits
 	}
 
 	if len(digits) >= 10 && len(digits) <= 15 {
-		return digits
+		return "+" + digits
 	}
 
 	return ""

@@ -1,9 +1,10 @@
 package grpc
 
 import (
-	"auth-service/internal/usecase"
 	"auth-service/api/proto"
+	"auth-service/internal/usecase"
 	"context"
+	"log"
 )
 
 type AuthHandler struct {
@@ -99,6 +100,19 @@ func (h *AuthHandler) GetUserPermissions(ctx context.Context, req *proto.GetUser
 	}, nil
 }
 
+
+func (h *AuthHandler) CreateUser(ctx context.Context, req *proto.CreateUserRequest) (*proto.CreateUserResponse, error) {
+	userID, err := h.authService.CreateUser(req.Phone, req.Password)
+	if err != nil {
+		return &proto.CreateUserResponse{
+			Error: err.Error(),
+		}, nil
+	}
+	
+	return &proto.CreateUserResponse{
+		UserId: userID,
+	}, nil
+}
 
 func (h *AuthHandler) AssignRole(ctx context.Context, req *proto.AssignRoleRequest) (*proto.AssignRoleResponse, error) {
 	var universityID, branchID, facultyID *int64

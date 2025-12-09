@@ -15,6 +15,9 @@ service AuthService {
   // GetUserPermissions возвращает все разрешения пользователя
   rpc GetUserPermissions(GetUserPermissionsRequest) returns (GetUserPermissionsResponse);
   
+  // CreateUser создает нового пользователя
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+  
   // AssignRole назначает роль пользователю
   rpc AssignRole(AssignRoleRequest) returns (AssignRoleResponse);
   
@@ -29,12 +32,13 @@ message ValidateTokenRequest {
 message ValidateTokenResponse {
   bool valid = 1;
   int64 user_id = 2;
-  string email = 3;
+  string phone = 3;
   string role = 4;
   int64 university_id = 5;
   int64 branch_id = 6;
   int64 faculty_id = 7;
   string error = 8;
+  string email = 9; // Опциональный
 }
 
 message GetUserRequest {
@@ -43,9 +47,10 @@ message GetUserRequest {
 
 message GetUserResponse {
   int64 id = 1;
-  string email = 2;
+  string phone = 2;
   string role = 3;
   string error = 4;
+  string email = 5; // Опциональный
 }
 
 message GetUserPermissionsRequest {
@@ -67,6 +72,16 @@ message UserPermission {
   int64 faculty_id = 7;
 }
 
+message CreateUserRequest {
+  string phone = 1;
+  string password = 2;
+  string email = 3; // Опциональный
+}
+
+message CreateUserResponse {
+  int64 user_id = 1;
+  string error = 2;
+}
 
 message AssignRoleRequest {
   int64 user_id = 1;

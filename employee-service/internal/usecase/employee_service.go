@@ -1,6 +1,7 @@
 package usecase
 
 import (
+	"context"
 	"employee-service/internal/domain"
 	"errors"
 	"strings"
@@ -11,17 +12,20 @@ type EmployeeService struct {
 	employeeRepo   domain.EmployeeRepository
 	universityRepo domain.UniversityRepository
 	maxService     domain.MaxService
+	authService    domain.AuthService
 }
 
 func NewEmployeeService(
 	employeeRepo domain.EmployeeRepository,
 	universityRepo domain.UniversityRepository,
 	maxService domain.MaxService,
+	authService domain.AuthService,
 ) *EmployeeService {
 	return &EmployeeService{
 		employeeRepo:   employeeRepo,
 		universityRepo: universityRepo,
 		maxService:     maxService,
+		authService:    authService,
 	}
 }
 
@@ -218,5 +222,34 @@ func (s *EmployeeService) GetUniversityByINN(inn string) (*domain.University, er
 // GetUniversityByINNAndKPP получает вуз по ИНН и КПП
 func (s *EmployeeService) GetUniversityByINNAndKPP(inn, kpp string) (*domain.University, error) {
 	return s.universityRepo.GetByINNAndKPP(inn, kpp)
+}
+
+// CreateEmployeeWithRole создает сотрудника с назначением роли
+func (s *EmployeeService) CreateEmployeeWithRole(
+	ctx context.Context,
+	phone string,
+	firstName, lastName, middleName string,
+	inn, kpp string,
+	universityName string,
+	role string,
+	requesterRole string,
+) (*domain.Employee, error) {
+	// Используем CreateEmployeeWithRoleUseCase
+	uc := NewCreateEmployeeWithRoleUseCase(
+		s.employeeRepo,
+		s.universityRepo,
+		s.maxService,
+		s.authService,
+	)
+	
+	return uc.Execute(
+		ctx,
+		phone,
+		firstName, lastName, middleName,
+		inn, kpp,
+		universityName,
+		role,
+		requesterRole,
+	)
 }
 

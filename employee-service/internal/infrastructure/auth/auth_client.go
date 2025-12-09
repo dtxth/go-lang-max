@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	authpb "auth-service/api/proto"
@@ -36,6 +37,28 @@ func (c *AuthClient) Close() error {
 		return c.conn.Close()
 	}
 	return nil
+}
+
+// CreateUser создает нового пользователя в Auth Service
+func (c *AuthClient) CreateUser(ctx context.Context, phone, password string) (int64, error) {
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	req := &authpb.CreateUserRequest{
+		Phone:    phone,
+		Password: password,
+	}
+
+	resp, err := c.client.CreateUser(ctx, req)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create user: %w", err)
+	}
+
+	if resp.Error != "" {
+		return 0, fmt.Errorf("auth service error: %s", resp.Error)
+	}
+
+	return resp.UserId, nil
 }
 
 // AssignRole назначает роль пользователю

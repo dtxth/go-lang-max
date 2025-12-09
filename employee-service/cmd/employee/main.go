@@ -57,17 +57,17 @@ func main() {
 	defer maxClient.Close()
 
 	// Инициализируем Auth gRPC клиент
+	log.Printf("Connecting to Auth Service at %s", cfg.AuthServiceAddress)
 	authClient, err := auth.NewAuthClient(cfg.AuthServiceAddress)
 	if err != nil {
-		log.Printf("Warning: Failed to connect to auth service: %v", err)
-		authClient = nil
+		log.Printf("ERROR: Failed to connect to auth service: %v", err)
+		log.Fatal("Auth service is required for employee service to function properly")
 	}
-	if authClient != nil {
-		defer authClient.Close()
-	}
+	log.Println("Successfully connected to Auth Service")
+	defer authClient.Close()
 
 	// Инициализируем usecase
-	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient)
+	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient, authClient)
 	batchUpdateMaxIdUseCase := usecase.NewBatchUpdateMaxIdUseCase(employeeRepo, batchUpdateJobRepo, maxClient)
 	
 	// Инициализируем use case для поиска с ролевой фильтрацией
