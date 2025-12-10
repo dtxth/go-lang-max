@@ -13,8 +13,17 @@ import (
 	"structure-service/internal/usecase"
 )
 
+// PaginatedUniversitiesResponse представляет ответ с пагинацией для университетов
+type PaginatedUniversitiesResponse struct {
+	Data       []*domain.University `json:"data"`
+	Total      int                  `json:"total"`
+	Limit      int                  `json:"limit"`
+	Offset     int                  `json:"offset"`
+	TotalPages int                  `json:"total_pages"`
+}
+
 type Handler struct {
-	structureService              *usecase.StructureService
+	structureService              domain.StructureServiceInterface
 	getUniversityStructureUseCase *usecase.GetUniversityStructureUseCase
 	assignOperatorUseCase         *usecase.AssignOperatorToDepartmentUseCase
 	importStructureUseCase        *usecase.ImportStructureFromExcelUseCase
@@ -24,7 +33,7 @@ type Handler struct {
 }
 
 func NewHandler(
-	structureService *usecase.StructureService,
+	structureService domain.StructureServiceInterface,
 	getUniversityStructureUseCase *usecase.GetUniversityStructureUseCase,
 	assignOperatorUseCase *usecase.AssignOperatorToDepartmentUseCase,
 	importStructureUseCase *usecase.ImportStructureFromExcelUseCase,
@@ -78,21 +87,58 @@ func (h *Handler) GetStructure(w http.ResponseWriter, r *http.Request) {
 
 // GetAllUniversities godoc
 // @Summary      Получить все вузы
-// @Description  Возвращает список всех вузов
+// @Description  Возвращает список всех вузов с пагинацией, сортировкой и поиском
 // @Tags         universities
 // @Accept       json
 // @Produce      json
-// @Success      200  {array}   domain.University
+// @Param        limit      query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
+// @Param        offset     query     int     false  "Смещение для пагинации"
+// @Param        sort_by    query     string  false  "Поле для сортировки (id, name, inn, kpp, foiv, created_at, updated_at)"
+// @Param        sort_order query     string  false  "Порядок сортировки (asc, desc)"
+// @Param        search     query     string  false  "Поисковый запрос по всем полям"
+// @Success      200        {object}  PaginatedUniversitiesResponse
+// @Failure      400        {string}  string
 // @Router       /universities [get]
 func (h *Handler) GetAllUniversities(w http.ResponseWriter, r *http.Request) {
-	universities, err := h.structureService.GetAllUniversities()
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	sortBy := r.URL.Query().Get("sort_by")
+	sortOrder := r.URL.Query().Get("sort_order")
+	search := r.URL.Query().Get("search")
+
+	universities, total, err := h.structureService.GetAllUniversitiesWithSortingAndSearch(limit, offset, sortBy, sortOrder, search)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Устанавливаем значения по умолчанию для ответа
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Вычисляем общее количество страниц
+	totalPages := (total + limit - 1) / limit
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	response := PaginatedUniversitiesResponse{
+		Data:       universities,
+		Total:      total,
+		Limit:      limit,
+		Offset:     offset,
+		TotalPages: totalPages,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(universities)
+	json.NewEncoder(w).Encode(response)
 }
 
 // GetUniversity godoc

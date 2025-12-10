@@ -23,6 +23,21 @@ func (s *StructureService) GetAllUniversities() ([]*domain.University, error) {
 	return s.repo.GetAllUniversities()
 }
 
+// GetAllUniversitiesWithSortingAndSearch получает список всех вузов с пагинацией, сортировкой и поиском
+func (s *StructureService) GetAllUniversitiesWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*domain.University, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	
+	return s.repo.GetAllUniversitiesWithSortingAndSearch(limit, offset, sortBy, sortOrder, search)
+}
+
 // GetUniversity получает вуз по ID
 func (s *StructureService) GetUniversity(id int64) (*domain.University, error) {
 	return s.repo.GetUniversityByID(id)

@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"structure-service/internal/domain"
 	"time"
 )
@@ -84,6 +85,80 @@ func (r *StructurePostgres) GetAllUniversities() ([]*domain.University, error) {
 		universities = append(universities, u)
 	}
 	return universities, rows.Err()
+}
+
+func (r *StructurePostgres) GetAllUniversitiesWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*domain.University, int, error) {
+	// Валидация параметров сортировки
+	validSortFields := map[string]string{
+		"id":         "id",
+		"name":       "name",
+		"inn":        "inn",
+		"kpp":        "kpp",
+		"foiv":       "foiv",
+		"created_at": "created_at",
+		"updated_at": "updated_at",
+	}
+	
+	sortField, exists := validSortFields[sortBy]
+	if !exists {
+		sortField = "name" // по умолчанию сортировка по названию
+	}
+	
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc" // по умолчанию по возрастанию
+	}
+	
+	// Построение WHERE условия для поиска
+	whereClause := ""
+	args := []interface{}{}
+	argIndex := 1
+	
+	if search != "" {
+		searchPattern := "%" + search + "%"
+		whereClause = `WHERE (LOWER(name) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `) 
+		                  OR LOWER(inn) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `) 
+		                  OR LOWER(kpp) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `)
+		                  OR LOWER(foiv) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `))`
+		args = append(args, searchPattern)
+		argIndex++
+	}
+	
+	// Подсчет общего количества
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM universities ` + whereClause
+	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	// Добавляем LIMIT и OFFSET
+	args = append(args, limit, offset)
+	limitArg := fmt.Sprintf("$%d", argIndex)
+	offsetArg := fmt.Sprintf("$%d", argIndex+1)
+	
+	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
+		 FROM universities ` +
+		whereClause + `
+		 ORDER BY ` + sortField + ` ` + sortOrder + `
+		 LIMIT ` + limitArg + ` OFFSET ` + offsetArg
+	
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	
+	var universities []*domain.University
+	for rows.Next() {
+		u := &domain.University{}
+		err := rows.Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
+		if err != nil {
+			return nil, 0, err
+		}
+		universities = append(universities, u)
+	}
+	
+	return universities, totalCount, rows.Err()
 }
 
 // Branch methods

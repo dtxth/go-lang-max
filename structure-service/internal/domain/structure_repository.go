@@ -38,5 +38,8 @@ type StructureRepository interface {
 	// Получение полной структуры
 	GetStructureByUniversityID(universityID int64) (*StructureNode, error)
 	GetAllUniversities() ([]*University, error)
+	
+	// GetAllUniversitiesWithSortingAndSearch получает все университеты с пагинацией, сортировкой и поиском
+	GetAllUniversitiesWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*University, int, error)
 }
 
