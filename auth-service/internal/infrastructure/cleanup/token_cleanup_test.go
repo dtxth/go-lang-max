@@ -5,12 +5,14 @@ import (
 	"context"
 	"log"
 	"os"
+	"sync"
 	"testing"
 	"time"
 )
 
 // mockPasswordResetRepository is a mock implementation for testing
 type mockPasswordResetRepository struct {
+	mu                  sync.Mutex
 	deleteExpiredCalled bool
 	deleteExpiredError  error
 	deletedCount        int
@@ -29,9 +31,23 @@ func (m *mockPasswordResetRepository) Invalidate(token string) error {
 }
 
 func (m *mockPasswordResetRepository) DeleteExpired() error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
 	m.deleteExpiredCalled = true
 	m.deletedCount++
 	return m.deleteExpiredError
+}
+
+func (m *mockPasswordResetRepository) getDeletedCount() int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.deletedCount
+}
+
+func (m *mockPasswordResetRepository) wasDeleteExpiredCalled() bool {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.deleteExpiredCalled
 }
 
 func TestTokenCleanupJob_Start(t *testing.T) {
@@ -53,8 +69,9 @@ func TestTokenCleanupJob_Start(t *testing.T) {
 		
 		// Verify DeleteExpired was called multiple times
 		// Should be called at least 3 times: once immediately, then at 100ms and 200ms
-		if mockRepo.deletedCount < 3 {
-			t.Errorf("Expected DeleteExpired to be called at least 3 times, got %d", mockRepo.deletedCount)
+		deletedCount := mockRepo.getDeletedCount()
+		if deletedCount < 3 {
+			t.Errorf("Expected DeleteExpired to be called at least 3 times, got %d", deletedCount)
 		}
 	})
 
@@ -130,7 +147,7 @@ func TestTokenCleanupJob_runCleanup(t *testing.T) {
 		job.runCleanup()
 		
 		// Verify DeleteExpired was called
-		if !mockRepo.deleteExpiredCalled {
+		if !mockRepo.wasDeleteExpiredCalled() {
 			t.Error("Expected DeleteExpired to be called")
 		}
 	})
@@ -147,7 +164,7 @@ func TestTokenCleanupJob_runCleanup(t *testing.T) {
 		job.runCleanup()
 		
 		// Verify DeleteExpired was called despite error
-		if !mockRepo.deleteExpiredCalled {
+		if !mockRepo.wasDeleteExpiredCalled() {
 			t.Error("Expected DeleteExpired to be called")
 		}
 	})
@@ -193,13 +210,14 @@ func TestTokenCleanup_DeleteExpiredTokens(t *testing.T) {
 		job.runCleanup()
 		
 		// Verify DeleteExpired was called (which deletes expired tokens)
-		if !mockRepo.deleteExpiredCalled {
+		if !mockRepo.wasDeleteExpiredCalled() {
 			t.Error("Expected DeleteExpired to be called to remove expired tokens")
 		}
 		
 		// Verify it was called exactly once
-		if mockRepo.deletedCount != 1 {
-			t.Errorf("Expected DeleteExpired to be called once, got %d", mockRepo.deletedCount)
+		deletedCount := mockRepo.getDeletedCount()
+		if deletedCount != 1 {
+			t.Errorf("Expected DeleteExpired to be called once, got %d", deletedCount)
 		}
 	})
 	
@@ -213,8 +231,9 @@ func TestTokenCleanup_DeleteExpiredTokens(t *testing.T) {
 		job.runCleanup()
 		
 		// Verify DeleteExpired was called once (it handles all expired tokens)
-		if mockRepo.deletedCount != 1 {
-			t.Errorf("Expected DeleteExpired to be called once to delete all expired tokens, got %d", mockRepo.deletedCount)
+		deletedCount := mockRepo.getDeletedCount()
+		if deletedCount != 1 {
+			t.Errorf("Expected DeleteExpired to be called once to delete all expired tokens, got %d", deletedCount)
 		}
 	})
 }
@@ -234,7 +253,7 @@ func TestTokenCleanup_ValidTokensNotDeleted(t *testing.T) {
 		job.runCleanup()
 		
 		// Verify DeleteExpired was called (which only deletes expired tokens)
-		if !mockRepo.deleteExpiredCalled {
+		if !mockRepo.wasDeleteExpiredCalled() {
 			t.Error("Expected DeleteExpired to be called")
 		}
 		

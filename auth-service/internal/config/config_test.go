@@ -17,6 +17,7 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				MinPasswordLength:       12,
 				ResetTokenExpiration:    15,
+				TokenCleanupInterval:    60,
 				NotificationServiceType: "mock",
 			},
 			wantErr: false,
@@ -26,6 +27,7 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				MinPasswordLength:       12,
 				ResetTokenExpiration:    15,
+				TokenCleanupInterval:    60,
 				NotificationServiceType: "max",
 				MaxBotServiceAddr:       "localhost:9090",
 			},
@@ -36,6 +38,7 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				MinPasswordLength:       7,
 				ResetTokenExpiration:    15,
+				TokenCleanupInterval:    60,
 				NotificationServiceType: "mock",
 			},
 			wantErr: true,
@@ -46,16 +49,29 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				MinPasswordLength:       12,
 				ResetTokenExpiration:    0,
+				TokenCleanupInterval:    60,
 				NotificationServiceType: "mock",
 			},
 			wantErr: true,
 			errMsg:  "RESET_TOKEN_EXPIRATION must be at least 1 minute",
 		},
 		{
+			name: "invalid - token cleanup interval too short",
+			config: &Config{
+				MinPasswordLength:       12,
+				ResetTokenExpiration:    15,
+				TokenCleanupInterval:    0,
+				NotificationServiceType: "mock",
+			},
+			wantErr: true,
+			errMsg:  "TOKEN_CLEANUP_INTERVAL must be at least 1 minute",
+		},
+		{
 			name: "invalid - unknown notification service type",
 			config: &Config{
 				MinPasswordLength:       12,
 				ResetTokenExpiration:    15,
+				TokenCleanupInterval:    60,
 				NotificationServiceType: "unknown",
 			},
 			wantErr: true,
@@ -66,6 +82,7 @@ func TestConfig_Validate(t *testing.T) {
 			config: &Config{
 				MinPasswordLength:       12,
 				ResetTokenExpiration:    15,
+				TokenCleanupInterval:    60,
 				NotificationServiceType: "max",
 				MaxBotServiceAddr:       "",
 			},
@@ -95,6 +112,7 @@ func TestLoad(t *testing.T) {
 	originalVars := map[string]string{
 		"MIN_PASSWORD_LENGTH":       os.Getenv("MIN_PASSWORD_LENGTH"),
 		"RESET_TOKEN_EXPIRATION":    os.Getenv("RESET_TOKEN_EXPIRATION"),
+		"TOKEN_CLEANUP_INTERVAL":    os.Getenv("TOKEN_CLEANUP_INTERVAL"),
 		"NOTIFICATION_SERVICE_TYPE": os.Getenv("NOTIFICATION_SERVICE_TYPE"),
 		"MAXBOT_SERVICE_ADDR":       os.Getenv("MAXBOT_SERVICE_ADDR"),
 	}
@@ -121,6 +139,7 @@ func TestLoad(t *testing.T) {
 			envVars: map[string]string{
 				"MIN_PASSWORD_LENGTH":       "",
 				"RESET_TOKEN_EXPIRATION":    "",
+				"TOKEN_CLEANUP_INTERVAL":    "",
 				"NOTIFICATION_SERVICE_TYPE": "",
 			},
 			wantErr: false,
@@ -130,6 +149,9 @@ func TestLoad(t *testing.T) {
 				}
 				if cfg.ResetTokenExpiration != 15 {
 					t.Errorf("ResetTokenExpiration = %d, want 15", cfg.ResetTokenExpiration)
+				}
+				if cfg.TokenCleanupInterval != 60 {
+					t.Errorf("TokenCleanupInterval = %d, want 60", cfg.TokenCleanupInterval)
 				}
 				if cfg.NotificationServiceType != "mock" {
 					t.Errorf("NotificationServiceType = %s, want mock", cfg.NotificationServiceType)
@@ -141,6 +163,7 @@ func TestLoad(t *testing.T) {
 			envVars: map[string]string{
 				"MIN_PASSWORD_LENGTH":       "16",
 				"RESET_TOKEN_EXPIRATION":    "30",
+				"TOKEN_CLEANUP_INTERVAL":    "120",
 				"NOTIFICATION_SERVICE_TYPE": "max",
 				"MAXBOT_SERVICE_ADDR":       "localhost:9090",
 			},
@@ -151,6 +174,9 @@ func TestLoad(t *testing.T) {
 				}
 				if cfg.ResetTokenExpiration != 30 {
 					t.Errorf("ResetTokenExpiration = %d, want 30", cfg.ResetTokenExpiration)
+				}
+				if cfg.TokenCleanupInterval != 120 {
+					t.Errorf("TokenCleanupInterval = %d, want 120", cfg.TokenCleanupInterval)
 				}
 				if cfg.NotificationServiceType != "max" {
 					t.Errorf("NotificationServiceType = %s, want max", cfg.NotificationServiceType)
@@ -163,7 +189,8 @@ func TestLoad(t *testing.T) {
 		{
 			name: "fails validation with invalid password length",
 			envVars: map[string]string{
-				"MIN_PASSWORD_LENGTH": "5",
+				"MIN_PASSWORD_LENGTH":    "5",
+				"TOKEN_CLEANUP_INTERVAL": "60",
 			},
 			wantErr: true,
 		},
@@ -171,6 +198,14 @@ func TestLoad(t *testing.T) {
 			name: "fails validation with invalid reset token expiration",
 			envVars: map[string]string{
 				"RESET_TOKEN_EXPIRATION": "0",
+				"TOKEN_CLEANUP_INTERVAL": "60",
+			},
+			wantErr: true,
+		},
+		{
+			name: "fails validation with invalid token cleanup interval",
+			envVars: map[string]string{
+				"TOKEN_CLEANUP_INTERVAL": "0",
 			},
 			wantErr: true,
 		},
@@ -178,6 +213,7 @@ func TestLoad(t *testing.T) {
 			name: "fails validation with invalid notification service type",
 			envVars: map[string]string{
 				"NOTIFICATION_SERVICE_TYPE": "invalid",
+				"TOKEN_CLEANUP_INTERVAL":    "60",
 			},
 			wantErr: true,
 		},
@@ -186,6 +222,7 @@ func TestLoad(t *testing.T) {
 			envVars: map[string]string{
 				"NOTIFICATION_SERVICE_TYPE": "max",
 				"MAXBOT_SERVICE_ADDR":       "",
+				"TOKEN_CLEANUP_INTERVAL":    "60",
 			},
 			wantErr: true,
 		},
@@ -194,6 +231,7 @@ func TestLoad(t *testing.T) {
 			envVars: map[string]string{
 				"MIN_PASSWORD_LENGTH":       "invalid",
 				"RESET_TOKEN_EXPIRATION":    "",
+				"TOKEN_CLEANUP_INTERVAL":    "",
 				"NOTIFICATION_SERVICE_TYPE": "",
 				"MAXBOT_SERVICE_ADDR":       "",
 			},
@@ -209,6 +247,7 @@ func TestLoad(t *testing.T) {
 			envVars: map[string]string{
 				"MIN_PASSWORD_LENGTH":       "",
 				"RESET_TOKEN_EXPIRATION":    "invalid",
+				"TOKEN_CLEANUP_INTERVAL":    "",
 				"NOTIFICATION_SERVICE_TYPE": "",
 				"MAXBOT_SERVICE_ADDR":       "",
 			},
@@ -216,6 +255,22 @@ func TestLoad(t *testing.T) {
 			check: func(t *testing.T, cfg *Config) {
 				if cfg.ResetTokenExpiration != 15 {
 					t.Errorf("ResetTokenExpiration = %d, want 15 (default)", cfg.ResetTokenExpiration)
+				}
+			},
+		},
+		{
+			name: "handles invalid integer for token cleanup interval - uses default",
+			envVars: map[string]string{
+				"MIN_PASSWORD_LENGTH":       "",
+				"RESET_TOKEN_EXPIRATION":    "",
+				"TOKEN_CLEANUP_INTERVAL":    "invalid",
+				"NOTIFICATION_SERVICE_TYPE": "",
+				"MAXBOT_SERVICE_ADDR":       "",
+			},
+			wantErr: false,
+			check: func(t *testing.T, cfg *Config) {
+				if cfg.TokenCleanupInterval != 60 {
+					t.Errorf("TokenCleanupInterval = %d, want 60 (default)", cfg.TokenCleanupInterval)
 				}
 			},
 		},
