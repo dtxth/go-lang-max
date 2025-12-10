@@ -3,6 +3,7 @@ package http
 import (
 	"auth-service/internal/infrastructure/errors"
 	"auth-service/internal/infrastructure/middleware"
+	"auth-service/internal/infrastructure/phone"
 	"auth-service/internal/usecase"
 	"encoding/json"
 	"log"
@@ -139,7 +140,12 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
     // Use phone if provided, otherwise use email
     identifier := req.Email
     if req.Phone != "" {
-        identifier = req.Phone
+        // Normalize phone number to +7XXXXXXXXXX format
+        normalizedPhone := phone.NormalizePhone(req.Phone)
+        identifier = normalizedPhone
+        
+        // Log the normalization for debugging
+        log.Printf("DEBUG: Phone normalized from '%s' to '%s'", req.Phone, normalizedPhone)
     }
 
     tokens, err := h.auth.LoginByIdentifier(identifier, req.Password)
@@ -188,7 +194,11 @@ func (h *Handler) LoginByPhone(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    tokens, err := h.auth.LoginByIdentifier(req.Phone, req.Password)
+    // Normalize phone number to +7XXXXXXXXXX format
+    normalizedPhone := phone.NormalizePhone(req.Phone)
+    log.Printf("DEBUG: Phone normalized from '%s' to '%s'", req.Phone, normalizedPhone)
+
+    tokens, err := h.auth.LoginByIdentifier(normalizedPhone, req.Password)
     if err != nil {
         errors.WriteError(w, err, requestID)
         return
