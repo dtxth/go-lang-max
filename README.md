@@ -77,10 +77,23 @@ make test
 - **gRPC API**: ValidateToken, GetUserPermissions, AssignRole
 - Назначение ролей с контекстом (university_id, branch_id, faculty_id)
 - Иерархия прав: Superadmin > Curator > Operator
+- **Безопасное управление паролями**:
+  - Генерация криптографически стойких случайных паролей
+  - Доставка паролей через MAX Messenger VIP уведомления
+  - Самостоятельный сброс пароля с временными токенами
+  - Изменение пароля пользователем
+  - Хеширование паролей с bcrypt
+  - Комплексное аудит-логирование
 
 **Документация:**
 - [Валидация прав доступа](./auth-service/internal/usecase/validate_permission.go)
 - [Тесты ABAC](./auth-service/internal/usecase/validate_permission_test.go)
+- **Управление паролями:**
+  - [API документация](./auth-service/PASSWORD_MANAGEMENT_API.md)
+  - [Руководство пользователя](./auth-service/PASSWORD_MANAGEMENT_USER_GUIDE.md)
+  - [Руководство по конфигурации](./auth-service/PASSWORD_MANAGEMENT_CONFIG.md)
+  - [Руководство по устранению неполадок](./auth-service/PASSWORD_MANAGEMENT_TROUBLESHOOTING.md)
+  - [README Auth Service](./auth-service/README.md)
 
 ### 2. Employee Service (порт 8081, gRPC: 9091)
 **Сервис управления сотрудниками с интеграцией ролей и MAX_id**
@@ -471,13 +484,17 @@ make migrate-status
 #### Auth Service (порт 8080)
 
 ```
-POST   /auth/register          - Регистрация пользователя
-POST   /auth/login             - Вход (получение JWT токенов)
-POST   /auth/refresh           - Обновление access токена
-POST   /auth/logout            - Выход (инвалидация refresh токена)
-POST   /roles/assign           - Назначение роли пользователю
-GET    /users/{id}/permissions - Получение прав доступа пользователя
-GET    /health                 - Health check
+POST   /auth/register                  - Регистрация пользователя
+POST   /auth/login                     - Вход (получение JWT токенов)
+POST   /auth/refresh                   - Обновление access токена
+POST   /auth/logout                    - Выход (инвалидация refresh токена)
+POST   /roles/assign                   - Назначение роли пользователю
+GET    /users/{id}/permissions         - Получение прав доступа пользователя
+POST   /auth/password-reset/request    - Запрос сброса пароля (отправка токена)
+POST   /auth/password-reset/confirm    - Подтверждение сброса пароля
+POST   /auth/password/change           - Изменение пароля (требует аутентификации)
+GET    /metrics                        - Метрики (операции с паролями, уведомления)
+GET    /health                         - Health check
 ```
 
 #### Employee Service (порт 8081)
@@ -1444,6 +1461,13 @@ watch -n 1 'docker-compose ps'
 - [Руководство по интеграционным тестам](./integration-tests/INTEGRATION_TEST_GUIDE.md)
 - [Сводка по интеграционным тестам](./integration-tests/IMPLEMENTATION_SUMMARY.md)
 - [Завершенные интеграционные тесты](./INTEGRATION_TESTS_COMPLETED.md)
+
+### Управление паролями
+- [API документация](./auth-service/PASSWORD_MANAGEMENT_API.md) - Полная справка по API
+- [Руководство пользователя](./auth-service/PASSWORD_MANAGEMENT_USER_GUIDE.md) - Документация для конечных пользователей
+- [Руководство по конфигурации](./auth-service/PASSWORD_MANAGEMENT_CONFIG.md) - Настройка и развертывание
+- [Руководство по устранению неполадок](./auth-service/PASSWORD_MANAGEMENT_TROUBLESHOOTING.md) - Решение проблем
+- [README Auth Service](./auth-service/README.md) - Обзор сервиса аутентификации
 
 ## Контакты и поддержка
 

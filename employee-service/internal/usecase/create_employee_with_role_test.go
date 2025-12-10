@@ -11,12 +11,16 @@ func TestCreateEmployeeWithRole_CreatesNewUniversity(t *testing.T) {
 	universityRepo := newMockUniversityRepo()
 	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_role_123"}
 	authService := newMockAuthService()
+	passwordGenerator := newMockPasswordGenerator()
+	notificationService := newMockNotificationService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
 		universityRepo,
 		maxService,
 		authService,
+		passwordGenerator,
+		notificationService,
 	)
 
 	ctx := context.Background()
@@ -79,12 +83,16 @@ func TestCreateEmployeeWithRole_ReusesExistingUniversity(t *testing.T) {
 	universityRepo := newMockUniversityRepo()
 	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_role_456"}
 	authService := newMockAuthService()
+	passwordGenerator := newMockPasswordGenerator()
+	notificationService := newMockNotificationService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
 		universityRepo,
 		maxService,
 		authService,
+		passwordGenerator,
+		notificationService,
 	)
 
 	ctx := context.Background()
@@ -151,12 +159,16 @@ func TestCreateEmployeeWithRole_StoresUniversityData(t *testing.T) {
 	universityRepo := newMockUniversityRepo()
 	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_role_789"}
 	authService := newMockAuthService()
+	passwordGenerator := newMockPasswordGenerator()
+	notificationService := newMockNotificationService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
 		universityRepo,
 		maxService,
 		authService,
+		passwordGenerator,
+		notificationService,
 	)
 
 	ctx := context.Background()
@@ -213,12 +225,16 @@ func TestCreateEmployeeWithRole_ReturnsCompleteRecord(t *testing.T) {
 	universityRepo := newMockUniversityRepo()
 	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_role_complete"}
 	authService := newMockAuthService()
+	passwordGenerator := newMockPasswordGenerator()
+	notificationService := newMockNotificationService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
 		universityRepo,
 		maxService,
 		authService,
+		passwordGenerator,
+		notificationService,
 	)
 
 	ctx := context.Background()
@@ -300,12 +316,16 @@ func TestCreateEmployeeWithRole_HandlesINNWithoutKPP(t *testing.T) {
 	universityRepo := newMockUniversityRepo()
 	maxService := &mockMaxServiceForEmployeeTest{maxID: "max_role_no_kpp"}
 	authService := newMockAuthService()
+	passwordGenerator := newMockPasswordGenerator()
+	notificationService := newMockNotificationService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
 		universityRepo,
 		maxService,
 		authService,
+		passwordGenerator,
+		notificationService,
 	)
 
 	ctx := context.Background()

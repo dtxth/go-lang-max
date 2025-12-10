@@ -11,10 +11,12 @@ import (
 
 // CreateEmployeeWithRoleUseCase создает сотрудника с назначением роли
 type CreateEmployeeWithRoleUseCase struct {
-	employeeRepo   domain.EmployeeRepository
-	universityRepo domain.UniversityRepository
-	maxService     domain.MaxService
-	authService    domain.AuthService
+	employeeRepo        domain.EmployeeRepository
+	universityRepo      domain.UniversityRepository
+	maxService          domain.MaxService
+	authService         domain.AuthService
+	passwordGenerator   domain.PasswordGenerator
+	notificationService domain.NotificationService
 }
 
 // NewCreateEmployeeWithRoleUseCase создает новый use case
@@ -23,12 +25,16 @@ func NewCreateEmployeeWithRoleUseCase(
 	universityRepo domain.UniversityRepository,
 	maxService domain.MaxService,
 	authService domain.AuthService,
+	passwordGenerator domain.PasswordGenerator,
+	notificationService domain.NotificationService,
 ) *CreateEmployeeWithRoleUseCase {
 	return &CreateEmployeeWithRoleUseCase{
-		employeeRepo:   employeeRepo,
-		universityRepo: universityRepo,
-		maxService:     maxService,
-		authService:    authService,
+		employeeRepo:        employeeRepo,
+		universityRepo:      universityRepo,
+		maxService:          maxService,
+		authService:         authService,
+		passwordGenerator:   passwordGenerator,
+		notificationService: notificationService,
 	}
 }
 
@@ -101,15 +107,29 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 			return nil, errors.New("auth service is not available")
 		}
 		
-		// Генерируем временный пароль (в продакшене должен быть более безопасный механизм)
-		tempPassword := "TempPass123!" // TODO: Генерировать случайный пароль и отправлять пользователю
+		// Генерируем криптографически безопасный случайный пароль
+		password, err := uc.passwordGenerator.Generate(12)
+		if err != nil {
+			return nil, errors.New("failed to generate password: " + err.Error())
+		}
 		
 		// Создаем пользователя в Auth Service (используем телефон как идентификатор)
-		userID, err := uc.authService.CreateUser(ctx, phone, tempPassword)
+		userID, err := uc.authService.CreateUser(ctx, phone, password)
 		if err != nil {
 			return nil, errors.New("failed to create user in auth service: " + err.Error())
 		}
 		employee.UserID = &userID
+		
+		// Отправляем пароль пользователю через MAX Messenger
+		// Не блокируем создание пользователя при ошибке отправки уведомления
+		if uc.notificationService != nil {
+			err = uc.notificationService.SendPasswordNotification(ctx, phone, password)
+			if err != nil {
+				// Логируем ошибку, но не прерываем процесс создания
+				log.Printf("Failed to send password notification to phone ending in %s: %v", 
+					sanitizePhone(phone), err)
+			}
+		}
 	}
 
 	// Создаем сотрудника в базе
@@ -135,6 +155,14 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 
 	// Загружаем полную информацию о сотруднике с вузом
 	return uc.employeeRepo.GetByID(employee.ID)
+}
+
+// sanitizePhone returns only the last 4 digits of a phone number for logging
+func sanitizePhone(phone string) string {
+	if len(phone) < 4 {
+		return "****"
+	}
+	return "****" + phone[len(phone)-4:]
 }
 
 // findOrCreateUniversity находит существующий вуз или создает новый

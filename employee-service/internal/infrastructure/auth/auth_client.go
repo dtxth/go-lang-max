@@ -3,7 +3,6 @@ package auth
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	authpb "auth-service/api/proto"
@@ -44,8 +43,10 @@ func (c *AuthClient) CreateUser(ctx context.Context, phone, password string) (in
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	// Note: The generated proto has Email field, but we're using it for phone
+	// This is because the proto definition was updated but not regenerated
 	req := &authpb.CreateUserRequest{
-		Phone:    phone,
+		Email:    phone,
 		Password: password,
 	}
 

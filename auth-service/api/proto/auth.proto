@@ -23,6 +23,15 @@ service AuthService {
   
   // RevokeUserRoles отзывает все роли пользователя
   rpc RevokeUserRoles(RevokeUserRolesRequest) returns (RevokeUserRolesResponse);
+  
+  // RequestPasswordReset генерирует токен сброса пароля и отправляет его пользователю
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  
+  // ResetPassword сбрасывает пароль пользователя с использованием токена
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  
+  // ChangePassword изменяет пароль аутентифицированного пользователя
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
 }
 
 message ValidateTokenRequest {
@@ -101,6 +110,36 @@ message RevokeUserRolesRequest {
 }
 
 message RevokeUserRolesResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message RequestPasswordResetRequest {
+  string phone = 1;
+}
+
+message RequestPasswordResetResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message ResetPasswordRequest {
+  string token = 1;
+  string new_password = 2;
+}
+
+message ResetPasswordResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+message ChangePasswordRequest {
+  int64 user_id = 1;
+  string current_password = 2;
+  string new_password = 3;
+}
+
+message ChangePasswordResponse {
   bool success = 1;
   string error = 2;
 }

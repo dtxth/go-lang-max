@@ -9,10 +9,12 @@ import (
 )
 
 type EmployeeService struct {
-	employeeRepo   domain.EmployeeRepository
-	universityRepo domain.UniversityRepository
-	maxService     domain.MaxService
-	authService    domain.AuthService
+	employeeRepo        domain.EmployeeRepository
+	universityRepo      domain.UniversityRepository
+	maxService          domain.MaxService
+	authService         domain.AuthService
+	passwordGenerator   domain.PasswordGenerator
+	notificationService domain.NotificationService
 }
 
 func NewEmployeeService(
@@ -20,12 +22,16 @@ func NewEmployeeService(
 	universityRepo domain.UniversityRepository,
 	maxService domain.MaxService,
 	authService domain.AuthService,
+	passwordGenerator domain.PasswordGenerator,
+	notificationService domain.NotificationService,
 ) *EmployeeService {
 	return &EmployeeService{
-		employeeRepo:   employeeRepo,
-		universityRepo: universityRepo,
-		maxService:     maxService,
-		authService:    authService,
+		employeeRepo:        employeeRepo,
+		universityRepo:      universityRepo,
+		maxService:          maxService,
+		authService:         authService,
+		passwordGenerator:   passwordGenerator,
+		notificationService: notificationService,
 	}
 }
 
@@ -240,6 +246,8 @@ func (s *EmployeeService) CreateEmployeeWithRole(
 		s.universityRepo,
 		s.maxService,
 		s.authService,
+		s.passwordGenerator,
+		s.notificationService,
 	)
 	
 	return uc.Execute(

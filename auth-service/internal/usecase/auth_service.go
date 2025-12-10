@@ -1,27 +1,79 @@
 package usecase
 
 import (
+	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
-	"log"
+	"math/big"
 	"strconv"
 	"time"
 
 	"auth-service/internal/domain"
+	"auth-service/internal/infrastructure/metrics"
 )
 
 type AuthService struct {
-    repo         domain.UserRepository
-    refreshRepo  domain.RefreshTokenRepository
-    hasher       domain.PasswordHasher
-    jwtManager   domain.JWTManager
-    userRoleRepo domain.UserRoleRepository
+    repo                   domain.UserRepository
+    refreshRepo            domain.RefreshTokenRepository
+    hasher                 domain.PasswordHasher
+    jwtManager             domain.JWTManager
+    userRoleRepo           domain.UserRoleRepository
+    resetTokenRepo         domain.PasswordResetRepository
+    notificationService    domain.NotificationService
+    logger                 Logger
+    metrics                *metrics.Metrics
+    minPasswordLength      int
+    resetTokenExpiration   time.Duration
+}
+
+// Logger interface for audit logging
+type Logger interface {
+    Info(ctx context.Context, message string, fields map[string]interface{})
+    Error(ctx context.Context, message string, fields map[string]interface{})
 }
 
 func NewAuthService(repo domain.UserRepository, refreshRepo domain.RefreshTokenRepository, hasher domain.PasswordHasher, jwtManager domain.JWTManager, userRoleRepo domain.UserRoleRepository) *AuthService {
     return &AuthService{
-        repo: repo, refreshRepo: refreshRepo, hasher: hasher, jwtManager: jwtManager, userRoleRepo: userRoleRepo,
+        repo:                 repo,
+        refreshRepo:          refreshRepo,
+        hasher:               hasher,
+        jwtManager:           jwtManager,
+        userRoleRepo:         userRoleRepo,
+        minPasswordLength:    12, // Default value
+        resetTokenExpiration: 15 * time.Minute, // Default value
     }
+}
+
+// SetPasswordConfig sets the password configuration
+func (s *AuthService) SetPasswordConfig(minLength int, resetTokenExpiration time.Duration) {
+    s.minPasswordLength = minLength
+    s.resetTokenExpiration = resetTokenExpiration
+}
+
+// SetLogger sets the logger for audit logging
+func (s *AuthService) SetLogger(logger Logger) {
+    s.logger = logger
+}
+
+// SetPasswordResetRepository sets the password reset repository
+func (s *AuthService) SetPasswordResetRepository(repo domain.PasswordResetRepository) {
+    s.resetTokenRepo = repo
+}
+
+// SetNotificationService sets the notification service
+func (s *AuthService) SetNotificationService(service domain.NotificationService) {
+    s.notificationService = service
+}
+
+// SetMetrics sets the metrics collector
+func (s *AuthService) SetMetrics(m *metrics.Metrics) {
+    s.metrics = m
+}
+
+// GetMetrics returns the metrics collector
+func (s *AuthService) GetMetrics() *metrics.Metrics {
+    return s.metrics
 }
 
 func (s *AuthService) Register(email, password, role string) (*domain.User, error) {
@@ -64,6 +116,21 @@ func (s *AuthService) CreateUser(phone, password string) (int64, error) {
     
     if err := s.repo.Create(user); err != nil {
         return 0, fmt.Errorf("failed to create user: %w", err)
+    }
+    
+    // Record metrics
+    if s.metrics != nil {
+        s.metrics.IncrementUserCreations()
+    }
+    
+    // Audit log: user created (without password or hash)
+    if s.logger != nil {
+        s.logger.Info(nil, "user_created", map[string]interface{}{
+            "user_id":         user.ID,
+            "phone":           sanitizePhone(phone),
+            "timestamp":       time.Now().UTC().Format(time.RFC3339),
+            "operation":       "create_user",
+        })
     }
     
     return user.ID, nil
@@ -246,4 +313,308 @@ func (s *AuthService) RevokeAllUserRoles(userID int64) error {
 	}
 	
 	return s.userRoleRepo.DeleteByUserID(userID)
+}
+
+// RequestPasswordReset generates a reset token and sends it to the user
+func (s *AuthService) RequestPasswordReset(phone string) error {
+	if s.resetTokenRepo == nil {
+		return errors.New("password reset repository not initialized")
+	}
+	if s.notificationService == nil {
+		return errors.New("notification service not initialized")
+	}
+
+	// Find user by phone
+	user, err := s.repo.GetByPhone(phone)
+	if err != nil {
+		return domain.ErrUserNotFound
+	}
+
+	// Generate reset token (64 characters, cryptographically secure)
+	token, err := generateSecureToken(64)
+	if err != nil {
+		return fmt.Errorf("failed to generate reset token: %w", err)
+	}
+
+	// Create token with configured expiration
+	resetToken := &domain.PasswordResetToken{
+		UserID:    user.ID,
+		Token:     token,
+		ExpiresAt: time.Now().Add(s.resetTokenExpiration),
+	}
+
+	// Store token in database
+	if err := s.resetTokenRepo.Create(resetToken); err != nil {
+		return fmt.Errorf("failed to store reset token: %w", err)
+	}
+
+	// Record metrics for token generation
+	if s.metrics != nil {
+		s.metrics.IncrementTokensGenerated()
+	}
+
+	// Send token via notification service
+	if err := s.notificationService.SendResetTokenNotification(nil, phone, token); err != nil {
+		return fmt.Errorf("failed to send reset token notification: %w", err)
+	}
+
+	// Record metrics for password reset
+	if s.metrics != nil {
+		s.metrics.IncrementPasswordResets()
+	}
+
+	// Audit log: password reset requested (without token)
+	if s.logger != nil {
+		s.logger.Info(nil, "password_reset_requested", map[string]interface{}{
+			"user_id":   user.ID,
+			"phone":     sanitizePhone(phone),
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"operation": "request_password_reset",
+		})
+	}
+
+	return nil
+}
+
+// ResetPassword validates token and updates password
+func (s *AuthService) ResetPassword(token, newPassword string) error {
+	if s.resetTokenRepo == nil {
+		return errors.New("password reset repository not initialized")
+	}
+
+	// Validate token exists
+	resetToken, err := s.resetTokenRepo.GetByToken(token)
+	if err != nil {
+		if err == domain.ErrNotFound {
+			return domain.ErrResetTokenNotFound
+		}
+		return fmt.Errorf("failed to retrieve reset token: %w", err)
+	}
+
+	// Check if token is used
+	if resetToken.IsUsed() {
+		// Record metrics for invalidated token
+		if s.metrics != nil {
+			s.metrics.IncrementTokensInvalidated()
+		}
+		
+		// Audit log: token already used
+		if s.logger != nil {
+			s.logger.Info(nil, "password_reset_token_already_used", map[string]interface{}{
+				"user_id":   resetToken.UserID,
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"operation": "reset_password_token_used",
+			})
+		}
+		return domain.ErrResetTokenUsed
+	}
+
+	// Check if token is expired
+	if resetToken.IsExpired() {
+		// Record metrics for expired token
+		if s.metrics != nil {
+			s.metrics.IncrementTokensExpired()
+		}
+		
+		// Audit log: token expired
+		if s.logger != nil {
+			s.logger.Info(nil, "password_reset_token_expired", map[string]interface{}{
+				"user_id":   resetToken.UserID,
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"operation": "reset_password_token_expired",
+			})
+		}
+		return domain.ErrResetTokenExpired
+	}
+
+	// Validate new password meets requirements
+	if err := s.validatePassword(newPassword); err != nil {
+		return err
+	}
+
+	// Hash new password
+	hashed, err := s.hasher.Hash(newPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Get user
+	user, err := s.repo.GetByID(resetToken.UserID)
+	if err != nil {
+		return domain.ErrUserNotFound
+	}
+
+	// Update user password
+	user.Password = hashed
+	if err := s.repo.Update(user); err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	// Invalidate token
+	if err := s.resetTokenRepo.Invalidate(token); err != nil {
+		return fmt.Errorf("failed to invalidate token: %w", err)
+	}
+
+	// Record metrics for token usage
+	if s.metrics != nil {
+		s.metrics.IncrementTokensUsed()
+	}
+
+	// Revoke all refresh tokens for this user
+	if err := s.refreshRepo.RevokeAllForUser(resetToken.UserID); err != nil {
+		// Log but don't fail - password was already updated
+		fmt.Printf("Warning: failed to revoke refresh tokens for user %d: %v\n", resetToken.UserID, err)
+	}
+
+	// Audit log: password reset completed (without password or hash)
+	if s.logger != nil {
+		s.logger.Info(nil, "password_reset_completed", map[string]interface{}{
+			"user_id":   resetToken.UserID,
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"operation": "reset_password",
+		})
+	}
+
+	return nil
+}
+
+// ChangePassword allows authenticated user to change password
+func (s *AuthService) ChangePassword(userID int64, currentPassword, newPassword string) error {
+	// Get user by ID
+	user, err := s.repo.GetByID(userID)
+	if err != nil {
+		return domain.ErrUserNotFound
+	}
+
+	// Verify current password
+	if !s.hasher.Compare(currentPassword, user.Password) {
+		return domain.ErrInvalidCreds
+	}
+
+	// Validate new password meets requirements
+	if err := s.validatePassword(newPassword); err != nil {
+		return err
+	}
+
+	// Hash new password
+	hashed, err := s.hasher.Hash(newPassword)
+	if err != nil {
+		return fmt.Errorf("failed to hash password: %w", err)
+	}
+
+	// Update user password
+	user.Password = hashed
+	if err := s.repo.Update(user); err != nil {
+		return fmt.Errorf("failed to update password: %w", err)
+	}
+
+	// Revoke all refresh tokens for this user
+	if err := s.refreshRepo.RevokeAllForUser(userID); err != nil {
+		// Log but don't fail - password was already updated
+		fmt.Printf("Warning: failed to revoke refresh tokens for user %d: %v\n", userID, err)
+	}
+
+	// Record metrics for password change
+	if s.metrics != nil {
+		s.metrics.IncrementPasswordChanges()
+	}
+
+	// Audit log: password changed (without password or hash)
+	if s.logger != nil {
+		s.logger.Info(nil, "password_changed", map[string]interface{}{
+			"user_id":   userID,
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"operation": "change_password",
+		})
+	}
+
+	return nil
+}
+
+// validatePassword checks if a password meets security requirements
+func (s *AuthService) validatePassword(password string) error {
+	// Check minimum length
+	if len(password) < s.minPasswordLength {
+		return fmt.Errorf("password must be at least %d characters", s.minPasswordLength)
+	}
+
+	// Check for uppercase letter
+	hasUpper := false
+	for _, c := range password {
+		if c >= 'A' && c <= 'Z' {
+			hasUpper = true
+			break
+		}
+	}
+	if !hasUpper {
+		return errors.New("password must contain at least one uppercase letter")
+	}
+
+	// Check for lowercase letter
+	hasLower := false
+	for _, c := range password {
+		if c >= 'a' && c <= 'z' {
+			hasLower = true
+			break
+		}
+	}
+	if !hasLower {
+		return errors.New("password must contain at least one lowercase letter")
+	}
+
+	// Check for digit
+	hasDigit := false
+	for _, c := range password {
+		if c >= '0' && c <= '9' {
+			hasDigit = true
+			break
+		}
+	}
+	if !hasDigit {
+		return errors.New("password must contain at least one digit")
+	}
+
+	// Check for special character
+	specialChars := "!@#$%^&*()_+-=[]{}|;:,.<>?"
+	hasSpecial := false
+	for _, c := range password {
+		for _, special := range specialChars {
+			if c == special {
+				hasSpecial = true
+				break
+			}
+		}
+		if hasSpecial {
+			break
+		}
+	}
+	if !hasSpecial {
+		return errors.New("password must contain at least one special character")
+	}
+
+	return nil
+}
+
+// generateSecureToken generates a cryptographically secure random token
+func generateSecureToken(length int) (string, error) {
+	const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	token := make([]byte, length)
+	
+	for i := range token {
+		num, err := rand.Int(rand.Reader, big.NewInt(int64(len(charset))))
+		if err != nil {
+			return "", err
+		}
+		token[i] = charset[num.Int64()]
+	}
+	
+	return string(token), nil
+}
+
+// sanitizePhone returns only the last 4 digits of a phone number for logging
+func sanitizePhone(phone string) string {
+	if len(phone) <= 4 {
+		return "****"
+	}
+	return "****" + phone[len(phone)-4:]
 }

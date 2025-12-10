@@ -8,7 +8,6 @@ import (
 	"employee-service/internal/infrastructure/middleware"
 	"employee-service/internal/usecase"
 	"encoding/json"
-	"log"
 	"net/http"
 	"strconv"
 	"strings"

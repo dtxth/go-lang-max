@@ -230,10 +230,20 @@ func (m *mockMaxService) BatchGetMaxIDByPhone(phones []string) (map[string]strin
 	return result, nil
 }
 
-type mockAuthService struct{}
+type mockAuthService struct {
+	nextUserID int64
+}
 
 func newMockAuthService() *mockAuthService {
-	return &mockAuthService{}
+	return &mockAuthService{
+		nextUserID: 1,
+	}
+}
+
+func (m *mockAuthService) CreateUser(ctx context.Context, phone, password string) (int64, error) {
+	userID := m.nextUserID
+	m.nextUserID++
+	return userID, nil
 }
 
 func (m *mockAuthService) AssignRole(ctx context.Context, userID int64, role string, universityID, branchID, facultyID *int64) error {
@@ -241,6 +251,41 @@ func (m *mockAuthService) AssignRole(ctx context.Context, userID int64, role str
 }
 
 func (m *mockAuthService) RevokeUserRoles(ctx context.Context, userID int64) error {
+	return nil
+}
+
+type mockPasswordGenerator struct{}
+
+func newMockPasswordGenerator() *mockPasswordGenerator {
+	return &mockPasswordGenerator{}
+}
+
+func (m *mockPasswordGenerator) Generate(length int) (string, error) {
+	// Return a fixed password for testing
+	return "TestPass123!", nil
+}
+
+type mockNotificationService struct {
+	sentNotifications []struct {
+		phone    string
+		password string
+	}
+}
+
+func newMockNotificationService() *mockNotificationService {
+	return &mockNotificationService{
+		sentNotifications: make([]struct {
+			phone    string
+			password string
+		}, 0),
+	}
+}
+
+func (m *mockNotificationService) SendPasswordNotification(ctx context.Context, phone, password string) error {
+	m.sentNotifications = append(m.sentNotifications, struct {
+		phone    string
+		password string
+	}{phone: phone, password: password})
 	return nil
 }
 

@@ -16,6 +16,44 @@ func NewHandler(auth *usecase.AuthService) *Handler {
     return &Handler{auth: auth}
 }
 
+// GetMetrics godoc
+// @Summary      Get metrics
+// @Description  Returns current metrics for password operations and notifications
+// @Tags         monitoring
+// @Produce      json
+// @Success      200  {object}  object  "Metrics snapshot"
+// @Router       /metrics [get]
+func (h *Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
+    w.Header().Set("Content-Type", "application/json")
+    
+    if h.auth == nil || h.auth.GetMetrics() == nil {
+        w.WriteHeader(http.StatusServiceUnavailable)
+        json.NewEncoder(w).Encode(map[string]string{"error": "metrics not available"})
+        return
+    }
+    
+    snapshot := h.auth.GetMetrics().GetMetrics()
+    
+    response := map[string]interface{}{
+        "user_creations":        snapshot.UserCreations,
+        "password_resets":       snapshot.PasswordResets,
+        "password_changes":      snapshot.PasswordChanges,
+        "notifications_sent":    snapshot.NotificationsSent,
+        "notifications_failed":  snapshot.NotificationsFailed,
+        "tokens_generated":      snapshot.TokensGenerated,
+        "tokens_used":           snapshot.TokensUsed,
+        "tokens_expired":        snapshot.TokensExpired,
+        "tokens_invalidated":    snapshot.TokensInvalidated,
+        "maxbot_healthy":        snapshot.MaxBotHealthy,
+        "last_health_check":     snapshot.LastHealthCheck,
+        "notification_success_rate": h.auth.GetMetrics().GetNotificationSuccessRate(),
+        "notification_failure_rate": h.auth.GetMetrics().GetNotificationFailureRate(),
+    }
+    
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(response)
+}
+
 // Register godoc
 // @Summary      Register new user
 // @Description  Creates user and stores hashed password
@@ -183,6 +221,143 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "application/json")
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(map[string]string{"status": "logged_out"})
+}
+
+// RequestPasswordReset godoc
+// @Summary      Request password reset
+// @Description  Generates a reset token and sends it to the user's phone via MAX Messenger
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      object{phone=string}  true  "User phone number"
+// @Success      200    {object}  object{success=bool,message=string}
+// @Failure      400    {string}  string
+// @Router       /auth/password-reset/request [post]
+func (h *Handler) RequestPasswordReset(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
+    var req struct {
+        Phone string `json:"phone"`
+    }
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
+        return
+    }
+
+    if req.Phone == "" {
+        errors.WriteError(w, errors.MissingFieldError("phone"), requestID)
+        return
+    }
+
+    if err := h.auth.RequestPasswordReset(req.Phone); err != nil {
+        errors.WriteError(w, err, requestID)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "success": true,
+        "message": "Password reset token sent to your phone",
+    })
+}
+
+// ResetPassword godoc
+// @Summary      Reset password with token
+// @Description  Validates reset token and updates user password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      object{token=string,new_password=string}  true  "Reset token and new password"
+// @Success      200    {object}  object{success=bool,message=string}
+// @Failure      400    {string}  string
+// @Failure      401    {string}  string
+// @Router       /auth/password-reset/confirm [post]
+func (h *Handler) ResetPassword(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
+    var req struct {
+        Token       string `json:"token"`
+        NewPassword string `json:"new_password"`
+    }
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
+        return
+    }
+
+    if req.Token == "" {
+        errors.WriteError(w, errors.MissingFieldError("token"), requestID)
+        return
+    }
+    if req.NewPassword == "" {
+        errors.WriteError(w, errors.MissingFieldError("new_password"), requestID)
+        return
+    }
+
+    if err := h.auth.ResetPassword(req.Token, req.NewPassword); err != nil {
+        errors.WriteError(w, err, requestID)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "success": true,
+        "message": "Password successfully reset",
+    })
+}
+
+// ChangePassword godoc
+// @Summary      Change password
+// @Description  Allows authenticated user to change their password
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        Authorization  header    string  true  "Bearer token"
+// @Param        input          body      object{current_password=string,new_password=string}  true  "Current and new password"
+// @Success      200            {object}  object{success=bool,message=string}
+// @Failure      400            {string}  string
+// @Failure      401            {string}  string
+// @Router       /auth/password/change [post]
+func (h *Handler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
+    // Extract user ID from context (set by auth middleware)
+    userID, ok := r.Context().Value(middleware.UserIDKey).(int64)
+    if !ok || userID == 0 {
+        errors.WriteError(w, errors.UnauthorizedError("authentication required"), requestID)
+        return
+    }
+    
+    var req struct {
+        CurrentPassword string `json:"current_password"`
+        NewPassword     string `json:"new_password"`
+    }
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
+        return
+    }
+
+    if req.CurrentPassword == "" {
+        errors.WriteError(w, errors.MissingFieldError("current_password"), requestID)
+        return
+    }
+    if req.NewPassword == "" {
+        errors.WriteError(w, errors.MissingFieldError("new_password"), requestID)
+        return
+    }
+
+    if err := h.auth.ChangePassword(userID, req.CurrentPassword, req.NewPassword); err != nil {
+        errors.WriteError(w, err, requestID)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]interface{}{
+        "success": true,
+        "message": "Password successfully changed",
+    })
 }
 
 // Health godoc

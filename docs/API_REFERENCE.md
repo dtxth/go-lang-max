@@ -144,6 +144,72 @@ Base URL: `http://localhost:8080`
 }
 ```
 
+### POST /auth/password-reset/request
+Запрос сброса пароля (отправка токена на телефон через MAX Messenger)
+
+**Request:**
+```json
+{
+  "phone": "+79991234567"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Password reset token sent to your phone"
+}
+```
+
+### POST /auth/password-reset/confirm
+Подтверждение сброса пароля с токеном
+
+**Request:**
+```json
+{
+  "token": "abc123def456",
+  "new_password": "NewSecurePass123!"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Password successfully reset"
+}
+```
+
+**Notes:**
+- Токен действителен 15 минут
+- Токен одноразовый
+- После сброса все refresh токены аннулируются
+
+### POST /auth/password/change
+Изменение пароля (требует аутентификации)
+
+**Request:**
+```json
+{
+  "current_password": "OldPassword123!",
+  "new_password": "NewSecurePass123!"
+}
+```
+
+**Response:** `200 OK`
+```json
+{
+  "success": true,
+  "message": "Password successfully changed"
+}
+```
+
+**Notes:**
+- Требуется Bearer токен в заголовке Authorization
+- После изменения все refresh токены аннулируются
+- Пользователь будет разлогинен со всех устройств
+
 ### POST /roles/assign
 Назначение роли пользователю (требует Superadmin или Curator)
 

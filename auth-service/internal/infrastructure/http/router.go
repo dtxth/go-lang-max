@@ -16,8 +16,17 @@ func (h *Handler) Router() http.Handler {
 	mux.HandleFunc("/refresh", h.Refresh)
 	mux.HandleFunc("/logout", h.Logout)
 	
-	// Health check
+	// Password management endpoints
+	mux.HandleFunc("/auth/password-reset/request", h.RequestPasswordReset)
+	mux.HandleFunc("/auth/password-reset/confirm", h.ResetPassword)
+	
+	// Protected password change endpoint (requires authentication)
+	changePasswordHandler := middleware.AuthMiddleware(h.auth)(http.HandlerFunc(h.ChangePassword))
+	mux.Handle("/auth/password/change", changePasswordHandler)
+	
+	// Health check and metrics
 	mux.HandleFunc("/health", h.Health)
+	mux.HandleFunc("/metrics", h.GetMetrics)
 	
 	// Swagger UI
     mux.Handle("/swagger/", httpSwagger.WrapHandler)

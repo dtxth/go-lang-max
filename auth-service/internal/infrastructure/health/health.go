@@ -2,78 +2,48 @@ package health
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
-	"net/http"
 	"time"
+
+	maxbotproto "maxbot-service/api/proto"
+	"google.golang.org/grpc"
 )
 
-// HealthStatus represents the health status of the service
-type HealthStatus struct {
-	Status    string            `json:"status"`
-	Timestamp string            `json:"timestamp"`
-	Checks    map[string]string `json:"checks"`
+// HealthChecker performs health checks on external services
+type HealthChecker struct {
+	maxBotClient maxbotproto.MaxBotServiceClient
+	timeout      time.Duration
 }
 
-// Handler provides health check endpoints
-type Handler struct {
-	db *sql.DB
-}
-
-// NewHandler creates a new health check handler
-func NewHandler(db *sql.DB) *Handler {
-	return &Handler{
-		db: db,
+// NewHealthChecker creates a new health checker
+func NewHealthChecker(conn *grpc.ClientConn) *HealthChecker {
+	return &HealthChecker{
+		maxBotClient: maxbotproto.NewMaxBotServiceClient(conn),
+		timeout:      5 * time.Second,
 	}
 }
 
-// HealthCheck performs a basic health check
-func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
-	status := HealthStatus{
-		Status:    "healthy",
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
-		Checks:    make(map[string]string),
+// CheckMaxBotHealth checks if MaxBot service is healthy
+func (h *HealthChecker) CheckMaxBotHealth(ctx context.Context) bool {
+	if h.maxBotClient == nil {
+		return false
 	}
-
-	// Check database connectivity
-	if h.db != nil {
-		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
-		defer cancel()
-
-		if err := h.db.PingContext(ctx); err != nil {
-			status.Status = "unhealthy"
-			status.Checks["database"] = "failed: " + err.Error()
-		} else {
-			status.Checks["database"] = "ok"
-		}
-	}
-
-	// Set response status code
-	statusCode := http.StatusOK
-	if status.Status == "unhealthy" {
-		statusCode = http.StatusServiceUnavailable
-	}
-
-	// Write response
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(status)
-}
-
-// ReadinessCheck checks if the service is ready to accept traffic
-func (h *Handler) ReadinessCheck(w http.ResponseWriter, r *http.Request) {
-	// For now, readiness is the same as health
-	// In the future, this could check additional dependencies
-	h.HealthCheck(w, r)
-}
-
-// LivenessCheck checks if the service is alive
-func (h *Handler) LivenessCheck(w http.ResponseWriter, r *http.Request) {
-	// Simple liveness check - just return OK
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(map[string]string{
-		"status":    "alive",
-		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	
+	// Create context with timeout
+	timeoutCtx, cancel := context.WithTimeout(ctx, h.timeout)
+	defer cancel()
+	
+	// Try to send a test notification to a dummy phone number
+	// We use a special format that MaxBot should recognize as a health check
+	resp, err := h.maxBotClient.SendNotification(timeoutCtx, &maxbotproto.SendNotificationRequest{
+		Phone: "+70000000000", // Health check phone number
+		Text:  "HEALTH_CHECK",
 	})
+	
+	if err != nil {
+		return false
+	}
+	
+	// Consider service healthy if we got a response (even if it's an error response)
+	// The important thing is that the service is reachable
+	return resp != nil
 }

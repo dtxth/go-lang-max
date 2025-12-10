@@ -25,14 +25,16 @@ go test -v ./...
 ## Test Coverage
 
 1. **Employee Creation Flow** - Tests end-to-end employee creation with role assignment and MAX_id lookup
-2. **Chat Filtering** - Tests role-based access control for chat lists (Superadmin, Curator, Operator)
-3. **Excel Import** - Tests structure import from Excel files with full hierarchy creation
-4. **Migration Sources** - Tests migration from database, Google Sheets, and Excel sources
-5. **gRPC Communication** - Tests inter-service communication via gRPC
+2. **Password Management Flow** - Tests secure password generation, hashing, and notification delivery
+3. **Chat Filtering** - Tests role-based access control for chat lists (Superadmin, Curator, Operator)
+4. **Excel Import** - Tests structure import from Excel files with full hierarchy creation
+5. **Migration Sources** - Tests migration from database, Google Sheets, and Excel sources
+6. **gRPC Communication** - Tests inter-service communication via gRPC
 
 ## Test Structure
 
 - `employee_integration_test.go` - Employee service integration tests
+- `password_management_integration_test.go` - Password generation and notification flow tests
 - `chat_integration_test.go` - Chat service integration tests
 - `structure_integration_test.go` - Structure service integration tests
 - `migration_integration_test.go` - Migration service integration tests

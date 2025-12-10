@@ -12,7 +12,10 @@ import (
 
 type contextKey string
 
-const RequestIDKey contextKey = "request_id"
+const (
+	RequestIDKey contextKey = "request_id"
+	UserIDKey    contextKey = "user_id"
+)
 
 // GenerateRequestID generates a unique request ID
 func GenerateRequestID() string {

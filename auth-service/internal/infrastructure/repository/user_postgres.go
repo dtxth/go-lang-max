@@ -44,3 +44,11 @@ func (r *UserPostgres) GetByID(id int64) (*domain.User, error) {
         Scan(&user.ID, &user.Phone, &user.Email, &user.Password, &user.Role)
     return user, err
 }
+
+func (r *UserPostgres) Update(u *domain.User) error {
+    _, err := r.db.Exec(
+        `UPDATE users SET phone=$1, email=$2, password_hash=$3, role=$4 WHERE id=$5`,
+        u.Phone, u.Email, u.Password, u.Role, u.ID,
+    )
+    return err
+}

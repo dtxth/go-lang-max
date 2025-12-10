@@ -4,7 +4,6 @@ import (
 	"auth-service/api/proto"
 	"auth-service/internal/usecase"
 	"context"
-	"log"
 )
 
 type AuthHandler struct {
@@ -102,7 +101,8 @@ func (h *AuthHandler) GetUserPermissions(ctx context.Context, req *proto.GetUser
 
 
 func (h *AuthHandler) CreateUser(ctx context.Context, req *proto.CreateUserRequest) (*proto.CreateUserResponse, error) {
-	userID, err := h.authService.CreateUser(req.Phone, req.Password)
+	// Note: Email field is used for phone number due to proto file mismatch
+	userID, err := h.authService.CreateUser(req.Email, req.Password)
 	if err != nil {
 		return &proto.CreateUserResponse{
 			Error: err.Error(),
@@ -150,6 +150,90 @@ func (h *AuthHandler) RevokeUserRoles(ctx context.Context, req *proto.RevokeUser
 	}
 	
 	return &proto.RevokeUserRolesResponse{
+		Success: true,
+	}, nil
+}
+
+func (h *AuthHandler) RequestPasswordReset(ctx context.Context, req *proto.RequestPasswordResetRequest) (*proto.RequestPasswordResetResponse, error) {
+	if req.Phone == "" {
+		return &proto.RequestPasswordResetResponse{
+			Success: false,
+			Error:   "phone number is required",
+		}, nil
+	}
+
+	err := h.authService.RequestPasswordReset(req.Phone)
+	if err != nil {
+		return &proto.RequestPasswordResetResponse{
+			Success: false,
+			Error:   err.Error(),
+		}, nil
+	}
+
+	return &proto.RequestPasswordResetResponse{
+		Success: true,
+	}, nil
+}
+
+func (h *AuthHandler) ResetPassword(ctx context.Context, req *proto.ResetPasswordRequest) (*proto.ResetPasswordResponse, error) {
+	if req.Token == "" {
+		return &proto.ResetPasswordResponse{
+			Success: false,
+			Error:   "reset token is required",
+		}, nil
+	}
+
+	if req.NewPassword == "" {
+		return &proto.ResetPasswordResponse{
+			Success: false,
+			Error:   "new password is required",
+		}, nil
+	}
+
+	err := h.authService.ResetPassword(req.Token, req.NewPassword)
+	if err != nil {
+		return &proto.ResetPasswordResponse{
+			Success: false,
+			Error:   err.Error(),
+		}, nil
+	}
+
+	return &proto.ResetPasswordResponse{
+		Success: true,
+	}, nil
+}
+
+func (h *AuthHandler) ChangePassword(ctx context.Context, req *proto.ChangePasswordRequest) (*proto.ChangePasswordResponse, error) {
+	if req.UserId == 0 {
+		return &proto.ChangePasswordResponse{
+			Success: false,
+			Error:   "user ID is required",
+		}, nil
+	}
+
+	if req.CurrentPassword == "" {
+		return &proto.ChangePasswordResponse{
+			Success: false,
+			Error:   "current password is required",
+		}, nil
+	}
+
+	if req.NewPassword == "" {
+		return &proto.ChangePasswordResponse{
+			Success: false,
+			Error:   "new password is required",
+		}, nil
+	}
+
+	err := h.authService.ChangePassword(req.UserId, req.CurrentPassword, req.NewPassword)
+	if err != nil {
+		return &proto.ChangePasswordResponse{
+			Success: false,
+			Error:   err.Error(),
+		}, nil
+	}
+
+	return &proto.ChangePasswordResponse{
 		Success: true,
 	}, nil
 }

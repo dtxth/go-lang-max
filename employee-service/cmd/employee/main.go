@@ -9,6 +9,8 @@ import (
 	"employee-service/internal/infrastructure/http"
 	"employee-service/internal/infrastructure/logger"
 	"employee-service/internal/infrastructure/max"
+	"employee-service/internal/infrastructure/notification"
+	"employee-service/internal/infrastructure/password"
 	"employee-service/internal/infrastructure/repository"
 	"employee-service/internal/usecase"
 	"log"
@@ -66,8 +68,21 @@ func main() {
 	log.Println("Successfully connected to Auth Service")
 	defer authClient.Close()
 
+	// Инициализируем password generator
+	passwordGenerator := password.NewSecurePasswordGenerator(12)
+
+	// Инициализируем notification service
+	notificationService, err := notification.NewMaxNotificationService(cfg.MaxBotAddress, log.Default())
+	if err != nil {
+		log.Printf("WARNING: Failed to initialize notification service: %v", err)
+		log.Println("Password notifications will not be sent")
+	}
+	if notificationService != nil {
+		defer notificationService.Close()
+	}
+
 	// Инициализируем usecase
-	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient, authClient)
+	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient, authClient, passwordGenerator, notificationService)
 	batchUpdateMaxIdUseCase := usecase.NewBatchUpdateMaxIdUseCase(employeeRepo, batchUpdateJobRepo, maxClient)
 	
 	// Инициализируем use case для поиска с ролевой фильтрацией
