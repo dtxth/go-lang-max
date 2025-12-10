@@ -1,92 +1,72 @@
 #!/usr/bin/env python3
 """
-Генератор тестовых JWT токенов для chat-service
+Генератор тестовых JWT токенов для auth-service
 """
 
 import jwt
-import sys
+import uuid
 from datetime import datetime, timedelta
 
-# Секрет из docker-compose.yml (ACCESS_SECRET)
-SECRET = "super-secret-access"
+# Секреты из docker-compose.yml
+ACCESS_SECRET = "super-secret-access"
+REFRESH_SECRET = "super-secret-refresh"
 
-def generate_token(role="superadmin", user_id=1, email="test@example.com", 
-                   university_id=None, branch_id=None, faculty_id=None):
-    """
-    Генерирует JWT токен для тестирования
-    
-    Args:
-        role: Роль пользователя (superadmin, curator, operator)
-        user_id: ID пользователя
-        email: Email пользователя
-        university_id: ID университета (опционально)
-        branch_id: ID филиала (опционально)
-        faculty_id: ID факультета (опционально)
-    """
+def generate_tokens():
+    # Используем время контейнера (UTC) и добавляем запас времени
     now = datetime.utcnow()
-    exp = now + timedelta(hours=24)  # Токен на 24 часа для тестирования
+    print(f"Current time: {now.strftime('%Y-%m-%d %H:%M:%S')} UTC")
     
-    payload = {
-        "sub": str(user_id),
-        "email": email,
-        "role": role,
-        "exp": int(exp.timestamp()),
-        "iat": int(now.timestamp())
+    # Access token (15 минут)
+    access_exp = now + timedelta(hours=1)  # Увеличиваем для тестирования
+    access_payload = {
+        "sub": "1",
+        "email": "operator@example.com",
+        "role": "operator",
+        "exp": int(access_exp.timestamp()),
+        "iat": int(now.timestamp()),
+        "university_id": 1
     }
+    access_token = jwt.encode(access_payload, ACCESS_SECRET, algorithm="HS256")
     
-    # Добавляем контекстную информацию
-    if university_id is not None:
-        payload["university_id"] = university_id
-    if branch_id is not None:
-        payload["branch_id"] = branch_id
-    if faculty_id is not None:
-        payload["faculty_id"] = faculty_id
+    # Refresh token (7 дней)
+    refresh_exp = now + timedelta(days=7)
+    refresh_payload = {
+        "sub": "1",
+        "email": "operator@example.com",
+        "role": "operator",
+        "exp": int(refresh_exp.timestamp()),
+        "iat": int(now.timestamp()),
+        "jti": str(uuid.uuid4()),
+        "university_id": 1
+    }
+    refresh_token = jwt.encode(refresh_payload, REFRESH_SECRET, algorithm="HS256")
     
-    token = jwt.encode(payload, SECRET, algorithm="HS256")
+    print("\n=== JWT Token Generator ===\n")
+    print("Operator (реальный пользователь из БД)")
+    print(f"Role: {access_payload['role']}")
+    print(f"User ID: {access_payload['sub']}")
+    print(f"Email: {access_payload['email']}")
+    print(f"University ID: {access_payload['university_id']}")
     
-    return token, payload
-
-def main():
-    print("=== JWT Token Generator ===\n")
+    print(f"\nACCESS TOKEN (expires: {datetime.fromtimestamp(access_payload['exp']).strftime('%Y-%m-%d %H:%M:%S')} UTC):")
+    print(f"{access_token}\n")
     
-    # Примеры токенов для разных ролей
-    examples = [
-        {
-            "name": "Superadmin",
-            "role": "superadmin",
-            "user_id": 1,
-            "email": "superadmin@example.com"
-        },
-        {
-            "name": "Curator (University 1)",
-            "role": "curator",
-            "user_id": 2,
-            "email": "curator@example.com",
-            "university_id": 1
-        },
-        {
-            "name": "Operator (University 1)",
-            "role": "operator",
-            "user_id": 3,
-            "email": "operator@example.com",
-            "university_id": 1
-        }
-    ]
+    print(f"REFRESH TOKEN (expires: {datetime.fromtimestamp(refresh_payload['exp']).strftime('%Y-%m-%d %H:%M:%S')} UTC):")
+    print(f"{refresh_token}\n")
     
-    for i, example in enumerate(examples, 1):
-        print(f"{i}. {example['name']}")
-        token, payload = generate_token(**{k: v for k, v in example.items() if k != 'name'})
-        
-        print(f"   Role: {payload['role']}")
-        print(f"   User ID: {payload['sub']}")
-        print(f"   Email: {payload['email']}")
-        if 'university_id' in payload:
-            print(f"   University ID: {payload['university_id']}")
-        print(f"   Expires: {datetime.fromtimestamp(payload['exp']).strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"\n   Token:\n   {token}\n")
-        print(f"   Test command:")
-        print(f"   curl -H 'Authorization: Bearer {token}' http://localhost:8082/chats/all\n")
-        print("-" * 80 + "\n")
+    print("Test commands:")
+    print(f"# Тест с access токеном:")
+    print(f"curl -H 'Authorization: Bearer {access_token}' http://localhost:8082/chats/all")
+    print(f"\n# ВНИМАНИЕ: Сгенерированный refresh токен НЕ БУДЕТ работать,")
+    print(f"# так как он не сохранен в базе данных!")
+    print(f"# Используйте логин для получения действующих токенов:")
+    print(f"curl -X POST -H 'Content-Type: application/json' \\")
+    print(f"  -d '{{\"email\": \"operator@example.com\", \"password\": \"password\"}}' \\")
+    print(f"  http://localhost:8080/login")
+    print(f"\n# Затем используйте полученный refresh_token для обновления:")
+    print(f"# curl -X POST -H 'Content-Type: application/json' \\")
+    print(f"#   -d '{{\"refresh_token\": \"<полученный_refresh_token>\"}}' \\")
+    print(f"#   http://localhost:8080/refresh")
 
 if __name__ == "__main__":
     try:
@@ -94,6 +74,6 @@ if __name__ == "__main__":
     except ImportError:
         print("Error: PyJWT library not installed")
         print("Install it with: pip install PyJWT")
-        sys.exit(1)
+        exit(1)
     
-    main()
+    generate_tokens()
