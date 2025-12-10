@@ -14,7 +14,7 @@ import (
 )
 
 type Handler struct {
-	employeeService                 *usecase.EmployeeService
+	employeeService                 domain.EmployeeServiceInterface
 	batchUpdateMaxIdUseCase         *usecase.BatchUpdateMaxIdUseCase
 	searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase
 	authClient                      *auth.AuthClient
@@ -49,6 +49,15 @@ type DeleteResponse struct {
 	Status string `json:"status" example:"deleted"`
 }
 
+// PaginatedEmployeesResponse представляет ответ с пагинацией для сотрудников
+type PaginatedEmployeesResponse struct {
+	Data       []*domain.Employee `json:"data"`
+	Total      int                `json:"total"`
+	Limit      int                `json:"limit"`
+	Offset     int                `json:"offset"`
+	TotalPages int                `json:"total_pages"`
+}
+
 // Employee представляет сотрудника (для Swagger)
 type Employee domain.Employee
 
@@ -56,7 +65,7 @@ type Employee domain.Employee
 type University domain.University
 
 func NewHandler(
-	employeeService *usecase.EmployeeService,
+	employeeService domain.EmployeeServiceInterface,
 	batchUpdateMaxIdUseCase *usecase.BatchUpdateMaxIdUseCase,
 	searchEmployeesWithRoleFilterUC *usecase.SearchEmployeesWithRoleFilterUseCase,
 	authClient *auth.AuthClient,
@@ -162,27 +171,58 @@ func (h *Handler) SearchEmployees(w http.ResponseWriter, r *http.Request) {
 
 // GetAllEmployees godoc
 // @Summary      Получить всех сотрудников
-// @Description  Возвращает список всех сотрудников с пагинацией
+// @Description  Возвращает список всех сотрудников с пагинацией, сортировкой и поиском
 // @Tags         employees
 // @Accept       json
 // @Produce      json
-// @Param        limit   query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
-// @Param        offset  query     int     false  "Смещение для пагинации"
-// @Success      200     {array}   Employee
-// @Failure      400     {string}  string
+// @Param        limit      query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
+// @Param        offset     query     int     false  "Смещение для пагинации"
+// @Param        sort_by    query     string  false  "Поле для сортировки (id, first_name, last_name, middle_name, phone, max_id, inn, kpp, role, university, created_at, updated_at)"
+// @Param        sort_order query     string  false  "Порядок сортировки (asc, desc)"
+// @Param        search     query     string  false  "Поисковый запрос по всем полям"
+// @Success      200        {object}  PaginatedEmployeesResponse
+// @Failure      400        {string}  string
 // @Router       /employees/all [get]
 func (h *Handler) GetAllEmployees(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	sortBy := r.URL.Query().Get("sort_by")
+	sortOrder := r.URL.Query().Get("sort_order")
+	search := r.URL.Query().Get("search")
 
-	employees, err := h.employeeService.GetAllEmployees(limit, offset)
+	employees, total, err := h.employeeService.GetAllEmployeesWithSortingAndSearch(limit, offset, sortBy, sortOrder, search)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
+	// Устанавливаем значения по умолчанию для ответа
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Вычисляем общее количество страниц
+	totalPages := (total + limit - 1) / limit
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
+	response := PaginatedEmployeesResponse{
+		Data:       employees,
+		Total:      total,
+		Limit:      limit,
+		Offset:     offset,
+		TotalPages: totalPages,
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(employees)
+	json.NewEncoder(w).Encode(response)
 }
 
 // GetEmployeeByID godoc

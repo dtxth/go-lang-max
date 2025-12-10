@@ -123,6 +123,29 @@ func (m *mockEmployeeRepo) CountEmployeesWithoutMaxID() (int, error) {
 	return count, nil
 }
 
+func (m *mockEmployeeRepo) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*domain.Employee, error) {
+	var result []*domain.Employee
+	for _, e := range m.employees {
+		result = append(result, e)
+	}
+	
+	// Apply pagination
+	if offset >= len(result) {
+		return []*domain.Employee{}, nil
+	}
+	
+	end := offset + limit
+	if end > len(result) {
+		end = len(result)
+	}
+	
+	return result[offset:end], nil
+}
+
+func (m *mockEmployeeRepo) CountAllWithSearch(search string) (int, error) {
+	return len(m.employees), nil
+}
+
 type mockUniversityRepo struct {
 	universities map[int64]*domain.University
 	nextID       int64

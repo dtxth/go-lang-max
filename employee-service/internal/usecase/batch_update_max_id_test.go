@@ -99,6 +99,14 @@ func (m *mockEmployeeRepoForBatch) CountEmployeesWithoutMaxID() (int, error) {
 	return m.countWithoutMaxID, nil
 }
 
+func (m *mockEmployeeRepoForBatch) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*domain.Employee, error) {
+	return m.employees, nil
+}
+
+func (m *mockEmployeeRepoForBatch) CountAllWithSearch(search string) (int, error) {
+	return len(m.employees), nil
+}
+
 type mockMaxServiceForBatch struct {
 	maxIDs map[string]string
 }

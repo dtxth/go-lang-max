@@ -124,6 +124,33 @@ func (s *EmployeeService) GetAllEmployees(limit, offset int) ([]*domain.Employee
 	return s.employeeRepo.GetAll(limit, offset)
 }
 
+// GetAllEmployeesWithSortingAndSearch получает всех сотрудников с пагинацией, сортировкой и поиском
+func (s *EmployeeService) GetAllEmployeesWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*domain.Employee, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	
+	// Получаем сотрудников
+	employees, err := s.employeeRepo.GetAllWithSortingAndSearch(limit, offset, sortBy, sortOrder, search)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	// Получаем общее количество для пагинации
+	total, err := s.employeeRepo.CountAllWithSearch(search)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	return employees, total, nil
+}
+
 // GetEmployeeByID получает сотрудника по ID
 func (s *EmployeeService) GetEmployeeByID(id int64) (*domain.Employee, error) {
 	employee, err := s.employeeRepo.GetByID(id)
