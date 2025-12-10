@@ -12,6 +12,9 @@ service StructureService {
   // GetUniversityByINN получает вуз по ИНН
   rpc GetUniversityByINN(GetUniversityByINNRequest) returns (GetUniversityByINNResponse);
   
+  // CreateOrGetUniversity создает или получает вуз по ИНН/КПП
+  rpc CreateOrGetUniversity(CreateOrGetUniversityRequest) returns (CreateOrGetUniversityResponse);
+  
   // CreateStructure создает полную структуру (университет, филиал, факультет, группа)
   rpc CreateStructure(CreateStructureRequest) returns (CreateStructureResponse);
   
@@ -33,6 +36,18 @@ message GetUniversityByINNRequest {
 }
 
 message GetUniversityByINNResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message CreateOrGetUniversityRequest {
+  string inn = 1;
+  string kpp = 2;
+  string name = 3;
+  string foiv = 4;
+}
+
+message CreateOrGetUniversityResponse {
   University university = 1;
   string error = 2;
 }

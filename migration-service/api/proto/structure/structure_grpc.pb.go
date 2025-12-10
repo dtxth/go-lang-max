@@ -19,10 +19,11 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StructureService_GetUniversityByID_FullMethodName  = "/structure.StructureService/GetUniversityByID"
-	StructureService_GetUniversityByINN_FullMethodName = "/structure.StructureService/GetUniversityByINN"
-	StructureService_CreateStructure_FullMethodName    = "/structure.StructureService/CreateStructure"
-	StructureService_LinkGroupToChat_FullMethodName    = "/structure.StructureService/LinkGroupToChat"
+	StructureService_GetUniversityByID_FullMethodName     = "/structure.StructureService/GetUniversityByID"
+	StructureService_GetUniversityByINN_FullMethodName    = "/structure.StructureService/GetUniversityByINN"
+	StructureService_CreateOrGetUniversity_FullMethodName = "/structure.StructureService/CreateOrGetUniversity"
+	StructureService_CreateStructure_FullMethodName       = "/structure.StructureService/CreateStructure"
+	StructureService_LinkGroupToChat_FullMethodName       = "/structure.StructureService/LinkGroupToChat"
 )
 
 // StructureServiceClient is the client API for StructureService service.
@@ -35,6 +36,8 @@ type StructureServiceClient interface {
 	GetUniversityByID(ctx context.Context, in *GetUniversityByIDRequest, opts ...grpc.CallOption) (*GetUniversityByIDResponse, error)
 	// GetUniversityByINN получает вуз по ИНН
 	GetUniversityByINN(ctx context.Context, in *GetUniversityByINNRequest, opts ...grpc.CallOption) (*GetUniversityByINNResponse, error)
+	// CreateOrGetUniversity создает или получает вуз по ИНН/КПП
+	CreateOrGetUniversity(ctx context.Context, in *CreateOrGetUniversityRequest, opts ...grpc.CallOption) (*CreateOrGetUniversityResponse, error)
 	// CreateStructure создает полную структуру (университет, филиал, факультет, группа)
 	CreateStructure(ctx context.Context, in *CreateStructureRequest, opts ...grpc.CallOption) (*CreateStructureResponse, error)
 	// LinkGroupToChat связывает группу с чатом
@@ -63,6 +66,16 @@ func (c *structureServiceClient) GetUniversityByINN(ctx context.Context, in *Get
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUniversityByINNResponse)
 	err := c.cc.Invoke(ctx, StructureService_GetUniversityByINN_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) CreateOrGetUniversity(ctx context.Context, in *CreateOrGetUniversityRequest, opts ...grpc.CallOption) (*CreateOrGetUniversityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateOrGetUniversityResponse)
+	err := c.cc.Invoke(ctx, StructureService_CreateOrGetUniversity_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -99,6 +112,8 @@ type StructureServiceServer interface {
 	GetUniversityByID(context.Context, *GetUniversityByIDRequest) (*GetUniversityByIDResponse, error)
 	// GetUniversityByINN получает вуз по ИНН
 	GetUniversityByINN(context.Context, *GetUniversityByINNRequest) (*GetUniversityByINNResponse, error)
+	// CreateOrGetUniversity создает или получает вуз по ИНН/КПП
+	CreateOrGetUniversity(context.Context, *CreateOrGetUniversityRequest) (*CreateOrGetUniversityResponse, error)
 	// CreateStructure создает полную структуру (университет, филиал, факультет, группа)
 	CreateStructure(context.Context, *CreateStructureRequest) (*CreateStructureResponse, error)
 	// LinkGroupToChat связывает группу с чатом
@@ -118,6 +133,9 @@ func (UnimplementedStructureServiceServer) GetUniversityByID(context.Context, *G
 }
 func (UnimplementedStructureServiceServer) GetUniversityByINN(context.Context, *GetUniversityByINNRequest) (*GetUniversityByINNResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUniversityByINN not implemented")
+}
+func (UnimplementedStructureServiceServer) CreateOrGetUniversity(context.Context, *CreateOrGetUniversityRequest) (*CreateOrGetUniversityResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateOrGetUniversity not implemented")
 }
 func (UnimplementedStructureServiceServer) CreateStructure(context.Context, *CreateStructureRequest) (*CreateStructureResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateStructure not implemented")
@@ -182,6 +200,24 @@ func _StructureService_GetUniversityByINN_Handler(srv interface{}, ctx context.C
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StructureService_CreateOrGetUniversity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateOrGetUniversityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).CreateOrGetUniversity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_CreateOrGetUniversity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).CreateOrGetUniversity(ctx, req.(*CreateOrGetUniversityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StructureService_CreateStructure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateStructureRequest)
 	if err := dec(in); err != nil {
@@ -232,6 +268,10 @@ var StructureService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetUniversityByINN",
 			Handler:    _StructureService_GetUniversityByINN_Handler,
+		},
+		{
+			MethodName: "CreateOrGetUniversity",
+			Handler:    _StructureService_CreateOrGetUniversity_Handler,
 		},
 		{
 			MethodName: "CreateStructure",

@@ -20,6 +20,9 @@ type StructureServiceInterface interface {
 	// CreateUniversity создает новый вуз
 	CreateUniversity(u *University) error
 	
+	// CreateOrGetUniversity создает или получает университет по INN/KPP
+	CreateOrGetUniversity(inn, kpp, name, foiv string) (*University, error)
+	
 	// UpdateUniversity обновляет информацию о вузе
 	UpdateUniversity(u *University) error
 	

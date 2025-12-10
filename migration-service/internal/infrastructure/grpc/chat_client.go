@@ -56,8 +56,8 @@ func (c *ChatClient) CreateChat(ctx context.Context, chat *domain.ChatData) (int
 		Department:        "",
 	}
 
-	if chat.UniversityID != 0 {
-		universityID := int64(chat.UniversityID)
+	if chat.UniversityID != nil && *chat.UniversityID != 0 {
+		universityID := int64(*chat.UniversityID)
 		req.UniversityId = &universityID
 	}
 

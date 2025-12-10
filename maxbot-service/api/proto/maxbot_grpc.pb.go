@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.6.0
 // - protoc             v6.33.1
-// source: maxbot.proto
+// source: api/proto/maxbot.proto
 
 package maxbotproto
 
@@ -483,5 +483,5 @@ var MaxBotService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "maxbot.proto",
+	Metadata: "api/proto/maxbot.proto",
 }

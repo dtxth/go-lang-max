@@ -14,11 +14,6 @@ type CompositeClient struct {
 	}
 }
 
-// CreateOrGetUniversity uses HTTP client
-func (c *CompositeClient) CreateOrGetUniversity(ctx context.Context, university *domain.UniversityData) (int, error) {
-	return c.HTTPClient.CreateOrGetUniversity(ctx, university)
-}
-
 // CreateChat uses HTTP client
 func (c *CompositeClient) CreateChat(ctx context.Context, chat *domain.ChatData) (int, error) {
 	return c.HTTPClient.CreateChat(ctx, chat)

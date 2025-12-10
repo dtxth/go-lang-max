@@ -61,7 +61,7 @@ func (c *HTTPClient) CreateChat(ctx context.Context, chat *domain.ChatData) (int
 		URL:               chat.URL,
 		ExternalChatID:    externalChatID,
 		Source:            chat.Source,
-		UniversityID:      &chat.UniversityID,
+		UniversityID:      chat.UniversityID,
 		BranchID:          chat.BranchID,
 		FacultyID:         chat.FacultyID,
 		ParticipantsCount: 0,
@@ -132,52 +132,4 @@ func (c *HTTPClient) AddAdministrator(ctx context.Context, admin *domain.Adminis
 	return nil
 }
 
-// CreateUniversityRequest represents the request to create a university
-type CreateUniversityRequest struct {
-	INN  string `json:"inn"`
-	KPP  string `json:"kpp"`
-	Name string `json:"name"`
-}
 
-// CreateUniversityResponse represents the response from creating a university
-type CreateUniversityResponse struct {
-	ID int `json:"id"`
-}
-
-// CreateOrGetUniversity creates or gets a university by INN/KPP
-func (c *HTTPClient) CreateOrGetUniversity(ctx context.Context, university *domain.UniversityData) (int, error) {
-	reqBody := CreateUniversityRequest{
-		INN:  university.INN,
-		KPP:  university.KPP,
-		Name: university.Name,
-	}
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return 0, fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/universities", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return 0, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := c.client.Do(req)
-	if err != nil {
-		return 0, fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK && resp.StatusCode != http.StatusCreated {
-		body, _ := io.ReadAll(resp.Body)
-		return 0, fmt.Errorf("failed to create university: status %d, body: %s", resp.StatusCode, string(body))
-	}
-
-	var response CreateUniversityResponse
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-		return 0, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return response.ID, nil
-}

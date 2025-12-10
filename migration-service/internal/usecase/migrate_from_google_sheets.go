@@ -247,7 +247,7 @@ func (uc *MigrateFromGoogleSheetsUseCase) processRow(ctx context.Context, jobID 
 	chatData := &domain.ChatData{
 		Name:         "", // Name not provided in Google Sheets
 		URL:          row.URL,
-		UniversityID: university.ID,
+		UniversityID: &university.ID,
 		Source:       "bot_registrar",
 		AdminPhone:   row.AdminPhone,
 	}

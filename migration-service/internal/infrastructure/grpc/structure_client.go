@@ -85,6 +85,27 @@ func (c *StructureClient) CreateStructure(ctx context.Context, data *domain.Stru
 	return result, nil
 }
 
+// CreateOrGetUniversity creates or gets a university by INN/KPP
+func (c *StructureClient) CreateOrGetUniversity(ctx context.Context, university *domain.UniversityData) (int, error) {
+	req := &structurepb.CreateOrGetUniversityRequest{
+		Inn:  university.INN,
+		Kpp:  university.KPP,
+		Name: university.Name,
+		Foiv: university.FOIV,
+	}
+
+	resp, err := c.client.CreateOrGetUniversity(ctx, req)
+	if err != nil {
+		return 0, fmt.Errorf("failed to create or get university: %w", err)
+	}
+
+	if resp.Error != "" {
+		return 0, fmt.Errorf("structure service error: %s", resp.Error)
+	}
+
+	return int(resp.University.Id), nil
+}
+
 // LinkGroupToChat links a group to a chat
 func (c *StructureClient) LinkGroupToChat(ctx context.Context, groupID int, chatID int) error {
 	req := &structurepb.LinkGroupToChatRequest{

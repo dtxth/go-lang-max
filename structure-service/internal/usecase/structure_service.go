@@ -53,6 +53,29 @@ func (s *StructureService) CreateUniversity(u *domain.University) error {
 	return s.repo.CreateUniversity(u)
 }
 
+// CreateOrGetUniversity создает или получает университет по INN/KPP
+func (s *StructureService) CreateOrGetUniversity(inn, kpp, name, foiv string) (*domain.University, error) {
+	// Пытаемся найти существующий университет по INN
+	university, err := s.repo.GetUniversityByINN(inn)
+	if err == nil {
+		return university, nil
+	}
+
+	// Если не найден, создаем новый
+	university = &domain.University{
+		INN:  inn,
+		KPP:  kpp,
+		Name: name,
+		FOIV: foiv,
+	}
+
+	if err := s.repo.CreateUniversity(university); err != nil {
+		return nil, err
+	}
+
+	return university, nil
+}
+
 // UpdateUniversity обновляет информацию о вузе
 func (s *StructureService) UpdateUniversity(u *domain.University) error {
 	return s.repo.UpdateUniversity(u)

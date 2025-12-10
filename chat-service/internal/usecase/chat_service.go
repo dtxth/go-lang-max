@@ -9,7 +9,6 @@ import (
 type ChatService struct {
 	chatRepo                              domain.ChatRepository
 	administratorRepo                     domain.AdministratorRepository
-	universityRepo                        domain.UniversityRepository
 	maxService                            domain.MaxService
 	listChatsWithRoleFilterUC             *ListChatsWithRoleFilterUseCase
 	addAdministratorWithPermissionCheckUC *AddAdministratorWithPermissionCheckUseCase
@@ -19,13 +18,11 @@ type ChatService struct {
 func NewChatService(
 	chatRepo domain.ChatRepository,
 	administratorRepo domain.AdministratorRepository,
-	universityRepo domain.UniversityRepository,
 	maxService domain.MaxService,
 ) *ChatService {
 	return &ChatService{
 		chatRepo:                              chatRepo,
 		administratorRepo:                     administratorRepo,
-		universityRepo:                        universityRepo,
 		maxService:                            maxService,
 		listChatsWithRoleFilterUC:             NewListChatsWithRoleFilterUseCase(chatRepo),
 		addAdministratorWithPermissionCheckUC: NewAddAdministratorWithPermissionCheckUseCase(administratorRepo, chatRepo, maxService),
@@ -182,13 +179,7 @@ func (s *ChatService) CreateChat(
 		return nil, errors.New("invalid chat source")
 	}
 
-	// Проверяем существование вуза, если указан
-	if universityID != nil {
-		_, err := s.universityRepo.GetByID(*universityID)
-		if err != nil {
-			return nil, domain.ErrUniversityNotFound
-		}
-	}
+
 
 	// Создаем чат
 	chat := &domain.Chat{
@@ -217,13 +208,7 @@ func (s *ChatService) UpdateChat(chat *domain.Chat) error {
 		return domain.ErrChatNotFound
 	}
 
-	// Проверяем существование вуза, если указан
-	if chat.UniversityID != nil {
-		_, err := s.universityRepo.GetByID(*chat.UniversityID)
-		if err != nil {
-			return domain.ErrUniversityNotFound
-		}
-	}
+
 
 	return s.chatRepo.Update(chat)
 }
@@ -238,25 +223,5 @@ func (s *ChatService) DeleteChat(id int64) error {
 	return s.chatRepo.Delete(id)
 }
 
-// CreateOrGetUniversity создает или получает университет по INN/KPP
-func (s *ChatService) CreateOrGetUniversity(inn, kpp, name string) (*domain.University, error) {
-	// Пытаемся найти существующий университет
-	university, err := s.universityRepo.GetByINNAndKPP(inn, kpp)
-	if err == nil {
-		return university, nil
-	}
 
-	// Если не найден, создаем новый
-	university = &domain.University{
-		INN:  inn,
-		KPP:  kpp,
-		Name: name,
-	}
-
-	if err := s.universityRepo.Create(university); err != nil {
-		return nil, err
-	}
-
-	return university, nil
-}
 

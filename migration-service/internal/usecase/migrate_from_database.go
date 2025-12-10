@@ -229,7 +229,7 @@ func (uc *MigrateFromDatabaseUseCase) processChat(ctx context.Context, jobID int
 	chatData := &domain.ChatData{
 		Name:         chat.Name,
 		URL:          chat.URL,
-		UniversityID: university.ID,
+		UniversityID: &university.ID,
 		Source:       "admin_panel",
 		AdminPhone:   chat.AdminPhone,
 	}

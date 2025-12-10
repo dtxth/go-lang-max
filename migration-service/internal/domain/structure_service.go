@@ -25,10 +25,21 @@ type StructureResult struct {
 	GroupID      int
 }
 
+// UniversityData represents university data for creation
+type UniversityData struct {
+	INN  string
+	KPP  string
+	Name string
+	FOIV string
+}
+
 // StructureService defines the interface for interacting with Structure Service
 type StructureService interface {
 	// CreateStructure creates or updates the full structure hierarchy
 	CreateStructure(ctx context.Context, data *StructureData) (*StructureResult, error)
+
+	// CreateOrGetUniversity creates or gets a university by INN/KPP
+	CreateOrGetUniversity(ctx context.Context, university *UniversityData) (int, error)
 
 	// LinkGroupToChat links a group to a chat
 	LinkGroupToChat(ctx context.Context, groupID int, chatID int) error

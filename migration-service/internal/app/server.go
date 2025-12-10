@@ -52,7 +52,7 @@ func (s *Server) Start() error {
 	errorRepo := repository.NewMigrationErrorPostgresRepository(s.db)
 	universityRepo := repository.NewUniversityHTTPRepository(s.config.Services.StructureServiceURL)
 
-	// Initialize HTTP client for Chat Service (для поддержки CreateOrGetUniversity)
+	// Initialize HTTP client for Chat Service
 	chatHTTPClient := chat.NewHTTPClient(s.config.Services.ChatServiceURL)
 
 	// Initialize gRPC clients
@@ -92,7 +92,6 @@ func (s *Server) Start() error {
 
 	// Используем gRPC клиент для администраторов, если доступен, иначе HTTP
 	var chatClientForAdmins interface {
-		CreateOrGetUniversity(ctx context.Context, university *domain.UniversityData) (int, error)
 		CreateChat(ctx context.Context, chat *domain.ChatData) (int, error)
 		AddAdministrator(ctx context.Context, admin *domain.AdministratorData) error
 	}

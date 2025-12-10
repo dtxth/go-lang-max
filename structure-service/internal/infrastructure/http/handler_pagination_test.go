@@ -274,6 +274,16 @@ func (m *mockStructureServiceWrapper) CreateUniversity(u *domain.University) err
 	return nil
 }
 
+func (m *mockStructureServiceWrapper) CreateOrGetUniversity(inn, kpp, name, foiv string) (*domain.University, error) {
+	return &domain.University{
+		ID:   1,
+		Name: name,
+		INN:  inn,
+		KPP:  kpp,
+		FOIV: foiv,
+	}, nil
+}
+
 func (m *mockStructureServiceWrapper) UpdateUniversity(u *domain.University) error {
 	return nil
 }

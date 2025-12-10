@@ -497,24 +497,11 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 
 	// 2. Создать или получить университет в Chat Service
 	// Так как chat-service и structure-service используют разные БД,
-	// нужно создать университет в обеих базах
-	universityData := &domain.UniversityData{
-		INN:  row.INN,
-		KPP:  row.KPP,
-		Name: row.OrgNameRef,
-	}
-	
-	chatUniversityID, err := uc.chatService.CreateOrGetUniversity(ctx, universityData)
-	if err != nil {
-		return fmt.Errorf("failed to create university in chat service: %w", err)
-	}
-
-	// 3. Создать чат через Chat Service
+	// 3. Создать чат через Chat Service (без university_id)
 	chatData := &domain.ChatData{
 		Name:           row.ChatName,
 		URL:            row.ChatURL,
 		ExternalChatID: row.ChatID, // Колонка 14
-		UniversityID:   chatUniversityID, // Используем ID из chat-service
 		Source:         "academic_group",
 	}
 

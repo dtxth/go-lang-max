@@ -65,6 +65,27 @@ func (h *StructureHandler) GetUniversityByINN(ctx context.Context, req *structur
 	}, nil
 }
 
+func (h *StructureHandler) CreateOrGetUniversity(ctx context.Context, req *structurepb.CreateOrGetUniversityRequest) (*structurepb.CreateOrGetUniversityResponse, error) {
+	university, err := h.structureService.CreateOrGetUniversity(req.Inn, req.Kpp, req.Name, req.Foiv)
+	if err != nil {
+		return &structurepb.CreateOrGetUniversityResponse{
+			Error: err.Error(),
+		}, nil
+	}
+
+	return &structurepb.CreateOrGetUniversityResponse{
+		University: &structurepb.University{
+			Id:        university.ID,
+			Name:      university.Name,
+			Inn:       university.INN,
+			Kpp:       university.KPP,
+			Foiv:      university.FOIV,
+			CreatedAt: university.CreatedAt.Format(time.RFC3339),
+			UpdatedAt: university.UpdatedAt.Format(time.RFC3339),
+		},
+	}, nil
+}
+
 func (h *StructureHandler) CreateStructure(ctx context.Context, req *structurepb.CreateStructureRequest) (*structurepb.CreateStructureResponse, error) {
 	ucReq := &usecase.CreateStructureRequest{
 		INN:         req.Inn,

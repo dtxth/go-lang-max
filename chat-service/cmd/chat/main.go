@@ -47,7 +47,6 @@ func main() {
 	// Инициализируем репозитории
 	chatRepo := repository.NewChatPostgres(db)
 	administratorRepo := repository.NewAdministratorPostgres(db)
-	universityRepo := repository.NewUniversityPostgres(db)
 
 	// Инициализируем MAX gRPC клиент
 	maxClient, err := max.NewMaxClient(cfg.MaxBotAddress, cfg.MaxBotTimeout)
@@ -64,7 +63,7 @@ func main() {
 	defer authClient.Close()
 
 	// Инициализируем usecase
-	chatService := usecase.NewChatService(chatRepo, administratorRepo, universityRepo, maxClient)
+	chatService := usecase.NewChatService(chatRepo, administratorRepo, maxClient)
 
 	// Инициализируем middleware
 	authMiddleware := http.NewAuthMiddleware(authClient)

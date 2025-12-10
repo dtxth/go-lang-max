@@ -213,6 +213,126 @@ func (x *GetUniversityByINNResponse) GetError() string {
 	return ""
 }
 
+type CreateOrGetUniversityRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Inn           string                 `protobuf:"bytes,1,opt,name=inn,proto3" json:"inn,omitempty"`
+	Kpp           string                 `protobuf:"bytes,2,opt,name=kpp,proto3" json:"kpp,omitempty"`
+	Name          string                 `protobuf:"bytes,3,opt,name=name,proto3" json:"name,omitempty"`
+	Foiv          string                 `protobuf:"bytes,4,opt,name=foiv,proto3" json:"foiv,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateOrGetUniversityRequest) Reset() {
+	*x = CreateOrGetUniversityRequest{}
+	mi := &file_api_proto_structure_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateOrGetUniversityRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateOrGetUniversityRequest) ProtoMessage() {}
+
+func (x *CreateOrGetUniversityRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_structure_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateOrGetUniversityRequest.ProtoReflect.Descriptor instead.
+func (*CreateOrGetUniversityRequest) Descriptor() ([]byte, []int) {
+	return file_api_proto_structure_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *CreateOrGetUniversityRequest) GetInn() string {
+	if x != nil {
+		return x.Inn
+	}
+	return ""
+}
+
+func (x *CreateOrGetUniversityRequest) GetKpp() string {
+	if x != nil {
+		return x.Kpp
+	}
+	return ""
+}
+
+func (x *CreateOrGetUniversityRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+func (x *CreateOrGetUniversityRequest) GetFoiv() string {
+	if x != nil {
+		return x.Foiv
+	}
+	return ""
+}
+
+type CreateOrGetUniversityResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	University    *University            `protobuf:"bytes,1,opt,name=university,proto3" json:"university,omitempty"`
+	Error         string                 `protobuf:"bytes,2,opt,name=error,proto3" json:"error,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *CreateOrGetUniversityResponse) Reset() {
+	*x = CreateOrGetUniversityResponse{}
+	mi := &file_api_proto_structure_proto_msgTypes[5]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *CreateOrGetUniversityResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateOrGetUniversityResponse) ProtoMessage() {}
+
+func (x *CreateOrGetUniversityResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_proto_structure_proto_msgTypes[5]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateOrGetUniversityResponse.ProtoReflect.Descriptor instead.
+func (*CreateOrGetUniversityResponse) Descriptor() ([]byte, []int) {
+	return file_api_proto_structure_proto_rawDescGZIP(), []int{5}
+}
+
+func (x *CreateOrGetUniversityResponse) GetUniversity() *University {
+	if x != nil {
+		return x.University
+	}
+	return nil
+}
+
+func (x *CreateOrGetUniversityResponse) GetError() string {
+	if x != nil {
+		return x.Error
+	}
+	return ""
+}
+
 type University struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            int64                  `protobuf:"varint,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -228,7 +348,7 @@ type University struct {
 
 func (x *University) Reset() {
 	*x = University{}
-	mi := &file_api_proto_structure_proto_msgTypes[4]
+	mi := &file_api_proto_structure_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -240,7 +360,7 @@ func (x *University) String() string {
 func (*University) ProtoMessage() {}
 
 func (x *University) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_structure_proto_msgTypes[4]
+	mi := &file_api_proto_structure_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -253,7 +373,7 @@ func (x *University) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use University.ProtoReflect.Descriptor instead.
 func (*University) Descriptor() ([]byte, []int) {
-	return file_api_proto_structure_proto_rawDescGZIP(), []int{4}
+	return file_api_proto_structure_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *University) GetId() int64 {
@@ -321,7 +441,7 @@ type CreateStructureRequest struct {
 
 func (x *CreateStructureRequest) Reset() {
 	*x = CreateStructureRequest{}
-	mi := &file_api_proto_structure_proto_msgTypes[5]
+	mi := &file_api_proto_structure_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -333,7 +453,7 @@ func (x *CreateStructureRequest) String() string {
 func (*CreateStructureRequest) ProtoMessage() {}
 
 func (x *CreateStructureRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_structure_proto_msgTypes[5]
+	mi := &file_api_proto_structure_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -346,7 +466,7 @@ func (x *CreateStructureRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateStructureRequest.ProtoReflect.Descriptor instead.
 func (*CreateStructureRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_structure_proto_rawDescGZIP(), []int{5}
+	return file_api_proto_structure_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *CreateStructureRequest) GetInn() string {
@@ -418,7 +538,7 @@ type CreateStructureResponse struct {
 
 func (x *CreateStructureResponse) Reset() {
 	*x = CreateStructureResponse{}
-	mi := &file_api_proto_structure_proto_msgTypes[6]
+	mi := &file_api_proto_structure_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -430,7 +550,7 @@ func (x *CreateStructureResponse) String() string {
 func (*CreateStructureResponse) ProtoMessage() {}
 
 func (x *CreateStructureResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_structure_proto_msgTypes[6]
+	mi := &file_api_proto_structure_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -443,7 +563,7 @@ func (x *CreateStructureResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CreateStructureResponse.ProtoReflect.Descriptor instead.
 func (*CreateStructureResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_structure_proto_rawDescGZIP(), []int{6}
+	return file_api_proto_structure_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *CreateStructureResponse) GetUniversityId() int64 {
@@ -491,7 +611,7 @@ type LinkGroupToChatRequest struct {
 
 func (x *LinkGroupToChatRequest) Reset() {
 	*x = LinkGroupToChatRequest{}
-	mi := &file_api_proto_structure_proto_msgTypes[7]
+	mi := &file_api_proto_structure_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -503,7 +623,7 @@ func (x *LinkGroupToChatRequest) String() string {
 func (*LinkGroupToChatRequest) ProtoMessage() {}
 
 func (x *LinkGroupToChatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_structure_proto_msgTypes[7]
+	mi := &file_api_proto_structure_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -516,7 +636,7 @@ func (x *LinkGroupToChatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkGroupToChatRequest.ProtoReflect.Descriptor instead.
 func (*LinkGroupToChatRequest) Descriptor() ([]byte, []int) {
-	return file_api_proto_structure_proto_rawDescGZIP(), []int{7}
+	return file_api_proto_structure_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *LinkGroupToChatRequest) GetGroupId() int64 {
@@ -543,7 +663,7 @@ type LinkGroupToChatResponse struct {
 
 func (x *LinkGroupToChatResponse) Reset() {
 	*x = LinkGroupToChatResponse{}
-	mi := &file_api_proto_structure_proto_msgTypes[8]
+	mi := &file_api_proto_structure_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -555,7 +675,7 @@ func (x *LinkGroupToChatResponse) String() string {
 func (*LinkGroupToChatResponse) ProtoMessage() {}
 
 func (x *LinkGroupToChatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_api_proto_structure_proto_msgTypes[8]
+	mi := &file_api_proto_structure_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -568,7 +688,7 @@ func (x *LinkGroupToChatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LinkGroupToChatResponse.ProtoReflect.Descriptor instead.
 func (*LinkGroupToChatResponse) Descriptor() ([]byte, []int) {
-	return file_api_proto_structure_proto_rawDescGZIP(), []int{8}
+	return file_api_proto_structure_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *LinkGroupToChatResponse) GetSuccess() bool {
@@ -600,6 +720,16 @@ const file_api_proto_structure_proto_rawDesc = "" +
 	"\x19GetUniversityByINNRequest\x12\x10\n" +
 	"\x03inn\x18\x01 \x01(\tR\x03inn\"i\n" +
 	"\x1aGetUniversityByINNResponse\x125\n" +
+	"\n" +
+	"university\x18\x01 \x01(\v2\x15.structure.UniversityR\n" +
+	"university\x12\x14\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error\"j\n" +
+	"\x1cCreateOrGetUniversityRequest\x12\x10\n" +
+	"\x03inn\x18\x01 \x01(\tR\x03inn\x12\x10\n" +
+	"\x03kpp\x18\x02 \x01(\tR\x03kpp\x12\x12\n" +
+	"\x04name\x18\x03 \x01(\tR\x04name\x12\x12\n" +
+	"\x04foiv\x18\x04 \x01(\tR\x04foiv\"l\n" +
+	"\x1dCreateOrGetUniversityResponse\x125\n" +
 	"\n" +
 	"university\x18\x01 \x01(\v2\x15.structure.UniversityR\n" +
 	"university\x12\x14\n" +
@@ -640,10 +770,11 @@ const file_api_proto_structure_proto_rawDesc = "" +
 	"\achat_id\x18\x02 \x01(\x03R\x06chatId\"I\n" +
 	"\x17LinkGroupToChatResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\x12\x14\n" +
-	"\x05error\x18\x02 \x01(\tR\x05error2\x89\x03\n" +
+	"\x05error\x18\x02 \x01(\tR\x05error2\xf5\x03\n" +
 	"\x10StructureService\x12^\n" +
 	"\x11GetUniversityByID\x12#.structure.GetUniversityByIDRequest\x1a$.structure.GetUniversityByIDResponse\x12a\n" +
-	"\x12GetUniversityByINN\x12$.structure.GetUniversityByINNRequest\x1a%.structure.GetUniversityByINNResponse\x12X\n" +
+	"\x12GetUniversityByINN\x12$.structure.GetUniversityByINNRequest\x1a%.structure.GetUniversityByINNResponse\x12j\n" +
+	"\x15CreateOrGetUniversity\x12'.structure.CreateOrGetUniversityRequest\x1a(.structure.CreateOrGetUniversityResponse\x12X\n" +
 	"\x0fCreateStructure\x12!.structure.CreateStructureRequest\x1a\".structure.CreateStructureResponse\x12X\n" +
 	"\x0fLinkGroupToChat\x12!.structure.LinkGroupToChatRequest\x1a\".structure.LinkGroupToChatResponseB)Z'structure-service/api/proto;structurepbb\x06proto3"
 
@@ -659,34 +790,39 @@ func file_api_proto_structure_proto_rawDescGZIP() []byte {
 	return file_api_proto_structure_proto_rawDescData
 }
 
-var file_api_proto_structure_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_api_proto_structure_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_api_proto_structure_proto_goTypes = []any{
-	(*GetUniversityByIDRequest)(nil),   // 0: structure.GetUniversityByIDRequest
-	(*GetUniversityByIDResponse)(nil),  // 1: structure.GetUniversityByIDResponse
-	(*GetUniversityByINNRequest)(nil),  // 2: structure.GetUniversityByINNRequest
-	(*GetUniversityByINNResponse)(nil), // 3: structure.GetUniversityByINNResponse
-	(*University)(nil),                 // 4: structure.University
-	(*CreateStructureRequest)(nil),     // 5: structure.CreateStructureRequest
-	(*CreateStructureResponse)(nil),    // 6: structure.CreateStructureResponse
-	(*LinkGroupToChatRequest)(nil),     // 7: structure.LinkGroupToChatRequest
-	(*LinkGroupToChatResponse)(nil),    // 8: structure.LinkGroupToChatResponse
+	(*GetUniversityByIDRequest)(nil),      // 0: structure.GetUniversityByIDRequest
+	(*GetUniversityByIDResponse)(nil),     // 1: structure.GetUniversityByIDResponse
+	(*GetUniversityByINNRequest)(nil),     // 2: structure.GetUniversityByINNRequest
+	(*GetUniversityByINNResponse)(nil),    // 3: structure.GetUniversityByINNResponse
+	(*CreateOrGetUniversityRequest)(nil),  // 4: structure.CreateOrGetUniversityRequest
+	(*CreateOrGetUniversityResponse)(nil), // 5: structure.CreateOrGetUniversityResponse
+	(*University)(nil),                    // 6: structure.University
+	(*CreateStructureRequest)(nil),        // 7: structure.CreateStructureRequest
+	(*CreateStructureResponse)(nil),       // 8: structure.CreateStructureResponse
+	(*LinkGroupToChatRequest)(nil),        // 9: structure.LinkGroupToChatRequest
+	(*LinkGroupToChatResponse)(nil),       // 10: structure.LinkGroupToChatResponse
 }
 var file_api_proto_structure_proto_depIdxs = []int32{
-	4, // 0: structure.GetUniversityByIDResponse.university:type_name -> structure.University
-	4, // 1: structure.GetUniversityByINNResponse.university:type_name -> structure.University
-	0, // 2: structure.StructureService.GetUniversityByID:input_type -> structure.GetUniversityByIDRequest
-	2, // 3: structure.StructureService.GetUniversityByINN:input_type -> structure.GetUniversityByINNRequest
-	5, // 4: structure.StructureService.CreateStructure:input_type -> structure.CreateStructureRequest
-	7, // 5: structure.StructureService.LinkGroupToChat:input_type -> structure.LinkGroupToChatRequest
-	1, // 6: structure.StructureService.GetUniversityByID:output_type -> structure.GetUniversityByIDResponse
-	3, // 7: structure.StructureService.GetUniversityByINN:output_type -> structure.GetUniversityByINNResponse
-	6, // 8: structure.StructureService.CreateStructure:output_type -> structure.CreateStructureResponse
-	8, // 9: structure.StructureService.LinkGroupToChat:output_type -> structure.LinkGroupToChatResponse
-	6, // [6:10] is the sub-list for method output_type
-	2, // [2:6] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	6,  // 0: structure.GetUniversityByIDResponse.university:type_name -> structure.University
+	6,  // 1: structure.GetUniversityByINNResponse.university:type_name -> structure.University
+	6,  // 2: structure.CreateOrGetUniversityResponse.university:type_name -> structure.University
+	0,  // 3: structure.StructureService.GetUniversityByID:input_type -> structure.GetUniversityByIDRequest
+	2,  // 4: structure.StructureService.GetUniversityByINN:input_type -> structure.GetUniversityByINNRequest
+	4,  // 5: structure.StructureService.CreateOrGetUniversity:input_type -> structure.CreateOrGetUniversityRequest
+	7,  // 6: structure.StructureService.CreateStructure:input_type -> structure.CreateStructureRequest
+	9,  // 7: structure.StructureService.LinkGroupToChat:input_type -> structure.LinkGroupToChatRequest
+	1,  // 8: structure.StructureService.GetUniversityByID:output_type -> structure.GetUniversityByIDResponse
+	3,  // 9: structure.StructureService.GetUniversityByINN:output_type -> structure.GetUniversityByINNResponse
+	5,  // 10: structure.StructureService.CreateOrGetUniversity:output_type -> structure.CreateOrGetUniversityResponse
+	8,  // 11: structure.StructureService.CreateStructure:output_type -> structure.CreateStructureResponse
+	10, // 12: structure.StructureService.LinkGroupToChat:output_type -> structure.LinkGroupToChatResponse
+	8,  // [8:13] is the sub-list for method output_type
+	3,  // [3:8] is the sub-list for method input_type
+	3,  // [3:3] is the sub-list for extension type_name
+	3,  // [3:3] is the sub-list for extension extendee
+	0,  // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_api_proto_structure_proto_init() }
@@ -694,14 +830,14 @@ func file_api_proto_structure_proto_init() {
 	if File_api_proto_structure_proto != nil {
 		return
 	}
-	file_api_proto_structure_proto_msgTypes[6].OneofWrappers = []any{}
+	file_api_proto_structure_proto_msgTypes[8].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_api_proto_structure_proto_rawDesc), len(file_api_proto_structure_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

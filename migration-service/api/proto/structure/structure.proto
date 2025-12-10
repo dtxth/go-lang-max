@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package structure;
+
+option go_package = "structure-service/api/proto;structurepb";
+
+// StructureService предоставляет методы для работы со структурой вузов
+service StructureService {
+  // GetUniversityByID получает вуз по ID
+  rpc GetUniversityByID(GetUniversityByIDRequest) returns (GetUniversityByIDResponse);
+  
+  // GetUniversityByINN получает вуз по ИНН
+  rpc GetUniversityByINN(GetUniversityByINNRequest) returns (GetUniversityByINNResponse);
+  
+  // CreateOrGetUniversity создает или получает вуз по ИНН/КПП
+  rpc CreateOrGetUniversity(CreateOrGetUniversityRequest) returns (CreateOrGetUniversityResponse);
+  
+  // CreateStructure создает полную структуру (университет, филиал, факультет, группа)
+  rpc CreateStructure(CreateStructureRequest) returns (CreateStructureResponse);
+  
+  // LinkGroupToChat связывает группу с чатом
+  rpc LinkGroupToChat(LinkGroupToChatRequest) returns (LinkGroupToChatResponse);
+}
+
+message GetUniversityByIDRequest {
+  int64 id = 1;
+}
+
+message GetUniversityByIDResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message GetUniversityByINNRequest {
+  string inn = 1;
+}
+
+message GetUniversityByINNResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message CreateOrGetUniversityRequest {
+  string inn = 1;
+  string kpp = 2;
+  string name = 3;
+  string foiv = 4;
+}
+
+message CreateOrGetUniversityResponse {
+  University university = 1;
+  string error = 2;
+}
+
+message University {
+  int64 id = 1;
+  string name = 2;
+  string inn = 3;
+  string kpp = 4;
+  string foiv = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+
+message CreateStructureRequest {
+  string inn = 1;
+  string kpp = 2;
+  string foiv = 3;
+  string org_name = 4;
+  string branch_name = 5;
+  string faculty_name = 6;
+  int32 course = 7;
+  string group_number = 8;
+}
+
+message CreateStructureResponse {
+  int64 university_id = 1;
+  optional int64 branch_id = 2;
+  optional int64 faculty_id = 3;
+  int64 group_id = 4;
+  string error = 5;
+}
+
+message LinkGroupToChatRequest {
+  int64 group_id = 1;
+  int64 chat_id = 2;
+}
+
+message LinkGroupToChatResponse {
+  bool success = 1;
+  string error = 2;
+}

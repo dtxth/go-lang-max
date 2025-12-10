@@ -26,9 +26,6 @@ type ChatServiceInterface interface {
 	// RemoveAdministrator удаляет администратора из чата
 	RemoveAdministrator(adminID int64) error
 	
-	// CreateOrGetUniversity создает или получает университет по INN/KPP
-	CreateOrGetUniversity(inn, kpp, name string) (*University, error)
-	
-	// CreateChat создает новый чат
+	// CreateChat creates a new chat
 	CreateChat(name, url, maxChatID, source string, participantsCount int, universityID *int64, department string) (*Chat, error)
 }

@@ -429,46 +429,7 @@ type CreateChatRequest struct {
 	Department        string  `json:"department,omitempty"`
 }
 
-// CreateUniversityRequest представляет запрос на создание университета
-type CreateUniversityRequest struct {
-	INN  string `json:"inn" binding:"required"`
-	KPP  string `json:"kpp"`
-	Name string `json:"name" binding:"required"`
-}
 
-// CreateUniversity godoc
-// @Summary      Создать или получить университет
-// @Description  Создает новый университет или возвращает существующий по INN/KPP
-// @Tags         universities
-// @Accept       json
-// @Produce      json
-// @Param        input  body      CreateUniversityRequest  true  "Данные университета"
-// @Success      201    {object}  map[string]int
-// @Failure      400    {string}  string
-// @Router       /universities [post]
-func (h *Handler) CreateUniversity(w http.ResponseWriter, r *http.Request) {
-	var req CreateUniversityRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	if req.INN == "" || req.Name == "" {
-		http.Error(w, "inn and name are required", http.StatusBadRequest)
-		return
-	}
-
-	// Создаем или получаем университет
-	university, err := h.chatService.CreateOrGetUniversity(req.INN, req.KPP, req.Name)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]int{"id": int(university.ID)})
-}
 
 // CreateChat godoc
 // @Summary      Создать чат
