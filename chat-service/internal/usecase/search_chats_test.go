@@ -42,6 +42,10 @@ func (m *MockChatRepositoryForSearch) Delete(id int64) error {
 	return nil
 }
 
+func (m *MockChatRepositoryForSearch) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	return m.Search(search, limit, offset, filter)
+}
+
 func TestSearchChats_EmptyQuery(t *testing.T) {
 	// Arrange
 	mockRepo := &MockChatRepositoryForSearch{

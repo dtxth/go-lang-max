@@ -103,6 +103,10 @@ func (m *mockChatRepoForAdd) Delete(id int64) error {
 	return nil
 }
 
+func (m *mockChatRepoForAdd) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	return nil, 0, nil
+}
+
 type mockMaxServiceForAdd struct {
 	maxIDs       map[string]string // phone -> maxID
 	validateFunc func(string) bool

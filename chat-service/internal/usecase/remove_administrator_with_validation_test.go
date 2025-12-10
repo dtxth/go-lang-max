@@ -87,6 +87,10 @@ func (m *mockChatRepoForRemove) Delete(id int64) error {
 	return nil
 }
 
+func (m *mockChatRepoForRemove) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	return nil, 0, nil
+}
+
 func TestRemoveAdministratorWithValidation_Success(t *testing.T) {
 	// Setup
 	chatID := int64(1)

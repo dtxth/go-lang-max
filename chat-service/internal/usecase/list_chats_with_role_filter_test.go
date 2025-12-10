@@ -42,6 +42,10 @@ func (m *MockChatRepository) Delete(id int64) error {
 	return nil
 }
 
+func (m *MockChatRepository) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	return m.Search(search, limit, offset, filter)
+}
+
 func TestListChatsWithRoleFilterUseCase_Execute_Superadmin(t *testing.T) {
 	// Arrange
 	universityID := int64(1)

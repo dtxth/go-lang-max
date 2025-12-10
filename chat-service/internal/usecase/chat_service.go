@@ -43,6 +43,21 @@ func (s *ChatService) GetAllChats(limit, offset int, filter *domain.ChatFilter) 
 	return s.listChatsWithRoleFilterUC.GetAll(limit, offset, filter)
 }
 
+// GetAllChatsWithSortingAndSearch получает все чаты с пагинацией, сортировкой и поиском
+func (s *ChatService) GetAllChatsWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	
+	return s.chatRepo.GetAllWithSortingAndSearch(limit, offset, sortBy, sortOrder, search, filter)
+}
+
 // GetChatByID получает чат по ID
 func (s *ChatService) GetChatByID(id int64) (*domain.Chat, error) {
 	chat, err := s.chatRepo.GetByID(id)

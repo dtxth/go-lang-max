@@ -16,6 +16,9 @@ type ChatRepository interface {
 
 	// GetAll получает все чаты с пагинацией и фильтрацией по роли
 	GetAll(limit, offset int, filter *ChatFilter) ([]*Chat, int, error)
+	
+	// GetAllWithSortingAndSearch получает все чаты с пагинацией, сортировкой и поиском
+	GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *ChatFilter) ([]*Chat, int, error)
 
 	// Update обновляет данные чата
 	Update(chat *Chat) error

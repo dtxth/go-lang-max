@@ -493,3 +493,182 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 	}
 	return administratorsMap, rows.Err()
 }
+
+func (r *ChatPostgres) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	// Валидация параметров сортировки
+	validSortFields := map[string]string{
+		"id":                 "c.id",
+		"name":               "c.name",
+		"url":                "c.url",
+		"max_chat_id":        "c.max_chat_id",
+		"participants_count": "c.participants_count",
+		"department":         "c.department",
+		"source":             "c.source",
+		"university":         "u.name",
+		"created_at":         "c.created_at",
+		"updated_at":         "c.updated_at",
+	}
+	
+	sortField, exists := validSortFields[sortBy]
+	if !exists {
+		sortField = "c.name" // по умолчанию сортировка по названию
+	}
+	
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc" // по умолчанию по возрастанию
+	}
+	
+	// Построение WHERE условия для поиска
+	whereClause := ""
+	args := []interface{}{}
+	argIndex := 1
+	
+	if search != "" {
+		// Нормализуем поисковый запрос
+		normalizedQuery := strings.Map(func(r rune) rune {
+			if (r >= 'а' && r <= 'я') || (r >= 'А' && r <= 'Я') ||
+				(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+				(r >= '0' && r <= '9') || r == 'ё' || r == 'Ё' {
+				return r
+			}
+			return ' ' // Заменяем специальные символы на пробелы
+		}, search)
+		
+		words := strings.Fields(normalizedQuery)
+		if len(words) > 0 {
+			whereParts := make([]string, len(words))
+			for i, word := range words {
+				// Экранируем специальные символы LIKE
+				escapedWord := strings.ReplaceAll(word, "%", "\\%")
+				escapedWord = strings.ReplaceAll(escapedWord, "_", "\\_")
+				
+				// Для каждого слова ищем в любом из полей
+				whereParts[i] = fmt.Sprintf(
+					"(c.name ILIKE $%d OR c.department ILIKE $%d OR u.name ILIKE $%d OR c.max_chat_id ILIKE $%d OR c.source ILIKE $%d)",
+					argIndex, argIndex, argIndex, argIndex, argIndex,
+				)
+				args = append(args, "%"+escapedWord+"%")
+				argIndex++
+			}
+			whereClause = "WHERE " + strings.Join(whereParts, " AND ")
+		}
+	}
+	
+	// Фильтрация по роли и контексту
+	if filter != nil {
+		roleFilter := ""
+		if filter.IsSuperadmin() {
+			// Суперадмин видит все чаты - не добавляем фильтры
+		} else if filter.IsCurator() && filter.UniversityID != nil {
+			// Куратор видит только чаты своего вуза
+			roleFilter = "c.university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		} else if filter.IsOperator() && filter.UniversityID != nil {
+			// Оператор видит только чаты своего вуза
+			roleFilter = "c.university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		}
+		
+		if roleFilter != "" {
+			if whereClause != "" {
+				whereClause += " AND " + roleFilter
+			} else {
+				whereClause = "WHERE " + roleFilter
+			}
+		}
+	}
+	
+	// Подсчет общего количества
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM chats c LEFT JOIN universities u ON c.university_id = u.id ` + whereClause
+	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	// Добавляем LIMIT и OFFSET
+	args = append(args, limit, offset)
+	limitArg := "$" + strconv.Itoa(argIndex)
+	offsetArg := "$" + strconv.Itoa(argIndex+1)
+	
+	query := `SELECT c.id, c.name, c.url, c.max_chat_id, c.external_chat_id, c.participants_count, 
+		        c.university_id, c.department, c.source, c.created_at, c.updated_at,
+		        u.id, u.name, u.inn, u.kpp, u.created_at, u.updated_at
+		 FROM chats c
+		 LEFT JOIN universities u ON c.university_id = u.id ` +
+		whereClause + `
+		 ORDER BY ` + sortField + ` ` + sortOrder + `
+		 LIMIT ` + limitArg + ` OFFSET ` + offsetArg
+	
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	
+	var chats []*domain.Chat
+	chatIDs := make([]int64, 0)
+	
+	for rows.Next() {
+		chat := &domain.Chat{}
+		var universityID sql.NullInt64
+		var universityIDFromJoin sql.NullInt64
+		var universityName sql.NullString
+		var universityINN sql.NullString
+		var universityKPP sql.NullString
+		var universityCreatedAt sql.NullTime
+		var universityUpdatedAt sql.NullTime
+		var externalChatID sql.NullString
+		
+		err := rows.Scan(
+			&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &externalChatID, &chat.ParticipantsCount,
+			&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
+			&universityIDFromJoin, &universityName, &universityINN, &universityKPP,
+			&universityCreatedAt, &universityUpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		
+		if externalChatID.Valid {
+			chat.ExternalChatID = &externalChatID.String
+		}
+		
+		// Устанавливаем вуз, если он есть
+		if universityID.Valid {
+			univID := universityID.Int64
+			chat.UniversityID = &univID
+			if universityIDFromJoin.Valid && universityName.Valid {
+				chat.University = &domain.University{
+					ID:   universityIDFromJoin.Int64,
+					Name: universityName.String,
+					INN:  universityINN.String,
+					KPP:  universityKPP.String,
+				}
+				if universityCreatedAt.Valid {
+					chat.University.CreatedAt = universityCreatedAt.Time
+				}
+				if universityUpdatedAt.Valid {
+					chat.University.UpdatedAt = universityUpdatedAt.Time
+				}
+			}
+		}
+		
+		chatIDs = append(chatIDs, chat.ID)
+		chats = append(chats, chat)
+	}
+	
+	// Загружаем администраторов для всех чатов одним запросом
+	if len(chatIDs) > 0 {
+		administratorsMap, err := r.loadAdministratorsBatch(chatIDs)
+		if err == nil {
+			for _, chat := range chats {
+				chat.Administrators = administratorsMap[chat.ID]
+			}
+		}
+	}
+	
+	return chats, totalCount, rows.Err()
+}

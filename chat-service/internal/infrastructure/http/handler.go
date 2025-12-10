@@ -3,7 +3,6 @@ package http
 import (
 	"chat-service/internal/domain"
 	"chat-service/internal/infrastructure/logger"
-	"chat-service/internal/usecase"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -11,7 +10,7 @@ import (
 )
 
 type Handler struct {
-	chatService    *usecase.ChatService
+	chatService    domain.ChatServiceInterface
 	authMiddleware *AuthMiddleware
 	logger         *logger.Logger
 }
@@ -28,6 +27,15 @@ type ChatListResponse struct {
 	TotalCount int     `json:"total_count"`
 	Limit      int     `json:"limit"`
 	Offset     int     `json:"offset"`
+}
+
+// PaginatedChatsResponse представляет ответ с расширенной пагинацией для чатов
+type PaginatedChatsResponse struct {
+	Data       []*Chat `json:"data"`
+	Total      int     `json:"total"`
+	Limit      int     `json:"limit"`
+	Offset     int     `json:"offset"`
+	TotalPages int     `json:"total_pages"`
 }
 
 // AddAdministratorRequest представляет запрос на добавление администратора
@@ -52,7 +60,7 @@ type DeleteResponse struct {
 	Status string `json:"status" example:"deleted"`
 }
 
-func NewHandler(chatService *usecase.ChatService, authMiddleware *AuthMiddleware, log *logger.Logger) *Handler {
+func NewHandler(chatService domain.ChatServiceInterface, authMiddleware *AuthMiddleware, log *logger.Logger) *Handler {
 	return &Handler{
 		chatService:    chatService,
 		authMiddleware: authMiddleware,
@@ -124,14 +132,17 @@ func (h *Handler) SearchChats(w http.ResponseWriter, r *http.Request) {
 
 // GetAllChats godoc
 // @Summary      Получить все чаты
-// @Description  Возвращает список всех чатов с пагинацией (с учетом роли пользователя)
+// @Description  Возвращает список всех чатов с пагинацией, сортировкой и поиском (с учетом роли пользователя)
 // @Tags         chats
 // @Accept       json
 // @Produce      json
 // @Param        Authorization header    string  true   "Bearer token"
 // @Param        limit         query     int     false  "Лимит результатов (по умолчанию 50, максимум 100)"
 // @Param        offset        query     int     false  "Смещение для пагинации"
-// @Success      200           {object}  ChatListResponse
+// @Param        sort_by       query     string  false  "Поле для сортировки (id, name, url, max_chat_id, participants_count, department, source, university, created_at, updated_at)"
+// @Param        sort_order    query     string  false  "Порядок сортировки (asc, desc)"
+// @Param        search        query     string  false  "Поисковый запрос по всем полям"
+// @Success      200           {object}  PaginatedChatsResponse
 // @Failure      400           {string}  string
 // @Failure      401           {string}  string
 // @Failure      403           {string}  string
@@ -153,8 +164,11 @@ func (h *Handler) GetAllChats(w http.ResponseWriter, r *http.Request) {
 
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+	sortBy := r.URL.Query().Get("sort_by")
+	sortOrder := r.URL.Query().Get("sort_order")
+	search := r.URL.Query().Get("search")
 
-	chats, totalCount, err := h.chatService.GetAllChats(limit, offset, filter)
+	chats, totalCount, err := h.chatService.GetAllChatsWithSortingAndSearch(limit, offset, sortBy, sortOrder, search, filter)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == domain.ErrForbidden || err == domain.ErrInvalidRole {
@@ -164,6 +178,23 @@ func (h *Handler) GetAllChats(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Устанавливаем значения по умолчанию для ответа
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+
+	// Вычисляем общее количество страниц
+	totalPages := (totalCount + limit - 1) / limit
+	if totalPages == 0 {
+		totalPages = 1
+	}
+
 	// Конвертируем domain.Chat в Chat для ответа
 	responseChats := make([]*Chat, len(chats))
 	for i, chat := range chats {
@@ -171,11 +202,12 @@ func (h *Handler) GetAllChats(w http.ResponseWriter, r *http.Request) {
 		responseChats[i] = &c
 	}
 
-	response := ChatListResponse{
-		Chats:      responseChats,
-		TotalCount: totalCount,
+	response := PaginatedChatsResponse{
+		Data:       responseChats,
+		Total:      totalCount,
 		Limit:      limit,
 		Offset:     offset,
+		TotalPages: totalPages,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
