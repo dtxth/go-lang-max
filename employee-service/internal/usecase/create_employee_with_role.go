@@ -102,6 +102,8 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 
 	// Если есть роль, сначала создаем пользователя в Auth Service
 	if role != "" {
+		log.Printf("Creating user with role %s for phone ending in %s", role, sanitizePhone(phone))
+		
 		// Проверяем, что authService не nil
 		if uc.authService == nil {
 			return nil, errors.New("auth service is not available")
@@ -113,12 +115,18 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 			return nil, errors.New("failed to generate password: " + err.Error())
 		}
 		
+		log.Printf("DEBUG: Generated password for phone ending in %s", sanitizePhone(phone))
+		
 		// Создаем пользователя в Auth Service (используем телефон как идентификатор)
 		userID, err := uc.authService.CreateUser(ctx, phone, password)
 		if err != nil {
 			return nil, errors.New("failed to create user in auth service: " + err.Error())
 		}
 		employee.UserID = &userID
+		
+		// Логируем сгенерированный пароль для администраторов
+		log.Printf("Generated password for new employee with phone ending in %s: %s", 
+			sanitizePhone(phone), password)
 		
 		// Отправляем пароль пользователю через MAX Messenger
 		// Не блокируем создание пользователя при ошибке отправки уведомления

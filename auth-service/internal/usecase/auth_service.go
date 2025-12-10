@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"log"
 	"math/big"
 	"strconv"
 	"time"
@@ -96,9 +97,13 @@ func (s *AuthService) Register(email, password, role string) (*domain.User, erro
 
 // CreateUser создает нового пользователя без роли (роль назначается отдельно через AssignRole)
 func (s *AuthService) CreateUser(phone, password string) (int64, error) {
+    log.Printf("DEBUG: CreateUser called for phone ending in %s", sanitizePhone(phone))
+    
     // Проверяем, не существует ли уже пользователь с таким телефоном
     existingUser, err := s.repo.GetByPhone(phone)
     if err == nil && existingUser != nil && existingUser.ID > 0 {
+        log.Printf("DEBUG: User already exists for phone ending in %s, returning existing user ID: %d", 
+            sanitizePhone(phone), existingUser.ID)
         return existingUser.ID, nil // Возвращаем существующего пользователя
     }
 
@@ -123,6 +128,10 @@ func (s *AuthService) CreateUser(phone, password string) (int64, error) {
         s.metrics.IncrementUserCreations()
     }
     
+    // Логируем сгенерированный пароль для администраторов
+    log.Printf("Generated password for new user with phone ending in %s: %s", 
+        sanitizePhone(phone), password)
+    
     // Audit log: user created (without password or hash)
     if s.logger != nil {
         s.logger.Info(nil, "user_created", map[string]interface{}{
@@ -146,6 +155,50 @@ func (s *AuthService) Login(email, password string) (*TokensWithJTIResult, error
     }
 
     tokens, err := s.jwtManager.GenerateTokens(user.ID, user.Email, user.Role)
+    if err != nil {
+        return nil, err
+    }
+
+    // Save refresh jti
+    expiresAt := time.Now().Add(s.jwtManager.RefreshTTL())
+    if err := s.refreshRepo.Save(tokens.RefreshJTI, user.ID, expiresAt); err != nil {
+        return nil, err
+    }
+
+    return &TokensWithJTIResult{
+        AccessToken:  tokens.AccessToken,
+        RefreshToken: tokens.RefreshToken,
+        RefreshJTI:   tokens.RefreshJTI,
+    }, nil
+}
+
+// LoginByIdentifier поддерживает вход как по email, так и по телефону
+func (s *AuthService) LoginByIdentifier(identifier, password string) (*TokensWithJTIResult, error) {
+    var user *domain.User
+    var err error
+    
+    // Определяем, является ли идентификатор телефоном (начинается с +)
+    if len(identifier) > 0 && identifier[0] == '+' {
+        user, err = s.repo.GetByPhone(identifier)
+    } else {
+        user, err = s.repo.GetByEmail(identifier)
+    }
+    
+    if err != nil {
+        return nil, domain.ErrInvalidCreds
+    }
+    
+    if !s.hasher.Compare(password, user.Password) {
+        return nil, domain.ErrInvalidCreds
+    }
+
+    // Используем email для токена, если есть, иначе телефон
+    tokenIdentifier := user.Email
+    if tokenIdentifier == "" {
+        tokenIdentifier = user.Phone
+    }
+
+    tokens, err := s.jwtManager.GenerateTokens(user.ID, tokenIdentifier, user.Role)
     if err != nil {
         return nil, err
     }
@@ -352,6 +405,10 @@ func (s *AuthService) RequestPasswordReset(phone string) error {
 	if s.metrics != nil {
 		s.metrics.IncrementTokensGenerated()
 	}
+
+	// Логируем токен сброса пароля для администраторов
+	log.Printf("Generated password reset token for user with phone ending in %s: %s", 
+		sanitizePhone(phone), token)
 
 	// Send token via notification service
 	if err := s.notificationService.SendResetTokenNotification(nil, phone, token); err != nil {

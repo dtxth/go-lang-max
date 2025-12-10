@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	maxbotproto "maxbot-service/api/proto"
+	// maxbotproto "maxbot-service/api/proto"
 	"google.golang.org/grpc"
 )
 

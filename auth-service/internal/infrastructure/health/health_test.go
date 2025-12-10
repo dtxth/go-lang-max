@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	maxbotproto "maxbot-service/api/proto"
+	// maxbotproto "maxbot-service/api/proto"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
 )

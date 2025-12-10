@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"auth-service/internal/infrastructure/logger"
-	maxbotproto "maxbot-service/api/proto"
+	// maxbotproto "maxbot-service/api/proto"
 
 	"github.com/leanovate/gopter"
 	"github.com/leanovate/gopter/gen"

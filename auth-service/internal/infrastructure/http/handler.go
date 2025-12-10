@@ -5,6 +5,7 @@ import (
 	"auth-service/internal/infrastructure/middleware"
 	"auth-service/internal/usecase"
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -100,11 +101,11 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 
 // Login godoc
 // @Summary      Login user
-// @Description  Returns access and refresh tokens
+// @Description  Returns access and refresh tokens. Supports login by email or phone.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input  body      object{email=string,password=string}  true  "User credentials"
+// @Param        input  body      object{email=string,phone=string,password=string}  true  "User credentials (provide either email or phone)"
 // @Success      200    {object}  domain.TokenPair
 // @Failure      401    {string}  string
 // @Router       /login [post]
@@ -113,6 +114,62 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
     
     var req struct {
         Email    string `json:"email"`
+        Phone    string `json:"phone"`
+        Password string `json:"password"`
+    }
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
+        return
+    }
+
+    // Debug logging
+    log.Printf("DEBUG: Login request - Email: '%s', Phone: '%s'", req.Email, req.Phone)
+    
+    // Validate that either email or phone is provided
+    if req.Email == "" && req.Phone == "" {
+        errors.WriteError(w, errors.MissingFieldError("email or phone"), requestID)
+        return
+    }
+    if req.Password == "" {
+        errors.WriteError(w, errors.MissingFieldError("password"), requestID)
+        return
+    }
+
+    // Use phone if provided, otherwise use email
+    identifier := req.Email
+    if req.Phone != "" {
+        identifier = req.Phone
+    }
+
+    tokens, err := h.auth.LoginByIdentifier(identifier, req.Password)
+    if err != nil {
+        errors.WriteError(w, err, requestID)
+        return
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(map[string]string{
+        "access_token":  tokens.AccessToken,
+        "refresh_token": tokens.RefreshToken,
+    })
+}
+
+// LoginByPhone godoc
+// @Summary      Login user by phone
+// @Description  Returns access and refresh tokens for phone-based login
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      object{phone=string,password=string}  true  "User credentials"
+// @Success      200    {object}  domain.TokenPair
+// @Failure      401    {string}  string
+// @Router       /login-phone [post]
+func (h *Handler) LoginByPhone(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
+    var req struct {
+        Phone    string `json:"phone"`
         Password string `json:"password"`
     }
     
@@ -122,8 +179,8 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
     }
 
     // Validate required fields
-    if req.Email == "" {
-        errors.WriteError(w, errors.MissingFieldError("email"), requestID)
+    if req.Phone == "" {
+        errors.WriteError(w, errors.MissingFieldError("phone"), requestID)
         return
     }
     if req.Password == "" {
@@ -131,7 +188,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    tokens, err := h.auth.Login(req.Email, req.Password)
+    tokens, err := h.auth.LoginByIdentifier(req.Phone, req.Password)
     if err != nil {
         errors.WriteError(w, err, requestID)
         return

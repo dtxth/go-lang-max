@@ -13,6 +13,7 @@ func (h *Handler) Router() http.Handler {
 	// Auth endpoints
 	mux.HandleFunc("/register", h.Register)
 	mux.HandleFunc("/login", h.Login)
+	mux.HandleFunc("/login-phone", h.LoginByPhone)
 	mux.HandleFunc("/refresh", h.Refresh)
 	mux.HandleFunc("/logout", h.Logout)
 	

@@ -17,13 +17,9 @@ WORKDIR /app/auth-service
 # Download dependencies (replace directives will work now)
 RUN go mod download
 
-# Генерируем proto файлы
-RUN protoc --go_out=. --go_opt=paths=source_relative \
-    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-    api/proto/auth.proto
+# Skip proto generation for now - using existing generated files
 
-# Генерируем Swagger документацию
-RUN swag init -g cmd/auth/main.go -o internal/infrastructure/http/docs
+# Skip swagger generation for now
 
 # Build the service
 RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-service ./cmd/auth

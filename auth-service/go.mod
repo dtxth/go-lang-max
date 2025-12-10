@@ -8,7 +8,6 @@ require (
 	github.com/lib/pq v1.10.9
 	golang.org/x/crypto v0.45.0 // or latest
 	google.golang.org/grpc v1.66.0
-	maxbot-service v0.0.0
 )
 
 require (
@@ -19,8 +18,6 @@ require (
 	github.com/swaggo/swag v1.16.6
 	google.golang.org/protobuf v1.34.1
 )
-
-replace maxbot-service => ../maxbot-service
 
 require (
 	github.com/KyleBanks/depth v1.2.1 // indirect
