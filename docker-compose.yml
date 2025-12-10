@@ -13,7 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - auth_pgdata:/var/lib/postgresql/data
-      - ./auth-service/migrations:/docker-entrypoint-initdb.d
+      - ./auth-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -58,7 +58,7 @@ services:
       - "5434:5432"
     volumes:
       - chat_db_data:/var/lib/postgresql/data
-      - ./chat-service/migrations:/docker-entrypoint-initdb.d
+      - ./chat-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U chat_user -d chat_db"]
       interval: 10s
@@ -107,7 +107,7 @@ services:
       - "5433:5432"
     volumes:
       - employee_db_data:/var/lib/postgresql/data
-      - ./employee-service/migrations:/docker-entrypoint-initdb.d
+      - ./employee-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U employee_user"]
       interval: 10s
@@ -155,7 +155,7 @@ services:
       - "5435:5432"
     volumes:
       - structure_pgdata:/var/lib/postgresql/data
-      - ./structure-service/migrations:/docker-entrypoint-initdb.d
+      - ./structure-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -218,7 +218,7 @@ services:
       - "5436:5432"
     volumes:
       - migration_db_data:/var/lib/postgresql/data
-      - ./migration-service/migrations:/docker-entrypoint-initdb.d
+      - ./migration-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
