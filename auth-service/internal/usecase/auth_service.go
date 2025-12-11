@@ -192,10 +192,14 @@ func (s *AuthService) LoginByIdentifier(identifier, password string) (*TokensWit
         return nil, domain.ErrInvalidCreds
     }
 
-    // Используем email для токена, если есть, иначе телефон
-    tokenIdentifier := user.Email
-    if tokenIdentifier == "" {
+    // Используем тот идентификатор, по которому пользователь авторизовался
+    var tokenIdentifier string
+    if len(identifier) > 0 && identifier[0] == '+' {
+        // Авторизация по телефону - используем телефон в токене
         tokenIdentifier = user.Phone
+    } else {
+        // Авторизация по email - используем email в токене
+        tokenIdentifier = user.Email
     }
 
     tokens, err := s.jwtManager.GenerateTokens(user.ID, tokenIdentifier, user.Role)
@@ -265,8 +269,19 @@ func (s *AuthService) Refresh(refreshToken string) (*TokensWithJTIResult, error)
         return nil, domain.ErrInvalidCreds
     }
 
+    // Извлекаем идентификатор из исходного токена (phone или email)
+    var identifier string
+    if phone, ok := claims["phone"].(string); ok {
+        identifier = phone
+    } else if email, ok := claims["email"].(string); ok {
+        identifier = email
+    } else {
+        // Fallback к email пользователя из БД
+        identifier = user.Email
+    }
+
     // generate new tokens с актуальной ролью из БД
-    tokens, err := s.jwtManager.GenerateTokens(userID, user.Email, user.Role)
+    tokens, err := s.jwtManager.GenerateTokens(userID, identifier, user.Role)
     if err != nil {
         return nil, err
     }

@@ -29,21 +29,27 @@ func NewManager(access, refresh string, accessTTL, refreshTTL time.Duration) *Ma
 }
 
 // GenerateTokens создаёт access и refresh токены с JTI (без контекста)
-func (m *Manager) GenerateTokens(userID int64, email, role string) (*domain.TokensWithJTI, error) {
-    return m.GenerateTokensWithContext(userID, email, role, nil)
+func (m *Manager) GenerateTokens(userID int64, identifier, role string) (*domain.TokensWithJTI, error) {
+    return m.GenerateTokensWithContext(userID, identifier, role, nil)
 }
 
 // GenerateTokensWithContext создаёт access и refresh токены с JTI и контекстом роли
-func (m *Manager) GenerateTokensWithContext(userID int64, email, role string, ctx *domain.TokenContext) (*domain.TokensWithJTI, error) {
+func (m *Manager) GenerateTokensWithContext(userID int64, identifier, role string, ctx *domain.TokenContext) (*domain.TokensWithJTI, error) {
     now := time.Now()
 
     // Access token
     accessClaims := jwt.MapClaims{
-        "sub":   fmt.Sprintf("%d", userID),
-        "email": email,
-        "role":  role,
-        "exp":   now.Add(m.accessTTL).Unix(),
-        "iat":   now.Unix(),
+        "sub":  fmt.Sprintf("%d", userID),
+        "role": role,
+        "exp":  now.Add(m.accessTTL).Unix(),
+        "iat":  now.Unix(),
+    }
+    
+    // Определяем, является ли идентификатор телефоном или email
+    if len(identifier) > 0 && identifier[0] == '+' {
+        accessClaims["phone"] = identifier
+    } else {
+        accessClaims["email"] = identifier
     }
     
     // Добавляем контекстную информацию, если она есть
@@ -68,12 +74,18 @@ func (m *Manager) GenerateTokensWithContext(userID int64, email, role string, ct
     // Refresh token
     jti := uuid.NewString()
     refreshClaims := jwt.MapClaims{
-        "jti":   jti,
-        "sub":   fmt.Sprintf("%d", userID),
-        "email": email,
-        "role":  role,
-        "exp":   now.Add(m.refreshTTL).Unix(),
-        "iat":   now.Unix(),
+        "jti":  jti,
+        "sub":  fmt.Sprintf("%d", userID),
+        "role": role,
+        "exp":  now.Add(m.refreshTTL).Unix(),
+        "iat":  now.Unix(),
+    }
+    
+    // Определяем, является ли идентификатор телефоном или email
+    if len(identifier) > 0 && identifier[0] == '+' {
+        refreshClaims["phone"] = identifier
+    } else {
+        refreshClaims["email"] = identifier
     }
     
     // Добавляем контекстную информацию в refresh token
@@ -124,7 +136,7 @@ func (m *Manager) JWTVerify(tokenStr string) (map[string]interface{}, error) {
     return nil, jwt.ErrTokenSignatureInvalid
 }
 
-// ParseAccessToken возвращает userID, email и role из access токена
+// ParseAccessToken возвращает userID, identifier (email или phone) и role из access токена
 func (m *Manager) ParseAccessToken(tokenStr string) (int64, string, string, error) {
     claims, err := m.JWTVerify(tokenStr)
     if err != nil {
@@ -135,10 +147,17 @@ func (m *Manager) ParseAccessToken(tokenStr string) (int64, string, string, erro
     if !ok {
         return 0, "", "", fmt.Errorf("sub not found in token")
     }
-    email, ok := claims["email"].(string)
-    if !ok {
-        return 0, "", "", fmt.Errorf("email not found in token")
+    
+    // Проверяем наличие phone или email
+    var identifier string
+    if phone, ok := claims["phone"].(string); ok {
+        identifier = phone
+    } else if email, ok := claims["email"].(string); ok {
+        identifier = email
+    } else {
+        return 0, "", "", fmt.Errorf("neither phone nor email found in token")
     }
+    
     role, ok := claims["role"].(string)
     if !ok {
         return 0, "", "", fmt.Errorf("role not found in token")
@@ -149,7 +168,7 @@ func (m *Manager) ParseAccessToken(tokenStr string) (int64, string, string, erro
         return 0, "", "", err
     }
 
-    return userID, email, role, nil
+    return userID, identifier, role, nil
 }
 
 // ParseRefreshToken проверяет refresh токен и возвращает claims
@@ -177,7 +196,7 @@ func (m *Manager) VerifyAccessToken(tokenStr string) (int64, string, string, err
     return m.ParseAccessToken(tokenStr)
 }
 
-// VerifyAccessTokenWithContext проверяет access токен и возвращает userID, email, role и контекст
+// VerifyAccessTokenWithContext проверяет access токен и возвращает userID, identifier (email или phone), role и контекст
 func (m *Manager) VerifyAccessTokenWithContext(tokenStr string) (int64, string, string, *domain.TokenContext, error) {
     claims, err := m.JWTVerify(tokenStr)
     if err != nil {
@@ -188,10 +207,17 @@ func (m *Manager) VerifyAccessTokenWithContext(tokenStr string) (int64, string, 
     if !ok {
         return 0, "", "", nil, fmt.Errorf("sub not found in token")
     }
-    email, ok := claims["email"].(string)
-    if !ok {
-        return 0, "", "", nil, fmt.Errorf("email not found in token")
+    
+    // Проверяем наличие phone или email
+    var identifier string
+    if phone, ok := claims["phone"].(string); ok {
+        identifier = phone
+    } else if email, ok := claims["email"].(string); ok {
+        identifier = email
+    } else {
+        return 0, "", "", nil, fmt.Errorf("neither phone nor email found in token")
     }
+    
     role, ok := claims["role"].(string)
     if !ok {
         return 0, "", "", nil, fmt.Errorf("role not found in token")
@@ -220,7 +246,7 @@ func (m *Manager) VerifyAccessTokenWithContext(tokenStr string) (int64, string, 
         ctx.FacultyID = &id
     }
 
-    return userID, email, role, ctx, nil
+    return userID, identifier, role, ctx, nil
 }
 
 // VerifyRefreshToken проверяет refresh токен и возвращает claims (реализация интерфейса domain.JWTManager)

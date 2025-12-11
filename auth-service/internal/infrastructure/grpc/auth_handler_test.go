@@ -152,7 +152,7 @@ func (m *mockPasswordHasher) Compare(password, hashedPassword string) bool {
 
 type mockJWTManager struct{}
 
-func (m *mockJWTManager) GenerateTokens(userID int64, email, role string) (*domain.TokensWithJTI, error) {
+func (m *mockJWTManager) GenerateTokens(userID int64, identifier, role string) (*domain.TokensWithJTI, error) {
 	return &domain.TokensWithJTI{
 		TokenPair: domain.TokenPair{
 			AccessToken:  "mock-access-token",
@@ -162,8 +162,8 @@ func (m *mockJWTManager) GenerateTokens(userID int64, email, role string) (*doma
 	}, nil
 }
 
-func (m *mockJWTManager) GenerateTokensWithContext(userID int64, email, role string, ctx *domain.TokenContext) (*domain.TokensWithJTI, error) {
-	return m.GenerateTokens(userID, email, role)
+func (m *mockJWTManager) GenerateTokensWithContext(userID int64, identifier, role string, ctx *domain.TokenContext) (*domain.TokensWithJTI, error) {
+	return m.GenerateTokens(userID, identifier, role)
 }
 
 func (m *mockJWTManager) VerifyAccessToken(token string) (int64, string, string, error) {
