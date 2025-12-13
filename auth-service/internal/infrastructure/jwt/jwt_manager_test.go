@@ -7,7 +7,7 @@ import (
 )
 
 func TestGenerateTokensWithContext(t *testing.T) {
-	manager := NewManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 7*24*time.Hour)
+	manager := NewManager("test-access-secret", "test-refresh-secret", 1*time.Hour, 7*24*time.Hour)
 	
 	userID := int64(123)
 	email := "test@example.com"
@@ -69,7 +69,7 @@ func TestGenerateTokensWithContext(t *testing.T) {
 }
 
 func TestGenerateTokensWithoutContext(t *testing.T) {
-	manager := NewManager("test-access-secret", "test-refresh-secret", 15*time.Minute, 7*24*time.Hour)
+	manager := NewManager("test-access-secret", "test-refresh-secret", 1*time.Hour, 7*24*time.Hour)
 	
 	userID := int64(123)
 	email := "test@example.com"

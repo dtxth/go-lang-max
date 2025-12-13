@@ -46,7 +46,7 @@ func main() {
 	userRoleRepo := repository.NewUserRolePostgres(db)
 	passwordResetRepo := repository.NewPasswordResetPostgres(db)
 	hasher := hash.NewBcryptHasher()
-	jwtManager := jwt.NewManager(cfg.AccessSecret, cfg.RefreshSecret, 15*time.Minute, 7*24*time.Hour)
+	jwtManager := jwt.NewManager(cfg.AccessSecret, cfg.RefreshSecret, 1*time.Hour, 7*24*time.Hour)
 	
 	// Initialize logger
 	appLogger := logger.NewDefault()
