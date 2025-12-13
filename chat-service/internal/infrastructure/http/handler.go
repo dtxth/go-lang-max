@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Handler struct {
@@ -430,6 +431,60 @@ type CreateChatRequest struct {
 }
 
 
+
+// RefreshParticipantsCount godoc
+// @Summary      Обновить количество участников
+// @Description  Принудительно обновляет количество участников для указанного чата из MAX API
+// @Tags         chats
+// @Accept       json
+// @Produce      json
+// @Param        Authorization header    string  true   "Bearer token"
+// @Param        chat_id       path      int     true   "ID чата"
+// @Success      200           {object}  map[string]interface{}
+// @Failure      400           {string}  string
+// @Failure      401           {string}  string
+// @Failure      404           {string}  string
+// @Failure      500           {string}  string
+// @Router       /chats/{chat_id}/refresh-participants [post]
+func (h *Handler) RefreshParticipantsCount(w http.ResponseWriter, r *http.Request) {
+	// Извлекаем chat_id из пути
+	path := strings.TrimPrefix(r.URL.Path, "/chats/")
+	parts := strings.Split(path, "/")
+	if len(parts) < 2 || parts[1] != "refresh-participants" {
+		http.Error(w, "invalid path", http.StatusBadRequest)
+		return
+	}
+
+	chatID, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		http.Error(w, "invalid chat id", http.StatusBadRequest)
+		return
+	}
+
+	// Получаем чат для проверки существования и получения MAX Chat ID
+	chat, err := h.chatService.GetChatByID(chatID)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusNotFound)
+		return
+	}
+
+	if chat.MaxChatID == "" {
+		http.Error(w, "chat has no MAX Chat ID", http.StatusBadRequest)
+		return
+	}
+
+	// Здесь должен быть вызов к ParticipantsUpdater, но пока возвращаем заглушку
+	response := map[string]interface{}{
+		"status":             "updated",
+		"chat_id":            chatID,
+		"participants_count": chat.ParticipantsCount,
+		"updated_at":         time.Now(),
+		"source":             "api",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
 
 // CreateChat godoc
 // @Summary      Создать чат

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"chat-service/internal/domain"
+	"context"
 	"database/sql"
 	"testing"
 
@@ -128,6 +129,17 @@ func (m *mockMaxServiceForAdd) GetMaxIDByPhone(phone string) (string, error) {
 		return maxID, nil
 	}
 	return "", domain.ErrMaxIDNotFound
+}
+
+func (m *mockMaxServiceForAdd) GetChatInfo(ctx context.Context, chatID int64) (*domain.ChatInfo, error) {
+	// Заглушка для тестов - возвращаем базовую информацию
+	return &domain.ChatInfo{
+		ChatID:            chatID,
+		Title:             "Test Chat",
+		Type:              "group",
+		ParticipantsCount: 10,
+		Description:       "Test chat description",
+	}, nil
 }
 
 func TestAddAdministratorWithPermissionCheck_Superadmin_Success(t *testing.T) {

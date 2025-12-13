@@ -2,14 +2,19 @@ package usecase
 
 import (
 	"chat-service/internal/domain"
+	"context"
 	"errors"
 	"strings"
+	"time"
 )
 
 type ChatService struct {
 	chatRepo                              domain.ChatRepository
 	administratorRepo                     domain.AdministratorRepository
 	maxService                            domain.MaxService
+	participantsCache                     domain.ParticipantsCache
+	participantsUpdater                   domain.ParticipantsUpdater
+	participantsConfig                    *domain.ParticipantsConfig
 	listChatsWithRoleFilterUC             *ListChatsWithRoleFilterUseCase
 	addAdministratorWithPermissionCheckUC *AddAdministratorWithPermissionCheckUseCase
 	removeAdministratorWithValidationUC   *RemoveAdministratorWithValidationUseCase
@@ -24,6 +29,30 @@ func NewChatService(
 		chatRepo:                              chatRepo,
 		administratorRepo:                     administratorRepo,
 		maxService:                            maxService,
+		participantsCache:                     nil,
+		participantsUpdater:                   nil,
+		participantsConfig:                    nil,
+		listChatsWithRoleFilterUC:             NewListChatsWithRoleFilterUseCase(chatRepo),
+		addAdministratorWithPermissionCheckUC: NewAddAdministratorWithPermissionCheckUseCase(administratorRepo, chatRepo, maxService),
+		removeAdministratorWithValidationUC:   NewRemoveAdministratorWithValidationUseCase(administratorRepo, chatRepo),
+	}
+}
+
+func NewChatServiceWithParticipants(
+	chatRepo domain.ChatRepository,
+	administratorRepo domain.AdministratorRepository,
+	maxService domain.MaxService,
+	participantsCache domain.ParticipantsCache,
+	participantsUpdater domain.ParticipantsUpdater,
+	participantsConfig *domain.ParticipantsConfig,
+) *ChatService {
+	return &ChatService{
+		chatRepo:                              chatRepo,
+		administratorRepo:                     administratorRepo,
+		maxService:                            maxService,
+		participantsCache:                     participantsCache,
+		participantsUpdater:                   participantsUpdater,
+		participantsConfig:                    participantsConfig,
 		listChatsWithRoleFilterUC:             NewListChatsWithRoleFilterUseCase(chatRepo),
 		addAdministratorWithPermissionCheckUC: NewAddAdministratorWithPermissionCheckUseCase(administratorRepo, chatRepo, maxService),
 		removeAdministratorWithValidationUC:   NewRemoveAdministratorWithValidationUseCase(administratorRepo, chatRepo),
@@ -52,7 +81,20 @@ func (s *ChatService) GetAllChatsWithSortingAndSearch(limit, offset int, sortBy,
 		offset = 0
 	}
 	
-	return s.chatRepo.GetAllWithSortingAndSearch(limit, offset, sortBy, sortOrder, search, filter)
+	chats, totalCount, err := s.chatRepo.GetAllWithSortingAndSearch(limit, offset, sortBy, sortOrder, search, filter)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	// Обогащаем чаты актуальными данными об участниках
+	enrichedChats, err := s.enrichChatsWithParticipants(context.Background(), chats)
+	if err != nil {
+		// Логируем ошибку, но не прерываем выполнение - возвращаем данные из БД
+		// s.logger.Error("Failed to enrich chats with participants", "error", err)
+		return chats, totalCount, nil
+	}
+	
+	return enrichedChats, totalCount, nil
 }
 
 // GetChatByID получает чат по ID
@@ -221,6 +263,72 @@ func (s *ChatService) DeleteChat(id int64) error {
 	}
 
 	return s.chatRepo.Delete(id)
+}
+
+// enrichChatsWithParticipants обогащает чаты актуальными данными об участниках
+func (s *ChatService) enrichChatsWithParticipants(ctx context.Context, chats []*domain.Chat) ([]*domain.Chat, error) {
+	if len(chats) == 0 || s.participantsCache == nil || s.participantsConfig == nil || !s.participantsConfig.EnableLazyUpdate {
+		return chats, nil
+	}
+	
+	// Собираем ID чатов для батчевого запроса
+	chatIDs := make([]int64, len(chats))
+	chatMap := make(map[int64]*domain.Chat)
+	for i, chat := range chats {
+		chatIDs[i] = chat.ID
+		chatMap[chat.ID] = chat
+	}
+	
+	// Получаем данные из кэша с fallback
+	cachedData, err := s.participantsCache.GetMultiple(ctx, chatIDs)
+	if err != nil {
+		// Логируем ошибку, но продолжаем работу с данными из БД
+		// TODO: добавить метрику participants_cache_errors_total
+		return chats, nil // Возвращаем исходные данные из БД
+	}
+	
+	// Определяем чаты, которые нужно обновить
+	chatsToUpdate := make([]domain.ChatUpdateRequest, 0)
+	staleThreshold := time.Now().Add(-s.participantsConfig.StaleThreshold)
+	
+	for _, chat := range chats {
+		cachedInfo, exists := cachedData[chat.ID]
+		
+		// Если данных нет в кэше или они устарели
+		if !exists || cachedInfo.UpdatedAt.Before(staleThreshold) {
+			if chat.MaxChatID != "" {
+				chatsToUpdate = append(chatsToUpdate, domain.ChatUpdateRequest{
+					ChatID:    chat.ID,
+					MaxChatID: chat.MaxChatID,
+				})
+			}
+		} else {
+			// Используем данные из кэша
+			chat.ParticipantsCount = cachedInfo.Count
+		}
+	}
+	
+	// Асинхронно обновляем устаревшие данные (если их немного)
+	if len(chatsToUpdate) > 0 && len(chatsToUpdate) <= 10 {
+		go func() {
+			updateCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+			defer cancel()
+			
+			updatedData, err := s.participantsUpdater.UpdateBatch(updateCtx, chatsToUpdate)
+			if err != nil {
+				return // логирование уже внутри UpdateBatch
+			}
+			
+			// Обновляем данные в исходных объектах чатов
+			for chatID, info := range updatedData {
+				if chat, exists := chatMap[chatID]; exists {
+					chat.ParticipantsCount = info.Count
+				}
+			}
+		}()
+	}
+	
+	return chats, nil
 }
 
 

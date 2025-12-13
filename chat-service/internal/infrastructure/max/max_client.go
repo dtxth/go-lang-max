@@ -83,6 +83,38 @@ func (c *MaxClient) ValidatePhone(phone string) bool {
 	return resp.Valid
 }
 
+func (c *MaxClient) GetChatInfo(ctx context.Context, chatID int64) (*domain.ChatInfo, error) {
+	ctx, cancel := context.WithTimeout(ctx, c.timeout)
+	defer cancel()
+
+	var resp *maxbotproto.GetChatInfoResponse
+	err := grpcretry.WithRetry(ctx, "MaxBot.GetChatInfo", func() error {
+		var callErr error
+		resp, callErr = c.client.GetChatInfo(ctx, &maxbotproto.GetChatInfoRequest{ChatId: chatID})
+		return callErr
+	})
+	
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Error != "" {
+		return nil, mapError(resp.ErrorCode, resp.Error)
+	}
+
+	if resp.Chat == nil {
+		return nil, errors.New("chat info not found")
+	}
+
+	return &domain.ChatInfo{
+		ChatID:            resp.Chat.ChatId,
+		Title:             resp.Chat.Title,
+		Type:              resp.Chat.Type,
+		ParticipantsCount: int(resp.Chat.ParticipantsCount),
+		Description:       resp.Chat.Description,
+	}, nil
+}
+
 func mapError(code maxbotproto.ErrorCode, message string) error {
 	switch code {
 	case maxbotproto.ErrorCode_ERROR_CODE_INVALID_PHONE:

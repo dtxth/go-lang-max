@@ -1,0 +1,57 @@
+# Дополнительная конфигурация для интеграции с Redis для кэширования участников
+# Используется вместе с основным docker-compose.yml
+
+version: '3.8'
+
+services:
+  # Redis для кэширования количества участников
+  chat-redis:
+    image: redis:7-alpine
+    container_name: chat-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - chat_redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    networks:
+      - chat_network
+
+  # Обновленный chat-service с поддержкой Redis
+  chat-service:
+    environment:
+      # Основные настройки (из основного docker-compose.yml)
+      - DATABASE_URL=postgres://chat_user:chat_password@chat-db:5432/chat_db?sslmode=disable
+      - PORT=8082
+      - GRPC_PORT=9092
+      - AUTH_GRPC_ADDR=auth-service:9090
+      - MAXBOT_GRPC_ADDR=maxbot-service:9095
+      - LOG_LEVEL=info
+      
+      # Настройки Redis для участников
+      - REDIS_URL=redis://chat-redis:6379/0
+      - PARTICIPANTS_CACHE_TTL=1h
+      - PARTICIPANTS_UPDATE_INTERVAL=15m
+      - PARTICIPANTS_FULL_UPDATE_HOUR=3
+      - PARTICIPANTS_BATCH_SIZE=50
+      - PARTICIPANTS_MAX_API_TIMEOUT=30s
+      - PARTICIPANTS_STALE_THRESHOLD=1h
+      - PARTICIPANTS_ENABLE_BACKGROUND_SYNC=true
+      - PARTICIPANTS_ENABLE_LAZY_UPDATE=true
+    depends_on:
+      chat-redis:
+        condition: service_healthy
+    networks:
+      - chat_network
+
+volumes:
+  chat_redis_data:
+    driver: local
+
+networks:
+  chat_network:
+    external: true

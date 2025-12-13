@@ -46,16 +46,29 @@ func (h *Handler) Router() http.Handler {
 			return
 		}
 
-		// Проверяем, является ли это запросом к /chats/{id}/administrators
+		// Проверяем специальные пути
 		parts := strings.Split(path, "/")
-		if len(parts) == 2 && parts[1] == "administrators" {
-			switch r.Method {
-			case http.MethodPost:
-				h.AddAdministrator(w, r)
-			default:
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		if len(parts) == 2 {
+			switch parts[1] {
+			case "administrators":
+				// /chats/{id}/administrators
+				switch r.Method {
+				case http.MethodPost:
+					h.AddAdministrator(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+				return
+			case "refresh-participants":
+				// /chats/{id}/refresh-participants
+				switch r.Method {
+				case http.MethodPost:
+					h.authMiddleware.Authenticate(h.RefreshParticipantsCount)(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+				return
 			}
-			return
 		}
 
 		// Проверяем, что это числовой ID
