@@ -10,6 +10,7 @@ type Config struct {
 	MaxAPIURL      string
 	MaxAPIToken    string
 	RequestTimeout time.Duration
+	MockMode       bool
 }
 
 func Load() *Config {
@@ -18,6 +19,7 @@ func Load() *Config {
 		MaxAPIURL:      getEnv("MAX_API_URL", ""),
 		MaxAPIToken:    getEnv("MAX_API_TOKEN", ""),
 		RequestTimeout: getDurationEnv("MAX_API_TIMEOUT", 5*time.Second),
+		MockMode:       getBoolEnv("MOCK_MODE", false),
 	}
 }
 
@@ -33,6 +35,13 @@ func getDurationEnv(key string, def time.Duration) time.Duration {
 		if parsed, err := time.ParseDuration(val); err == nil {
 			return parsed
 		}
+	}
+	return def
+}
+
+func getBoolEnv(key string, def bool) bool {
+	if val, ok := os.LookupEnv(key); ok {
+		return val == "true" || val == "1" || val == "yes"
 	}
 	return def
 }
