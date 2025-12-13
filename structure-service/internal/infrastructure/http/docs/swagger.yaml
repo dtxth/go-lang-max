@@ -11,6 +11,39 @@ definitions:
       url:
         type: string
     type: object
+  domain.DepartmentManager:
+    properties:
+      assigned_at:
+        type: string
+      assigned_by:
+        description: User ID куратора
+        type: integer
+      branch_id:
+        type: integer
+      employee_id:
+        type: integer
+      faculty_id:
+        type: integer
+      id:
+        type: integer
+    type: object
+  domain.ImportResult:
+    properties:
+      created:
+        description: Количество созданных записей
+        type: integer
+      errors:
+        description: Список ошибок
+        items:
+          type: string
+        type: array
+      failed:
+        description: Количество неудачных записей
+        type: integer
+      updated:
+        description: Количество обновленных записей
+        type: integer
+    type: object
   domain.StructureNode:
     properties:
       chat:
@@ -33,6 +66,8 @@ definitions:
     type: object
   domain.University:
     properties:
+      chats_count:
+        type: integer
       created_at:
         type: string
       foiv:
@@ -49,12 +84,171 @@ definitions:
       updated_at:
         type: string
     type: object
+  http.AssignOperatorRequest:
+    properties:
+      assigned_by:
+        type: integer
+      branch_id:
+        type: integer
+      employee_id:
+        type: integer
+      faculty_id:
+        type: integer
+    type: object
+  http.LinkGroupToChatRequest:
+    properties:
+      chat_id:
+        type: integer
+    type: object
+  http.PaginatedUniversitiesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/domain.University'
+        type: array
+      limit:
+        type: integer
+      offset:
+        type: integer
+      total:
+        type: integer
+      total_pages:
+        type: integer
+    type: object
+  usecase.CreateStructureRequest:
+    properties:
+      branch_name:
+        type: string
+      course:
+        type: integer
+      faculty_name:
+        type: string
+      foiv:
+        type: string
+      group_number:
+        type: string
+      inn:
+        type: string
+      kpp:
+        type: string
+      org_name:
+        type: string
+    type: object
+  usecase.CreateStructureResponse:
+    properties:
+      branch_id:
+        type: integer
+      faculty_id:
+        type: integer
+      group_id:
+        type: integer
+      university_id:
+        type: integer
+    type: object
 info:
   contact: {}
   description: Service for managing university structure hierarchy
   title: Structure Service API
   version: "1.0"
 paths:
+  /departments/managers:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех назначений операторов на подразделения
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.DepartmentManager'
+            type: array
+      summary: Получить все назначения операторов
+      tags:
+      - department-managers
+    post:
+      consumes:
+      - application/json
+      description: Назначает оператора на филиал или факультет
+      parameters:
+      - description: Данные назначения
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.AssignOperatorRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.DepartmentManager'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Назначить оператора на подразделение
+      tags:
+      - department-managers
+  /departments/managers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Удаляет назначение оператора на подразделение
+      parameters:
+      - description: ID назначения
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Удалить назначение оператора
+      tags:
+      - department-managers
+  /groups/{group_id}/chat:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет chat_id для группы
+      parameters:
+      - description: ID группы
+        in: path
+        name: group_id
+        required: true
+        type: integer
+      - description: ID чата
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.LinkGroupToChatRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Связать группу с чатом
+      tags:
+      - groups
   /import/excel:
     post:
       consumes:
@@ -72,9 +266,7 @@ paths:
         "200":
           description: OK
           schema:
-            additionalProperties:
-              type: string
-            type: object
+            $ref: '#/definitions/domain.ImportResult'
         "400":
           description: Bad Request
           schema:
@@ -82,20 +274,70 @@ paths:
       summary: Импортировать структуру из Excel
       tags:
       - import
-  /universities:
-    get:
+  /structure:
+    post:
       consumes:
       - application/json
-      description: Возвращает список всех вузов
+      description: Создает или находит все элементы структуры (университет, филиал,
+        факультет, группа)
+      parameters:
+      - description: Данные структуры
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/usecase.CreateStructureRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/domain.University'
-            type: array
+            $ref: '#/definitions/usecase.CreateStructureResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Создать полную структуру
+      tags:
+      - structure
+  /universities:
+    get:
+      consumes:
+      - application/json
+      description: Возвращает список всех вузов с пагинацией, сортировкой и поиском
+      parameters:
+      - description: Лимит результатов (по умолчанию 50, максимум 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Смещение для пагинации
+        in: query
+        name: offset
+        type: integer
+      - description: Поле для сортировки (id, name, inn, kpp, foiv, created_at, updated_at)
+        in: query
+        name: sort_by
+        type: string
+      - description: Порядок сортировки (asc, desc)
+        in: query
+        name: sort_order
+        type: string
+      - description: Поисковый запрос по всем полям
+        in: query
+        name: search
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/http.PaginatedUniversitiesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            type: string
       summary: Получить все вузы
       tags:
       - universities

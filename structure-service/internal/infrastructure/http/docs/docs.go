@@ -244,7 +244,7 @@ const docTemplate = `{
         },
         "/universities": {
             "get": {
-                "description": "Возвращает список всех вузов",
+                "description": "Возвращает список всех вузов с пагинацией, сортировкой и поиском",
                 "consumes": [
                     "application/json"
                 ],
@@ -255,14 +255,49 @@ const docTemplate = `{
                     "universities"
                 ],
                 "summary": "Получить все вузы",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Лимит результатов (по умолчанию 50, максимум 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Смещение для пагинации",
+                        "name": "offset",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Поле для сортировки (id, name, inn, kpp, foiv, created_at, updated_at)",
+                        "name": "sort_by",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Порядок сортировки (asc, desc)",
+                        "name": "sort_order",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Поисковый запрос по всем полям",
+                        "name": "search",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/domain.University"
-                            }
+                            "$ref": "#/definitions/http.PaginatedUniversitiesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
                         }
                     }
                 }
@@ -482,6 +517,9 @@ const docTemplate = `{
         "domain.University": {
             "type": "object",
             "properties": {
+                "chats_count": {
+                    "type": "integer"
+                },
                 "created_at": {
                     "type": "string"
                 },
@@ -527,6 +565,29 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "chat_id": {
+                    "type": "integer"
+                }
+            }
+        },
+        "http.PaginatedUniversitiesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.University"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total": {
+                    "type": "integer"
+                },
+                "total_pages": {
                     "type": "integer"
                 }
             }

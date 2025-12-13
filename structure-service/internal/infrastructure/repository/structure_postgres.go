@@ -20,14 +20,25 @@ func (r *StructurePostgres) CreateUniversity(u *domain.University) error {
 	query := `INSERT INTO universities (name, inn, kpp, foiv, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
 	err := r.db.QueryRow(query, u.Name, u.INN, u.KPP, u.FOIV, time.Now(), time.Now()).Scan(&u.ID)
-	return err
+	if err != nil {
+		return err
+	}
+	// Устанавливаем chats_count в 0 для новых университетов
+	u.ChatsCount = 0
+	return nil
 }
 
 func (r *StructurePostgres) GetUniversityByID(id int64) (*domain.University, error) {
 	u := &domain.University{}
-	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
-			  FROM universities WHERE id = $1`
-	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
+	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
+		         (SELECT COUNT(DISTINCT g.chat_id) 
+		          FROM branches b
+		          LEFT JOIN faculties f ON f.branch_id = b.id
+		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
+		          WHERE b.university_id = u.id) as chats_count
+		 FROM universities u
+		 WHERE u.id = $1`
+	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrUniversityNotFound
 	}
@@ -36,9 +47,15 @@ func (r *StructurePostgres) GetUniversityByID(id int64) (*domain.University, err
 
 func (r *StructurePostgres) GetUniversityByINN(inn string) (*domain.University, error) {
 	u := &domain.University{}
-	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
-			  FROM universities WHERE inn = $1 LIMIT 1`
-	err := r.db.QueryRow(query, inn).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
+	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
+		         (SELECT COUNT(DISTINCT g.chat_id) 
+		          FROM branches b
+		          LEFT JOIN faculties f ON f.branch_id = b.id
+		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
+		          WHERE b.university_id = u.id) as chats_count
+		 FROM universities u
+		 WHERE u.inn = $1 LIMIT 1`
+	err := r.db.QueryRow(query, inn).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrUniversityNotFound
 	}
@@ -47,9 +64,15 @@ func (r *StructurePostgres) GetUniversityByINN(inn string) (*domain.University, 
 
 func (r *StructurePostgres) GetUniversityByINNAndKPP(inn, kpp string) (*domain.University, error) {
 	u := &domain.University{}
-	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
-			  FROM universities WHERE inn = $1 AND kpp = $2`
-	err := r.db.QueryRow(query, inn, kpp).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
+	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
+		         (SELECT COUNT(DISTINCT g.chat_id) 
+		          FROM branches b
+		          LEFT JOIN faculties f ON f.branch_id = b.id
+		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
+		          WHERE b.university_id = u.id) as chats_count
+		 FROM universities u
+		 WHERE u.inn = $1 AND u.kpp = $2`
+	err := r.db.QueryRow(query, inn, kpp).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrUniversityNotFound
 	}
@@ -69,7 +92,14 @@ func (r *StructurePostgres) DeleteUniversity(id int64) error {
 }
 
 func (r *StructurePostgres) GetAllUniversities() ([]*domain.University, error) {
-	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at FROM universities ORDER BY name`
+	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
+		         (SELECT COUNT(DISTINCT g.chat_id) 
+		          FROM branches b
+		          LEFT JOIN faculties f ON f.branch_id = b.id
+		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
+		          WHERE b.university_id = u.id) as chats_count
+		 FROM universities u
+		 ORDER BY u.name`
 	rows, err := r.db.Query(query)
 	if err != nil {
 		return nil, err
@@ -79,7 +109,7 @@ func (r *StructurePostgres) GetAllUniversities() ([]*domain.University, error) {
 	var universities []*domain.University
 	for rows.Next() {
 		u := &domain.University{}
-		if err := rows.Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt); err != nil {
+		if err := rows.Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount); err != nil {
 			return nil, err
 		}
 		universities = append(universities, u)
@@ -115,17 +145,17 @@ func (r *StructurePostgres) GetAllUniversitiesWithSortingAndSearch(limit, offset
 	
 	if search != "" {
 		searchPattern := "%" + search + "%"
-		whereClause = `WHERE (LOWER(name) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `) 
-		                  OR LOWER(inn) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `) 
-		                  OR LOWER(kpp) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `)
-		                  OR LOWER(foiv) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `))`
+		whereClause = `WHERE (LOWER(u.name) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `) 
+		                  OR LOWER(u.inn) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `) 
+		                  OR LOWER(u.kpp) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `)
+		                  OR LOWER(u.foiv) LIKE LOWER($` + fmt.Sprintf("%d", argIndex) + `))`
 		args = append(args, searchPattern)
 		argIndex++
 	}
 	
 	// Подсчет общего количества
 	var totalCount int
-	countQuery := `SELECT COUNT(*) FROM universities ` + whereClause
+	countQuery := `SELECT COUNT(*) FROM universities u ` + whereClause
 	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
@@ -136,10 +166,16 @@ func (r *StructurePostgres) GetAllUniversitiesWithSortingAndSearch(limit, offset
 	limitArg := fmt.Sprintf("$%d", argIndex)
 	offsetArg := fmt.Sprintf("$%d", argIndex+1)
 	
-	query := `SELECT id, name, inn, kpp, foiv, created_at, updated_at 
-		 FROM universities ` +
+	// Запрос с подсчетом чатов
+	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
+		         (SELECT COUNT(DISTINCT g.chat_id) 
+		          FROM branches b
+		          LEFT JOIN faculties f ON f.branch_id = b.id
+		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
+		          WHERE b.university_id = u.id) as chats_count
+		 FROM universities u ` +
 		whereClause + `
-		 ORDER BY ` + sortField + ` ` + sortOrder + `
+		 ORDER BY u.` + sortField + ` ` + sortOrder + `
 		 LIMIT ` + limitArg + ` OFFSET ` + offsetArg
 	
 	rows, err := r.db.Query(query, args...)
@@ -151,7 +187,7 @@ func (r *StructurePostgres) GetAllUniversitiesWithSortingAndSearch(limit, offset
 	var universities []*domain.University
 	for rows.Next() {
 		u := &domain.University{}
-		err := rows.Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt)
+		err := rows.Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
 		if err != nil {
 			return nil, 0, err
 		}

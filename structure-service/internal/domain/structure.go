@@ -4,13 +4,14 @@ import "time"
 
 // University представляет вуз
 type University struct {
-	ID        int64     `json:"id"`
-	Name      string    `json:"name"`
-	INN       string    `json:"inn"`
-	KPP       string    `json:"kpp,omitempty"`
-	FOIV      string    `json:"foiv,omitempty"` // ФОИВ
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	INN        string    `json:"inn"`
+	KPP        string    `json:"kpp,omitempty"`
+	FOIV       string    `json:"foiv,omitempty"` // ФОИВ
+	ChatsCount int       `json:"chats_count"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // Branch представляет филиал/головное подразделение
