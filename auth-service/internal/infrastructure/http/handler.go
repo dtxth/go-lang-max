@@ -196,7 +196,6 @@ func (h *Handler) LoginByPhone(w http.ResponseWriter, r *http.Request) {
 
     // Normalize phone number to +7XXXXXXXXXX format
     normalizedPhone := phone.NormalizePhone(req.Phone)
-    log.Printf("DEBUG: Phone normalized from '%s' to '%s'", req.Phone, normalizedPhone)
 
     tokens, err := h.auth.LoginByIdentifier(normalizedPhone, req.Password)
     if err != nil {

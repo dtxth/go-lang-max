@@ -3,6 +3,7 @@ package repository
 import (
 	"auth-service/internal/domain"
 	"database/sql"
+	"log"
 )
 
 type UserPostgres struct {
