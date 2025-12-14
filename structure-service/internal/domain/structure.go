@@ -62,6 +62,7 @@ type StructureNode struct {
 	Chat      *Chat            `json:"chat,omitempty"`
 	Course    *int             `json:"course,omitempty"`
 	GroupNum  *string          `json:"group_num,omitempty"`
+	ChatCount *int             `json:"chat_count"`
 }
 
 // ExcelRow представляет строку из Excel файла

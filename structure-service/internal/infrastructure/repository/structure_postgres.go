@@ -577,3 +577,43 @@ func (r *StructurePostgres) GetStructureByUniversityID(universityID int64) (*dom
 	return node, nil
 }
 
+// Chat counting methods
+
+// GetChatCountForUniversity counts all chats in a university
+func (r *StructurePostgres) GetChatCountForUniversity(universityID int64) (int, error) {
+	query := `SELECT COUNT(DISTINCT g.chat_id) 
+			  FROM groups g
+			  JOIN faculties f ON g.faculty_id = f.id
+			  LEFT JOIN branches b ON f.branch_id = b.id
+			  WHERE g.chat_id IS NOT NULL 
+			  AND (b.university_id = $1 OR (f.branch_id IS NULL AND EXISTS(
+				  SELECT 1 FROM universities u WHERE u.id = $1
+			  )))`
+	
+	var count int
+	err := r.db.QueryRow(query, universityID).Scan(&count)
+	return count, err
+}
+
+// GetChatCountForBranch counts all chats in a branch
+func (r *StructurePostgres) GetChatCountForBranch(branchID int64) (int, error) {
+	query := `SELECT COUNT(DISTINCT g.chat_id) 
+			  FROM groups g
+			  JOIN faculties f ON g.faculty_id = f.id
+			  WHERE f.branch_id = $1 AND g.chat_id IS NOT NULL`
+	
+	var count int
+	err := r.db.QueryRow(query, branchID).Scan(&count)
+	return count, err
+}
+
+// GetChatCountForFaculty counts all chats in a faculty
+func (r *StructurePostgres) GetChatCountForFaculty(facultyID int64) (int, error) {
+	query := `SELECT COUNT(DISTINCT g.chat_id) 
+			  FROM groups g
+			  WHERE g.faculty_id = $1 AND g.chat_id IS NOT NULL`
+	
+	var count int
+	err := r.db.QueryRow(query, facultyID).Scan(&count)
+	return count, err
+}

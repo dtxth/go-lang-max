@@ -41,5 +41,10 @@ type StructureRepository interface {
 	
 	// GetAllUniversitiesWithSortingAndSearch получает все университеты с пагинацией, сортировкой и поиском
 	GetAllUniversitiesWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*University, int, error)
+	
+	// Chat counting methods
+	GetChatCountForUniversity(universityID int64) (int, error)
+	GetChatCountForBranch(branchID int64) (int, error)
+	GetChatCountForFaculty(facultyID int64) (int, error)
 }
 

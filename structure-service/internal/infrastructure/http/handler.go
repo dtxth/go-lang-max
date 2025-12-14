@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/json"
 	"io"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -63,6 +64,7 @@ func NewHandler(
 // @Failure      404            {string}  string
 // @Router       /universities/{university_id}/structure [get]
 func (h *Handler) GetStructure(w http.ResponseWriter, r *http.Request) {
+	log.Printf("=== GetStructure handler called ===")
 	path := strings.TrimPrefix(r.URL.Path, "/universities/")
 	path = strings.TrimSuffix(path, "/structure")
 	universityID, err := strconv.ParseInt(path, 10, 64)
@@ -70,8 +72,11 @@ func (h *Handler) GetStructure(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "invalid university id", http.StatusBadRequest)
 		return
 	}
+	log.Printf("=== Parsed university ID: %d ===", universityID)
 
+	log.Printf("=== Handler: calling getUniversityStructureUseCase.Execute for university %d ===", universityID)
 	structure, err := h.getUniversityStructureUseCase.Execute(r.Context(), universityID)
+	log.Printf("=== Handler: got structure with ChatCount: %v ===", structure.ChatCount)
 	if err != nil {
 		if err == domain.ErrUniversityNotFound {
 			http.Error(w, err.Error(), http.StatusNotFound)

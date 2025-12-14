@@ -29,18 +29,24 @@ func NewGetUniversityStructureUseCase(repo domain.StructureRepository, chatServi
 // Execute retrieves the full university structure with nested hierarchy and chat details
 // Requirements: 10.2, 10.3, 10.5, 13.1, 13.2, 13.3, 13.5
 func (uc *GetUniversityStructureUseCase) Execute(ctx context.Context, universityID int64) (*domain.StructureNode, error) {
+	log.Printf("=== GetUniversityStructureUseCase.Execute called for university %d ===", universityID)
 	// Get university
 	university, err := uc.repo.GetUniversityByID(universityID)
 	if err != nil {
 		return nil, err
 	}
 
+	// Get chat count for university - TESTING WITH FIXED VALUE
+	chatCount := 999
+	log.Printf("=== USE CASE: University %d chat count: %d ===", universityID, chatCount)
+
 	// Create root node
 	root := &domain.StructureNode{
-		Type:     "university",
-		ID:       university.ID,
-		Name:     university.Name,
-		Children: []*domain.StructureNode{},
+		Type:      "university",
+		ID:        university.ID,
+		Name:      university.Name,
+		Children:  []*domain.StructureNode{},
+		ChatCount: &chatCount,
 	}
 
 	// Get branches
@@ -57,11 +63,19 @@ func (uc *GetUniversityStructureUseCase) Execute(ctx context.Context, university
 	if len(branches) > 0 {
 		// Structure with branches: University → Branch → Faculty → Group → Chat
 		for _, branch := range branches {
+			// Get chat count for branch
+			branchChatCount, err := uc.repo.GetChatCountForBranch(branch.ID)
+			if err != nil {
+				log.Printf("Error getting chat count for branch %d: %v", branch.ID, err)
+				branchChatCount = 0
+			}
+
 			branchNode := &domain.StructureNode{
-				Type:     "branch",
-				ID:       branch.ID,
-				Name:     branch.Name,
-				Children: []*domain.StructureNode{},
+				Type:      "branch",
+				ID:        branch.ID,
+				Name:      branch.Name,
+				Children:  []*domain.StructureNode{},
+				ChatCount: &branchChatCount,
 			}
 
 			// Get faculties for this branch
@@ -113,11 +127,19 @@ func (uc *GetUniversityStructureUseCase) Execute(ctx context.Context, university
 
 // buildFacultyNode builds a faculty node with its groups and chat details
 func (uc *GetUniversityStructureUseCase) buildFacultyNode(ctx context.Context, faculty *domain.Faculty) *domain.StructureNode {
+	// Get chat count for faculty
+	facultyChatCount, err := uc.repo.GetChatCountForFaculty(faculty.ID)
+	if err != nil {
+		log.Printf("Error getting chat count for faculty %d: %v", faculty.ID, err)
+		facultyChatCount = 0
+	}
+
 	facultyNode := &domain.StructureNode{
-		Type:     "faculty",
-		ID:       faculty.ID,
-		Name:     faculty.Name,
-		Children: []*domain.StructureNode{},
+		Type:      "faculty",
+		ID:        faculty.ID,
+		Name:      faculty.Name,
+		Children:  []*domain.StructureNode{},
+		ChatCount: &facultyChatCount,
 	}
 
 	// Get groups for this faculty
@@ -136,12 +158,19 @@ func (uc *GetUniversityStructureUseCase) buildFacultyNode(ctx context.Context, f
 	})
 
 	for _, group := range groups {
+		// Groups have either 0 or 1 chat, so chat_count is 0 or 1
+		chatCount := 0
+		if group.ChatID != nil {
+			chatCount = 1
+		}
+
 		groupNode := &domain.StructureNode{
-			Type:     "group",
-			ID:       group.ID,
-			Name:     group.Number,
-			Course:   &group.Course,
-			GroupNum: &group.Number,
+			Type:      "group",
+			ID:        group.ID,
+			Name:      group.Number,
+			Course:    &group.Course,
+			GroupNum:  &group.Number,
+			ChatCount: &chatCount,
 		}
 
 		// If group has a chat_id, fetch chat details from chat service (Requirement 10.2, 10.3)
