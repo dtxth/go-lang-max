@@ -24,8 +24,8 @@ type Handler struct {
 // AddEmployeeRequest представляет запрос на добавление сотрудника
 type AddEmployeeRequest struct {
 	Phone          string `json:"phone" example:"+79001234567" binding:"required"`
-	FirstName      string `json:"first_name" example:"Иван" binding:"required"`
-	LastName       string `json:"last_name" example:"Иванов" binding:"required"`
+	FirstName      string `json:"first_name,omitempty" example:"Иван"`
+	LastName       string `json:"last_name,omitempty" example:"Иванов"`
 	MiddleName     string `json:"middle_name,omitempty" example:"Иванович"`
 	INN            string `json:"inn,omitempty" example:"1234567890"`
 	KPP            string `json:"kpp,omitempty" example:"123456789"`
@@ -265,6 +265,10 @@ func (h *Handler) GetEmployeeByID(w http.ResponseWriter, r *http.Request) {
 // @Failure      409     {string}  string
 // @Router       /employees [post]
 func (h *Handler) AddEmployee(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info(r.Context(), "AddEmployee handler started", map[string]interface{}{
+		"method": r.Method,
+		"path":   r.URL.Path,
+	})
 	var req struct {
 		Phone          string `json:"phone"`
 		FirstName      string `json:"first_name"`
@@ -286,10 +290,13 @@ func (h *Handler) AddEmployee(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.FirstName == "" || req.LastName == "" {
-		http.Error(w, "first_name and last_name are required", http.StatusBadRequest)
-		return
-	}
+	// Логирование для отладки
+	h.logger.Info(r.Context(), "AddEmployee request", map[string]interface{}{
+		"phone": req.Phone,
+		"first_name": req.FirstName,
+		"last_name": req.LastName,
+		"role": req.Role,
+	})
 
 	// Если роль указана, используем CreateEmployeeWithRole
 	var employee *domain.Employee
@@ -314,14 +321,28 @@ func (h *Handler) AddEmployee(w http.ResponseWriter, r *http.Request) {
 		)
 	} else {
 		// Используем старый метод без роли
+		// Устанавливаем значения по умолчанию для пустых полей
+		firstName := req.FirstName
+		if firstName == "" {
+			firstName = "Неизвестно"
+		}
+		lastName := req.LastName
+		if lastName == "" {
+			lastName = "Неизвестно"
+		}
+		universityName := req.UniversityName
+		if universityName == "" {
+			universityName = "Неизвестный вуз"
+		}
+		
 		employee, err = h.employeeService.AddEmployeeByPhone(
 			req.Phone,
-			req.FirstName,
-			req.LastName,
+			firstName,
+			lastName,
 			req.MiddleName,
 			req.INN,
 			req.KPP,
-			req.UniversityName,
+			universityName,
 		)
 	}
 
@@ -335,6 +356,64 @@ func (h *Handler) AddEmployee(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), statusCode)
 		return
 	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(employee)
+}
+
+// AddEmployeeSimple - простое создание сотрудника только с телефоном
+func (h *Handler) AddEmployeeSimple(w http.ResponseWriter, r *http.Request) {
+	h.logger.Info(r.Context(), "AddEmployeeSimple called", map[string]interface{}{
+		"method": r.Method,
+	})
+
+	var req struct {
+		Phone string `json:"phone"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.Phone == "" {
+		http.Error(w, "phone is required", http.StatusBadRequest)
+		return
+	}
+
+	h.logger.Info(r.Context(), "Creating employee with phone", map[string]interface{}{
+		"phone": req.Phone,
+	})
+
+	// Используем старый метод без роли с дефолтными значениями
+	employee, err := h.employeeService.AddEmployeeByPhone(
+		req.Phone,
+		"", // firstName - будет заменен на "Неизвестно"
+		"", // lastName - будет заменен на "Неизвестно"
+		"", // middleName
+		"", // inn
+		"", // kpp
+		"", // universityName - будет заменен на "Неизвестный вуз"
+	)
+
+	if err != nil {
+		h.logger.Info(r.Context(), "Error creating employee", map[string]interface{}{
+			"error": err.Error(),
+		})
+		statusCode := http.StatusInternalServerError
+		if err.Error() == "employee already exists" {
+			statusCode = http.StatusConflict
+		} else if err.Error() == "invalid phone number" {
+			statusCode = http.StatusBadRequest
+		}
+		http.Error(w, err.Error(), statusCode)
+		return
+	}
+
+	h.logger.Info(r.Context(), "Employee created successfully", map[string]interface{}{
+		"employee_id": employee.ID,
+	})
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

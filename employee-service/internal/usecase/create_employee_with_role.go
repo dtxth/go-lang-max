@@ -175,28 +175,26 @@ func sanitizePhone(phone string) string {
 
 // findOrCreateUniversity находит существующий вуз или создает новый
 func (uc *CreateEmployeeWithRoleUseCase) findOrCreateUniversity(inn, kpp, name string) (*domain.University, error) {
-	if inn == "" {
-		return nil, errors.New("INN is required")
-	}
-
 	var university *domain.University
 	var err error
 
-	// Пытаемся найти вуз по ИНН и КПП
-	if kpp != "" {
-		university, err = uc.universityRepo.GetByINNAndKPP(inn, kpp)
+	// Если есть ИНН, пытаемся найти вуз по ИНН и КПП
+	if inn != "" {
+		if kpp != "" {
+			university, err = uc.universityRepo.GetByINNAndKPP(inn, kpp)
+			if err == nil && university != nil {
+				return university, nil
+			}
+		}
+
+		// Пытаемся найти вуз только по ИНН
+		university, err = uc.universityRepo.GetByINN(inn)
 		if err == nil && university != nil {
 			return university, nil
 		}
 	}
 
-	// Пытаемся найти вуз только по ИНН
-	university, err = uc.universityRepo.GetByINN(inn)
-	if err == nil && university != nil {
-		return university, nil
-	}
-
-	// Создаем новый вуз
+	// Если вуз не найден или ИНН не указан, создаем новый вуз
 	if name == "" {
 		name = "Неизвестный вуз"
 	}

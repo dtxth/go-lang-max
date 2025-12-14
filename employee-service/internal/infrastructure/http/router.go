@@ -2,6 +2,7 @@ package http
 
 import (
 	"employee-service/internal/infrastructure/middleware"
+	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -11,14 +12,19 @@ import (
 func (h *Handler) Router() http.Handler {
 	mux := http.NewServeMux()
 
-	// Сотрудники
-	mux.HandleFunc("/employees", func(w http.ResponseWriter, r *http.Request) {
-		switch r.Method {
-		case http.MethodGet:
-			h.SearchEmployees(w, r)
-		case http.MethodPost:
-			h.AddEmployee(w, r)
-		default:
+	// Simple employee creation endpoint - используем другой путь
+	mux.HandleFunc("/simple-employee", func(w http.ResponseWriter, r *http.Request) {
+		h.logger.Info(r.Context(), "simple-employee route hit", map[string]interface{}{
+			"method": r.Method,
+			"path":   r.URL.Path,
+		})
+		if r.Method == http.MethodPost {
+			h.AddEmployeeSimple(w, r)
+		} else {
+			h.logger.Info(r.Context(), "Method not allowed", map[string]interface{}{
+				"method": r.Method,
+				"expected": "POST",
+			})
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
@@ -54,6 +60,18 @@ func (h *Handler) Router() http.Handler {
 			return
 		}
 		h.GetBatchStatus(w, r)
+	})
+
+	// Сотрудники
+	mux.HandleFunc("/employees", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			h.SearchEmployees(w, r)
+		case http.MethodPost:
+			h.AddEmployee(w, r)
+		default:
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
 	})
 
 	// Обработка /employees/{id}
@@ -93,6 +111,54 @@ func (h *Handler) Router() http.Handler {
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
+	})
+
+	// Create employee with phone only
+	mux.HandleFunc("/create-employee", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+
+		var req struct {
+			Phone string `json:"phone"`
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			http.Error(w, "invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if req.Phone == "" {
+			http.Error(w, "phone is required", http.StatusBadRequest)
+			return
+		}
+
+		// Создаем сотрудника с минимальными данными
+		employee, err := h.employeeService.AddEmployeeByPhone(
+			req.Phone,
+			"Неизвестно", // firstName
+			"Неизвестно", // lastName  
+			"",           // middleName
+			"",           // inn
+			"",           // kpp
+			"Неизвестный вуз", // universityName
+		)
+
+		if err != nil {
+			statusCode := http.StatusInternalServerError
+			if err.Error() == "employee already exists" {
+				statusCode = http.StatusConflict
+			} else if err.Error() == "invalid phone number" {
+				statusCode = http.StatusBadRequest
+			}
+			http.Error(w, err.Error(), statusCode)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(employee)
 	})
 
 	// Wrap with request ID middleware

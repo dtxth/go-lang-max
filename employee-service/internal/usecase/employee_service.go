@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"employee-service/internal/domain"
-	"errors"
 	"strings"
 	"time"
 )
@@ -66,6 +65,14 @@ func (s *EmployeeService) AddEmployeeByPhone(
 	university, err := s.findOrCreateUniversity(inn, kpp, universityName)
 	if err != nil {
 		return nil, err
+	}
+	
+	// Устанавливаем значения по умолчанию для обязательных полей
+	if strings.TrimSpace(firstName) == "" {
+		firstName = "Неизвестно"
+	}
+	if strings.TrimSpace(lastName) == "" {
+		lastName = "Неизвестно"
 	}
 	
 	// Создаем сотрудника
@@ -203,28 +210,41 @@ func (s *EmployeeService) DeleteEmployee(id int64) error {
 
 // findOrCreateUniversity находит существующий вуз или создает новый
 func (s *EmployeeService) findOrCreateUniversity(inn, kpp, name string) (*domain.University, error) {
-	if inn == "" {
-		return nil, errors.New("INN is required")
-	}
-	
 	var university *domain.University
 	var err error
 	
-	// Пытаемся найти вуз по ИНН и КПП
-	if kpp != "" {
-		university, err = s.universityRepo.GetByINNAndKPP(inn, kpp)
+	// Если есть ИНН, пытаемся найти вуз по ИНН и КПП
+	if inn != "" {
+		if kpp != "" {
+			university, err = s.universityRepo.GetByINNAndKPP(inn, kpp)
+			if err == nil && university != nil {
+				return university, nil
+			}
+		}
+		
+		// Пытаемся найти вуз только по ИНН
+		university, err = s.universityRepo.GetByINN(inn)
 		if err == nil && university != nil {
 			return university, nil
 		}
+	} else {
+		// Если ИНН не указан, ищем существующий университет с пустым ИНН
+		if name == "" {
+			name = "Неизвестный вуз"
+		}
+		
+		// Пытаемся найти любой университет с пустым ИНН и таким же именем
+		universities, err := s.universityRepo.GetAll()
+		if err == nil {
+			for _, u := range universities {
+				if u.INN == "" && u.Name == name {
+					return u, nil
+				}
+			}
+		}
 	}
 	
-	// Пытаемся найти вуз только по ИНН
-	university, err = s.universityRepo.GetByINN(inn)
-	if err == nil && university != nil {
-		return university, nil
-	}
-	
-	// Создаем новый вуз
+	// Если вуз не найден, создаем новый
 	if name == "" {
 		name = "Неизвестный вуз"
 	}
