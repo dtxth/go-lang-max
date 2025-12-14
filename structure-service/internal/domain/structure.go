@@ -89,3 +89,8 @@ type ImportResult struct {
 	Errors  []string `json:"errors,omitempty"` // Список ошибок
 }
 
+// UpdateNameRequest представляет запрос на обновление названия
+type UpdateNameRequest struct {
+	Name string `json:"name" validate:"required,min=1,max=500"`
+}
+

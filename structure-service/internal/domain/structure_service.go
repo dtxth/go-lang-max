@@ -59,6 +59,24 @@ type StructureServiceInterface interface {
 	// DeleteGroup удаляет группу
 	DeleteGroup(id int64) error
 	
+	// UpdateUniversityName обновляет название университета
+	UpdateUniversityName(id int64, name string) error
+	
+	// UpdateBranchName обновляет название филиала
+	UpdateBranchName(id int64, name string) error
+	
+	// UpdateFacultyName обновляет название факультета
+	UpdateFacultyName(id int64, name string) error
+	
+	// UpdateGroupName обновляет название группы
+	UpdateGroupName(id int64, name string) error
+	
+	// GetBranchByID получает филиал по ID
+	GetBranchByID(id int64) (*Branch, error)
+	
+	// GetFacultyByID получает факультет по ID
+	GetFacultyByID(id int64) (*Faculty, error)
+	
 	// ImportFromExcel импортирует структуру из Excel файла
 	ImportFromExcel(rows []*ExcelRow) error
 }

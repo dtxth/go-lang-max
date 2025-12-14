@@ -228,3 +228,57 @@ func (s *StructureService) ImportFromExcel(rows []*domain.ExcelRow) error {
 	return nil
 }
 
+// UpdateUniversityName обновляет название университета
+func (s *StructureService) UpdateUniversityName(id int64, name string) error {
+	university, err := s.repo.GetUniversityByID(id)
+	if err != nil {
+		return err
+	}
+	
+	university.Name = name
+	return s.repo.UpdateUniversity(university)
+}
+
+// UpdateBranchName обновляет название филиала
+func (s *StructureService) UpdateBranchName(id int64, name string) error {
+	branch, err := s.repo.GetBranchByID(id)
+	if err != nil {
+		return err
+	}
+	
+	branch.Name = name
+	return s.repo.UpdateBranch(branch)
+}
+
+// UpdateFacultyName обновляет название факультета
+func (s *StructureService) UpdateFacultyName(id int64, name string) error {
+	faculty, err := s.repo.GetFacultyByID(id)
+	if err != nil {
+		return err
+	}
+	
+	faculty.Name = name
+	return s.repo.UpdateFaculty(faculty)
+}
+
+// UpdateGroupName обновляет номер группы
+func (s *StructureService) UpdateGroupName(id int64, name string) error {
+	group, err := s.repo.GetGroupByID(id)
+	if err != nil {
+		return err
+	}
+	
+	group.Number = name
+	return s.repo.UpdateGroup(group)
+}
+
+// GetBranchByID получает филиал по ID
+func (s *StructureService) GetBranchByID(id int64) (*domain.Branch, error) {
+	return s.repo.GetBranchByID(id)
+}
+
+// GetFacultyByID получает факультет по ID
+func (s *StructureService) GetFacultyByID(id int64) (*domain.Faculty, error) {
+	return s.repo.GetFacultyByID(id)
+}
+

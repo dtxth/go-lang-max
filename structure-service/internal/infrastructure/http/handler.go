@@ -399,6 +399,11 @@ type LinkGroupToChatRequest struct {
 	ChatID int64 `json:"chat_id"`
 }
 
+// UpdateNameRequest represents request to update name
+type UpdateNameRequest struct {
+	Name string `json:"name"`
+}
+
 // LinkGroupToChat godoc
 // @Summary      Связать группу с чатом
 // @Description  Обновляет chat_id для группы
@@ -442,4 +447,184 @@ func (h *Handler) LinkGroupToChat(w http.ResponseWriter, r *http.Request) {
 
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(`{"message":"group linked to chat"}`))
+}
+
+// UpdateUniversityName godoc
+// @Summary      Обновить название университета
+// @Description  Обновляет название университета по ID
+// @Tags         universities
+// @Accept       json
+// @Produce      json
+// @Param        id     path      int                 true  "ID университета"
+// @Param        input  body      UpdateNameRequest  true  "Новое название"
+// @Success      200    {string}  string
+// @Failure      400    {string}  string
+// @Failure      404    {string}  string
+// @Router       /universities/{id}/name [put]
+func (h *Handler) UpdateUniversityName(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/universities/")
+	path = strings.TrimSuffix(path, "/name")
+	id, err := strconv.ParseInt(path, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid university id", http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateNameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Name) == "" {
+		http.Error(w, "name cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.structureService.UpdateUniversityName(id, req.Name); err != nil {
+		if err == domain.ErrUniversityNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message":"university name updated successfully"}`))
+}
+
+// UpdateBranchName godoc
+// @Summary      Обновить название филиала
+// @Description  Обновляет название филиала по ID
+// @Tags         branches
+// @Accept       json
+// @Produce      json
+// @Param        id     path      int                 true  "ID филиала"
+// @Param        input  body      UpdateNameRequest  true  "Новое название"
+// @Success      200    {string}  string
+// @Failure      400    {string}  string
+// @Failure      404    {string}  string
+// @Router       /branches/{id}/name [put]
+func (h *Handler) UpdateBranchName(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/branches/")
+	path = strings.TrimSuffix(path, "/name")
+	id, err := strconv.ParseInt(path, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid branch id", http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateNameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Name) == "" {
+		http.Error(w, "name cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.structureService.UpdateBranchName(id, req.Name); err != nil {
+		if err == domain.ErrBranchNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message":"branch name updated successfully"}`))
+}
+
+// UpdateFacultyName godoc
+// @Summary      Обновить название факультета
+// @Description  Обновляет название факультета по ID
+// @Tags         faculties
+// @Accept       json
+// @Produce      json
+// @Param        id     path      int                 true  "ID факультета"
+// @Param        input  body      UpdateNameRequest  true  "Новое название"
+// @Success      200    {string}  string
+// @Failure      400    {string}  string
+// @Failure      404    {string}  string
+// @Router       /faculties/{id}/name [put]
+func (h *Handler) UpdateFacultyName(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/faculties/")
+	path = strings.TrimSuffix(path, "/name")
+	id, err := strconv.ParseInt(path, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid faculty id", http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateNameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Name) == "" {
+		http.Error(w, "name cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.structureService.UpdateFacultyName(id, req.Name); err != nil {
+		if err == domain.ErrFacultyNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message":"faculty name updated successfully"}`))
+}
+
+// UpdateGroupName godoc
+// @Summary      Обновить название группы
+// @Description  Обновляет номер группы по ID
+// @Tags         groups
+// @Accept       json
+// @Produce      json
+// @Param        id     path      int                 true  "ID группы"
+// @Param        input  body      UpdateNameRequest  true  "Новый номер группы"
+// @Success      200    {string}  string
+// @Failure      400    {string}  string
+// @Failure      404    {string}  string
+// @Router       /groups/{id}/name [put]
+func (h *Handler) UpdateGroupName(w http.ResponseWriter, r *http.Request) {
+	path := strings.TrimPrefix(r.URL.Path, "/groups/")
+	path = strings.TrimSuffix(path, "/name")
+	id, err := strconv.ParseInt(path, 10, 64)
+	if err != nil {
+		http.Error(w, "invalid group id", http.StatusBadRequest)
+		return
+	}
+
+	var req UpdateNameRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if strings.TrimSpace(req.Name) == "" {
+		http.Error(w, "name cannot be empty", http.StatusBadRequest)
+		return
+	}
+
+	if err := h.structureService.UpdateGroupName(id, req.Name); err != nil {
+		if err == domain.ErrGroupNotFound {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{"message":"group name updated successfully"}`))
 }

@@ -335,3 +335,27 @@ func (m *mockStructureServiceWrapper) DeleteGroup(id int64) error {
 func (m *mockStructureServiceWrapper) ImportFromExcel(rows []*domain.ExcelRow) error {
 	return nil
 }
+
+func (m *mockStructureServiceWrapper) UpdateUniversityName(id int64, name string) error {
+	return nil
+}
+
+func (m *mockStructureServiceWrapper) UpdateBranchName(id int64, name string) error {
+	return nil
+}
+
+func (m *mockStructureServiceWrapper) UpdateFacultyName(id int64, name string) error {
+	return nil
+}
+
+func (m *mockStructureServiceWrapper) UpdateGroupName(id int64, name string) error {
+	return nil
+}
+
+func (m *mockStructureServiceWrapper) GetBranchByID(id int64) (*domain.Branch, error) {
+	return nil, nil
+}
+
+func (m *mockStructureServiceWrapper) GetFacultyByID(id int64) (*domain.Faculty, error) {
+	return nil, nil
+}

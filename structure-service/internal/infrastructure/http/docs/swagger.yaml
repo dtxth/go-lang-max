@@ -48,6 +48,8 @@ definitions:
     properties:
       chat:
         $ref: '#/definitions/domain.Chat'
+      chat_count:
+        type: integer
       children:
         items:
           $ref: '#/definitions/domain.StructureNode'
@@ -115,6 +117,11 @@ definitions:
       total_pages:
         type: integer
     type: object
+  http.UpdateNameRequest:
+    properties:
+      name:
+        type: string
+    type: object
   usecase.CreateStructureRequest:
     properties:
       branch_name:
@@ -151,6 +158,41 @@ info:
   title: Structure Service API
   version: "1.0"
 paths:
+  /branches/{id}/name:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет название филиала по ID
+      parameters:
+      - description: ID филиала
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новое название
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.UpdateNameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Обновить название филиала
+      tags:
+      - branches
   /departments/managers:
     get:
       consumes:
@@ -218,6 +260,41 @@ paths:
       summary: Удалить назначение оператора
       tags:
       - department-managers
+  /faculties/{id}/name:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет название факультета по ID
+      parameters:
+      - description: ID факультета
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новое название
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.UpdateNameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Обновить название факультета
+      tags:
+      - faculties
   /groups/{group_id}/chat:
     put:
       consumes:
@@ -247,6 +324,41 @@ paths:
           schema:
             type: string
       summary: Связать группу с чатом
+      tags:
+      - groups
+  /groups/{id}/name:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет номер группы по ID
+      parameters:
+      - description: ID группы
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новый номер группы
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.UpdateNameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Обновить название группы
       tags:
       - groups
   /import/excel:
@@ -389,6 +501,41 @@ paths:
           schema:
             type: string
       summary: Получить вуз по ID
+      tags:
+      - universities
+  /universities/{id}/name:
+    put:
+      consumes:
+      - application/json
+      description: Обновляет название университета по ID
+      parameters:
+      - description: ID университета
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Новое название
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.UpdateNameRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            type: string
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "404":
+          description: Not Found
+          schema:
+            type: string
+      summary: Обновить название университета
       tags:
       - universities
   /universities/{university_id}/structure:

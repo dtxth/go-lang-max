@@ -31,6 +31,12 @@ func (h *Handler) Router() http.Handler {
 			} else {
 				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			}
+		} else if strings.HasSuffix(path, "/name") {
+			if r.Method == http.MethodPut {
+				h.UpdateUniversityName(w, r)
+			} else {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			}
 		} else {
 			if r.Method == http.MethodGet {
 				h.GetUniversity(w, r)
@@ -52,10 +58,30 @@ func (h *Handler) Router() http.Handler {
 	// Import
 	mux.HandleFunc("/import/excel", h.ImportExcel)
 
+	// Branches
+	mux.HandleFunc("/branches/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/name") && r.Method == http.MethodPut {
+			h.UpdateBranchName(w, r)
+		} else {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
+	// Faculties
+	mux.HandleFunc("/faculties/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/name") && r.Method == http.MethodPut {
+			h.UpdateFacultyName(w, r)
+		} else {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
+
 	// Groups
 	mux.HandleFunc("/groups/", func(w http.ResponseWriter, r *http.Request) {
 		if strings.HasSuffix(r.URL.Path, "/chat") && r.Method == http.MethodPut {
 			h.LinkGroupToChat(w, r)
+		} else if strings.HasSuffix(r.URL.Path, "/name") && r.Method == http.MethodPut {
+			h.UpdateGroupName(w, r)
 		} else {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
