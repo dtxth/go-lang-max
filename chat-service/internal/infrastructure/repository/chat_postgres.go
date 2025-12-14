@@ -3,6 +3,7 @@ package repository
 import (
 	"chat-service/internal/domain"
 	"database/sql"
+	"fmt"
 	"strconv"
 	"strings"
 )
@@ -23,10 +24,17 @@ func (r *ChatPostgres) Create(chat *domain.Chat) error {
 		universityID = nil
 	}
 
+	var externalChatID interface{}
+	if chat.ExternalChatID != nil {
+		externalChatID = *chat.ExternalChatID
+	} else {
+		externalChatID = nil
+	}
+
 	err := r.db.QueryRow(
-		`INSERT INTO chats (name, url, max_chat_id, participants_count, university_id, department, source) 
-		 VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at, updated_at`,
-		chat.Name, chat.URL, chat.MaxChatID, chat.ParticipantsCount, universityID, chat.Department, chat.Source,
+		`INSERT INTO chats (name, url, max_chat_id, external_chat_id, participants_count, university_id, department, source) 
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, updated_at`,
+		chat.Name, chat.URL, chat.MaxChatID, externalChatID, chat.ParticipantsCount, universityID, chat.Department, chat.Source,
 	).Scan(&chat.ID, &chat.CreatedAt, &chat.UpdatedAt)
 	return err
 }
@@ -34,27 +42,24 @@ func (r *ChatPostgres) Create(chat *domain.Chat) error {
 func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {
 	chat := &domain.Chat{}
 	var universityID sql.NullInt64
-	var universityIDFromJoin sql.NullInt64
-	var universityName sql.NullString
-	var universityINN sql.NullString
-	var universityKPP sql.NullString
+	var externalChatID sql.NullString
 
 	err := r.db.QueryRow(
-		`SELECT c.id, c.name, c.url, c.max_chat_id, c.participants_count, 
-		        c.university_id, c.department, c.source, c.created_at, c.updated_at,
-		        u.id, u.name, u.inn, u.kpp
-		 FROM chats c
-		 LEFT JOIN universities u ON c.university_id = u.id
-		 WHERE c.id = $1`,
+		`SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
+		        university_id, department, source, created_at, updated_at
+		 FROM chats WHERE id = $1`,
 		id,
 	).Scan(
-		&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &chat.ParticipantsCount,
+		&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &externalChatID, &chat.ParticipantsCount,
 		&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
-		&universityIDFromJoin, &universityName, &universityINN, &universityKPP,
 	)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if externalChatID.Valid {
+		chat.ExternalChatID = &externalChatID.String
 	}
 
 	// Загружаем администраторов
@@ -64,18 +69,10 @@ func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {
 	}
 	chat.Administrators = administrators
 
-	// Устанавливаем вуз, если он есть
+	// Устанавливаем university_id, если он есть
 	if universityID.Valid {
 		univID := universityID.Int64
 		chat.UniversityID = &univID
-		if universityIDFromJoin.Valid && universityName.Valid {
-			chat.University = &domain.University{
-				ID:   universityIDFromJoin.Int64,
-				Name: universityName.String,
-				INN:  universityINN.String,
-				KPP:  universityKPP.String,
-			}
-		}
 	}
 
 	return chat, nil
@@ -84,27 +81,24 @@ func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {
 func (r *ChatPostgres) GetByMaxChatID(maxChatID string) (*domain.Chat, error) {
 	chat := &domain.Chat{}
 	var universityID sql.NullInt64
-	var universityIDFromJoin sql.NullInt64
-	var universityName sql.NullString
-	var universityINN sql.NullString
-	var universityKPP sql.NullString
+	var externalChatID sql.NullString
 
 	err := r.db.QueryRow(
-		`SELECT c.id, c.name, c.url, c.max_chat_id, c.participants_count, 
-		        c.university_id, c.department, c.source, c.created_at, c.updated_at,
-		        u.id, u.name, u.inn, u.kpp
-		 FROM chats c
-		 LEFT JOIN universities u ON c.university_id = u.id
-		 WHERE c.max_chat_id = $1`,
+		`SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
+		        university_id, department, source, created_at, updated_at
+		 FROM chats WHERE max_chat_id = $1`,
 		maxChatID,
 	).Scan(
-		&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &chat.ParticipantsCount,
+		&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &externalChatID, &chat.ParticipantsCount,
 		&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
-		&universityIDFromJoin, &universityName, &universityINN, &universityKPP,
 	)
 
 	if err != nil {
 		return nil, err
+	}
+
+	if externalChatID.Valid {
+		chat.ExternalChatID = &externalChatID.String
 	}
 
 	// Загружаем администраторов
@@ -114,57 +108,89 @@ func (r *ChatPostgres) GetByMaxChatID(maxChatID string) (*domain.Chat, error) {
 	}
 	chat.Administrators = administrators
 
-	// Устанавливаем вуз, если он есть
+	// Устанавливаем university_id, если он есть
 	if universityID.Valid {
 		univID := universityID.Int64
 		chat.UniversityID = &univID
-		if universityIDFromJoin.Valid && universityName.Valid {
-			chat.University = &domain.University{
-				ID:   universityIDFromJoin.Int64,
-				Name: universityName.String,
-				INN:  universityINN.String,
-				KPP:  universityKPP.String,
-			}
-		}
 	}
 
 	return chat, nil
 }
 
-func (r *ChatPostgres) Search(query string, limit, offset int, userRole string, universityID *int64) ([]*domain.Chat, int, error) {
+func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
 	query = strings.TrimSpace(query)
-	searchPattern := "%" + strings.ToLower(query) + "%"
+	
+	// Если запрос пустой, возвращаем все чаты с фильтрацией
+	if query == "" {
+		return r.GetAll(limit, offset, filter)
+	}
 
-	// Строим WHERE условие в зависимости от роли
-	whereClause := "WHERE LOWER(c.name) LIKE $1"
-	args := []interface{}{searchPattern}
-	argIndex := 2
+	// Используем ILIKE для поиска
+	normalizedQuery := strings.Map(func(r rune) rune {
+		if (r >= 'а' && r <= 'я') || (r >= 'А' && r <= 'Я') ||
+			(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+			(r >= '0' && r <= '9') || r == 'ё' || r == 'Ё' {
+			return r
+		}
+		return ' '
+	}, query)
+	
+	words := strings.Fields(normalizedQuery)
+	if len(words) == 0 {
+		return r.GetAll(limit, offset, filter)
+	}
 
-	// Фильтрация по роли и университету
-	if userRole != "superadmin" && universityID != nil {
-		whereClause += " AND c.university_id = $" + strconv.Itoa(argIndex)
-		args = append(args, *universityID)
+	// Строим WHERE условие с ILIKE для каждого слова
+	whereClause := "WHERE "
+	whereParts := make([]string, len(words))
+	args := []interface{}{}
+	argIndex := 1
+	
+	for i, word := range words {
+		escapedWord := strings.ReplaceAll(word, "%", "\\%")
+		escapedWord = strings.ReplaceAll(escapedWord, "_", "\\_")
+		
+		whereParts[i] = fmt.Sprintf(
+			"(name ILIKE $%d OR department ILIKE $%d)",
+			argIndex, argIndex,
+		)
+		args = append(args, "%"+escapedWord+"%")
 		argIndex++
+	}
+	
+	whereClause += strings.Join(whereParts, " AND ")
+
+	// Фильтрация по роли и контексту
+	if filter != nil {
+		if filter.IsSuperadmin() {
+			// Суперадмин видит все чаты
+		} else if filter.IsCurator() && filter.UniversityID != nil {
+			whereClause += " AND university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		} else if filter.IsOperator() && filter.UniversityID != nil {
+			whereClause += " AND university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		}
 	}
 
 	// Подсчет общего количества
 	var totalCount int
-	countQuery := `SELECT COUNT(*) FROM chats c ` + whereClause
+	countQuery := `SELECT COUNT(*) FROM chats ` + whereClause
 	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
 
-	// Получение данных
+	// Получение данных с сортировкой по имени
 	args = append(args, limit, offset)
 	rows, err := r.db.Query(
-		`SELECT c.id, c.name, c.url, c.max_chat_id, c.participants_count, 
-		        c.university_id, c.department, c.source, c.created_at, c.updated_at,
-		        u.id, u.name, u.inn, u.kpp
-		 FROM chats c
-		 LEFT JOIN universities u ON c.university_id = u.id
+		`SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
+		        university_id, department, source, created_at, updated_at
+		 FROM chats
 		 `+whereClause+`
-		 ORDER BY c.name
+		 ORDER BY name
 		 LIMIT $`+strconv.Itoa(argIndex)+` OFFSET $`+strconv.Itoa(argIndex+1),
 		args...,
 	)
@@ -180,32 +206,24 @@ func (r *ChatPostgres) Search(query string, limit, offset int, userRole string, 
 	for rows.Next() {
 		chat := &domain.Chat{}
 		var universityID sql.NullInt64
-		var universityIDFromJoin sql.NullInt64
-		var universityName sql.NullString
-		var universityINN sql.NullString
-		var universityKPP sql.NullString
+		var externalChatID sql.NullString
 
 		err := rows.Scan(
-			&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &chat.ParticipantsCount,
+			&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &externalChatID, &chat.ParticipantsCount,
 			&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
-			&universityIDFromJoin, &universityName, &universityINN, &universityKPP,
 		)
 		if err != nil {
 			return nil, 0, err
 		}
 
-		// Устанавливаем вуз, если он есть
+		if externalChatID.Valid {
+			chat.ExternalChatID = &externalChatID.String
+		}
+
+		// Устанавливаем university_id, если он есть
 		if universityID.Valid {
 			univID := universityID.Int64
 			chat.UniversityID = &univID
-			if universityIDFromJoin.Valid && universityName.Valid {
-				chat.University = &domain.University{
-					ID:   universityIDFromJoin.Int64,
-					Name: universityName.String,
-					INN:  universityINN.String,
-					KPP:  universityKPP.String,
-				}
-			}
 		}
 
 		chatIDs = append(chatIDs, chat.ID)
@@ -225,8 +243,93 @@ func (r *ChatPostgres) Search(query string, limit, offset int, userRole string, 
 	return chats, totalCount, rows.Err()
 }
 
-func (r *ChatPostgres) GetAll(limit, offset int, userRole string, universityID *int64) ([]*domain.Chat, int, error) {
-	return r.Search("", limit, offset, userRole, universityID)
+func (r *ChatPostgres) GetAll(limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	// Строим WHERE условие в зависимости от роли
+	whereClause := ""
+	args := []interface{}{}
+	argIndex := 1
+
+	// Фильтрация по роли и контексту
+	if filter != nil {
+		if filter.IsSuperadmin() {
+			// Суперадмин видит все чаты
+		} else if filter.IsCurator() && filter.UniversityID != nil {
+			whereClause = "WHERE university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		} else if filter.IsOperator() && filter.UniversityID != nil {
+			whereClause = "WHERE university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		}
+	}
+
+	// Подсчет общего количества
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM chats ` + whereClause
+	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	// Получение данных
+	args = append(args, limit, offset)
+	rows, err := r.db.Query(
+		`SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
+		        university_id, department, source, created_at, updated_at
+		 FROM chats
+		 `+whereClause+`
+		 ORDER BY name
+		 LIMIT $`+strconv.Itoa(argIndex)+` OFFSET $`+strconv.Itoa(argIndex+1),
+		args...,
+	)
+
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+
+	var chats []*domain.Chat
+	chatIDs := make([]int64, 0)
+
+	for rows.Next() {
+		chat := &domain.Chat{}
+		var universityID sql.NullInt64
+		var externalChatID sql.NullString
+
+		err := rows.Scan(
+			&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &externalChatID, &chat.ParticipantsCount,
+			&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		if externalChatID.Valid {
+			chat.ExternalChatID = &externalChatID.String
+		}
+
+		// Устанавливаем university_id, если он есть
+		if universityID.Valid {
+			univID := universityID.Int64
+			chat.UniversityID = &univID
+		}
+
+		chatIDs = append(chatIDs, chat.ID)
+		chats = append(chats, chat)
+	}
+
+	// Загружаем администраторов для всех чатов одним запросом
+	if len(chatIDs) > 0 {
+		administratorsMap, err := r.loadAdministratorsBatch(chatIDs)
+		if err == nil {
+			for _, chat := range chats {
+				chat.Administrators = administratorsMap[chat.ID]
+			}
+		}
+	}
+
+	return chats, totalCount, rows.Err()
 }
 
 func (r *ChatPostgres) Update(chat *domain.Chat) error {
@@ -256,7 +359,7 @@ func (r *ChatPostgres) Delete(id int64) error {
 // loadAdministrators загружает администраторов для одного чата
 func (r *ChatPostgres) loadAdministrators(chatID int64) ([]domain.Administrator, error) {
 	rows, err := r.db.Query(
-		`SELECT id, chat_id, phone, max_id, created_at, updated_at 
+		`SELECT id, chat_id, phone, COALESCE(max_id, ''), add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE chat_id = $1 ORDER BY created_at`,
 		chatID,
 	)
@@ -270,6 +373,7 @@ func (r *ChatPostgres) loadAdministrators(chatID int64) ([]domain.Administrator,
 		var admin domain.Administrator
 		err := rows.Scan(
 			&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+			&admin.AddUser, &admin.AddAdmin,
 			&admin.CreatedAt, &admin.UpdatedAt,
 		)
 		if err != nil {
@@ -290,12 +394,12 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 	placeholders := make([]string, len(chatIDs))
 	args := make([]interface{}, len(chatIDs))
 	for i, id := range chatIDs {
-		placeholders[i] = "$" + string(rune('1'+i))
+		placeholders[i] = "$" + strconv.Itoa(i+1)
 		args[i] = id
 	}
 
 	rows, err := r.db.Query(
-		`SELECT id, chat_id, phone, max_id, created_at, updated_at 
+		`SELECT id, chat_id, phone, COALESCE(max_id, ''), add_user, add_admin, created_at, updated_at 
 		 FROM administrators 
 		 WHERE chat_id IN (`+strings.Join(placeholders, ",")+`)
 		 ORDER BY chat_id, created_at`,
@@ -311,6 +415,7 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 		var admin domain.Administrator
 		err := rows.Scan(
 			&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+			&admin.AddUser, &admin.AddAdmin,
 			&admin.CreatedAt, &admin.UpdatedAt,
 		)
 		if err != nil {
@@ -321,3 +426,152 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 	return administratorsMap, rows.Err()
 }
 
+func (r *ChatPostgres) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	// Валидация параметров сортировки
+	validSortFields := map[string]string{
+		"id":                 "id",
+		"name":               "name",
+		"url":                "url",
+		"max_chat_id":        "max_chat_id",
+		"participants_count": "participants_count",
+		"department":         "department",
+		"source":             "source",
+		"created_at":         "created_at",
+		"updated_at":         "updated_at",
+	}
+	
+	sortField, exists := validSortFields[sortBy]
+	if !exists {
+		sortField = "name" // по умолчанию сортировка по названию
+	}
+	
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc" // по умолчанию по возрастанию
+	}
+	
+	// Построение WHERE условия для поиска
+	whereClause := ""
+	args := []interface{}{}
+	argIndex := 1
+	
+	if search != "" {
+		// Нормализуем поисковый запрос
+		normalizedQuery := strings.Map(func(r rune) rune {
+			if (r >= 'а' && r <= 'я') || (r >= 'А' && r <= 'Я') ||
+				(r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') ||
+				(r >= '0' && r <= '9') || r == 'ё' || r == 'Ё' {
+				return r
+			}
+			return ' '
+		}, search)
+		
+		words := strings.Fields(normalizedQuery)
+		if len(words) > 0 {
+			whereParts := make([]string, len(words))
+			for i, word := range words {
+				escapedWord := strings.ReplaceAll(word, "%", "\\%")
+				escapedWord = strings.ReplaceAll(escapedWord, "_", "\\_")
+				
+				whereParts[i] = fmt.Sprintf(
+					"(name ILIKE $%d OR department ILIKE $%d OR max_chat_id ILIKE $%d OR source ILIKE $%d)",
+					argIndex, argIndex, argIndex, argIndex,
+				)
+				args = append(args, "%"+escapedWord+"%")
+				argIndex++
+			}
+			whereClause = "WHERE " + strings.Join(whereParts, " AND ")
+		}
+	}
+	
+	// Фильтрация по роли и контексту
+	if filter != nil {
+		roleFilter := ""
+		if filter.IsSuperadmin() {
+			// Суперадмин видит все чаты
+		} else if filter.IsCurator() && filter.UniversityID != nil {
+			roleFilter = "university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		} else if filter.IsOperator() && filter.UniversityID != nil {
+			roleFilter = "university_id = $" + strconv.Itoa(argIndex)
+			args = append(args, *filter.UniversityID)
+			argIndex++
+		}
+		
+		if roleFilter != "" {
+			if whereClause != "" {
+				whereClause += " AND " + roleFilter
+			} else {
+				whereClause = "WHERE " + roleFilter
+			}
+		}
+	}
+	
+	// Подсчет общего количества
+	var totalCount int
+	countQuery := `SELECT COUNT(*) FROM chats ` + whereClause
+	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	if err != nil {
+		return nil, 0, err
+	}
+	
+	// Добавляем LIMIT и OFFSET
+	args = append(args, limit, offset)
+	limitArg := "$" + strconv.Itoa(argIndex)
+	offsetArg := "$" + strconv.Itoa(argIndex+1)
+	
+	query := `SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
+		        university_id, department, source, created_at, updated_at
+		 FROM chats ` +
+		whereClause + `
+		 ORDER BY ` + sortField + ` ` + sortOrder + `
+		 LIMIT ` + limitArg + ` OFFSET ` + offsetArg
+	
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer rows.Close()
+	
+	var chats []*domain.Chat
+	chatIDs := make([]int64, 0)
+	
+	for rows.Next() {
+		chat := &domain.Chat{}
+		var universityID sql.NullInt64
+		var externalChatID sql.NullString
+		
+		err := rows.Scan(
+			&chat.ID, &chat.Name, &chat.URL, &chat.MaxChatID, &externalChatID, &chat.ParticipantsCount,
+			&universityID, &chat.Department, &chat.Source, &chat.CreatedAt, &chat.UpdatedAt,
+		)
+		if err != nil {
+			return nil, 0, err
+		}
+		
+		if externalChatID.Valid {
+			chat.ExternalChatID = &externalChatID.String
+		}
+		
+		// Устанавливаем university_id, если он есть
+		if universityID.Valid {
+			univID := universityID.Int64
+			chat.UniversityID = &univID
+		}
+		
+		chatIDs = append(chatIDs, chat.ID)
+		chats = append(chats, chat)
+	}
+	
+	// Загружаем администраторов для всех чатов одним запросом
+	if len(chatIDs) > 0 {
+		administratorsMap, err := r.loadAdministratorsBatch(chatIDs)
+		if err == nil {
+			for _, chat := range chats {
+				chat.Administrators = administratorsMap[chat.ID]
+			}
+		}
+	}
+	
+	return chats, totalCount, rows.Err()
+}

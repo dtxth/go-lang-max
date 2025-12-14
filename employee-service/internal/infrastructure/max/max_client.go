@@ -1,82 +1,119 @@
 package max
 
 import (
+	"context"
+	"errors"
+	"time"
+
 	"employee-service/internal/domain"
-	"regexp"
-	"strings"
+	grpcretry "employee-service/internal/infrastructure/grpc"
+	maxbotproto "maxbot-service/api/proto"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-// MaxClient представляет клиент для работы с MAX API
-// В реальной реализации здесь будет HTTP клиент для вызова MAX API
 type MaxClient struct {
-	// В будущем здесь могут быть поля для конфигурации API
-	// baseURL, apiKey и т.д.
+	conn    *grpc.ClientConn
+	client  maxbotproto.MaxBotServiceClient
+	timeout time.Duration
 }
 
-func NewMaxClient() *MaxClient {
-	return &MaxClient{}
+func NewMaxClient(address string, timeout time.Duration) (*MaxClient, error) {
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, err
+	}
+
+	return &MaxClient{
+		conn:    conn,
+		client:  maxbotproto.NewMaxBotServiceClient(conn),
+		timeout: timeout,
+	}, nil
 }
 
-// GetMaxIDByPhone получает MAX_id по номеру телефона
-// В реальной реализации здесь будет вызов MAX API
-// Пока возвращаем заглушку - в продакшене нужно реализовать реальный вызов API
+func (c *MaxClient) Close() error {
+	if c.conn == nil {
+		return nil
+	}
+	return c.conn.Close()
+}
+
 func (c *MaxClient) GetMaxIDByPhone(phone string) (string, error) {
-	if !c.ValidatePhone(phone) {
-		return "", domain.ErrInvalidPhone
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+
+	var resp *maxbotproto.GetMaxIDByPhoneResponse
+	err := grpcretry.WithRetry(ctx, "MaxBot.GetMaxIDByPhone", func() error {
+		var callErr error
+		resp, callErr = c.client.GetMaxIDByPhone(ctx, &maxbotproto.GetMaxIDByPhoneRequest{Phone: phone})
+		return callErr
+	})
+	
+	if err != nil {
+		return "", err
 	}
-	
-	// TODO: Реализовать реальный вызов MAX API
-	// Пример:
-	// resp, err := http.Get(fmt.Sprintf("%s/api/users/by-phone?phone=%s", c.baseURL, phone))
-	// if err != nil {
-	//     return "", err
-	// }
-	// defer resp.Body.Close()
-	// ...
-	
-	// Временная заглушка: возвращаем нормализованный номер телефона как MAX_id
-	// В реальности MAX_id будет приходить из API
-	normalizedPhone := c.normalizePhone(phone)
-	if normalizedPhone == "" {
-		return "", domain.ErrMaxIDNotFound
+
+	if resp.Error != "" {
+		return "", mapError(resp.ErrorCode, resp.Error)
 	}
-	
-	return normalizedPhone, nil
+
+	return resp.MaxId, nil
 }
 
-// ValidatePhone проверяет валидность номера телефона
 func (c *MaxClient) ValidatePhone(phone string) bool {
-	// Удаляем все нецифровые символы
-	cleaned := regexp.MustCompile(`\D`).ReplaceAllString(phone, "")
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+
+	var resp *maxbotproto.ValidatePhoneResponse
+	err := grpcretry.WithRetry(ctx, "MaxBot.ValidatePhone", func() error {
+		var callErr error
+		resp, callErr = c.client.ValidatePhone(ctx, &maxbotproto.ValidatePhoneRequest{Phone: phone})
+		return callErr
+	})
 	
-	// Проверяем, что номер содержит от 10 до 15 цифр
-	if len(cleaned) < 10 || len(cleaned) > 15 {
+	if err != nil {
 		return false
 	}
-	
-	return true
+
+	if resp.Error != "" {
+		return false
+	}
+
+	return resp.Valid
 }
 
-// normalizePhone нормализует номер телефона
-func (c *MaxClient) normalizePhone(phone string) string {
-	// Удаляем все нецифровые символы
-	cleaned := regexp.MustCompile(`\D`).ReplaceAllString(phone, "")
+// BatchGetMaxIDByPhone получает MAX_id для нескольких телефонов
+// Обрабатывает до 100 телефонов за раз
+func (c *MaxClient) BatchGetMaxIDByPhone(phones []string) (map[string]string, error) {
+	result := make(map[string]string)
 	
-	// Если номер начинается с 8, заменяем на 7
-	if strings.HasPrefix(cleaned, "8") && len(cleaned) == 11 {
-		cleaned = "7" + cleaned[1:]
+	// Ограничиваем размер батча до 100 (Requirements 4.2, 4.3)
+	batchSize := 100
+	if len(phones) > batchSize {
+		phones = phones[:batchSize]
 	}
 	
-	// Если номер начинается с +7 или 7 и имеет 11 цифр, оставляем как есть
-	if strings.HasPrefix(cleaned, "7") && len(cleaned) == 11 {
-		return cleaned
+	// Пока нет batch метода в MaxBot Service, вызываем по одному
+	// TODO: Когда будет реализован BatchGetUsersByPhone в MaxBot Service, использовать его
+	for _, phone := range phones {
+		maxID, err := c.GetMaxIDByPhone(phone)
+		if err == nil && maxID != "" {
+			result[phone] = maxID
+		}
+		// Игнорируем ошибки для отдельных телефонов
 	}
 	
-	// Если номер имеет 10 цифр, добавляем 7
-	if len(cleaned) == 10 {
-		return "7" + cleaned
-	}
-	
-	return cleaned
+	return result, nil
 }
 
+func mapError(code maxbotproto.ErrorCode, message string) error {
+	switch code {
+	case maxbotproto.ErrorCode_ERROR_CODE_INVALID_PHONE:
+		return domain.ErrInvalidPhone
+	case maxbotproto.ErrorCode_ERROR_CODE_MAX_ID_NOT_FOUND:
+		return domain.ErrMaxIDNotFound
+	default:
+		return errors.New(message)
+	}
+}

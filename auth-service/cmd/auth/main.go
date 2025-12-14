@@ -3,13 +3,21 @@ package main
 import (
 	"auth-service/internal/app"
 	"auth-service/internal/config"
+	"auth-service/internal/domain"
+	"auth-service/internal/infrastructure/cleanup"
 	"auth-service/internal/infrastructure/grpc"
 	"auth-service/internal/infrastructure/hash"
 	"auth-service/internal/infrastructure/http"
 	"auth-service/internal/infrastructure/jwt"
+	"auth-service/internal/infrastructure/logger"
+	"auth-service/internal/infrastructure/metrics"
+	"auth-service/internal/infrastructure/notification"
 	"auth-service/internal/infrastructure/repository"
 	"auth-service/internal/usecase"
+	"context"
 	"database/sql"
+	"log"
+	"os"
 	"time"
 
 	_ "github.com/lib/pq"
@@ -23,7 +31,10 @@ import (
 // @description     Authentication service with JWT access & refresh tokens
 // @BasePath        /
 func main() {
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		panic(err)
+	}
 
 	db, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
@@ -32,10 +43,46 @@ func main() {
 
 	repo := repository.NewUserPostgres(db)
 	refreshRepo := repository.NewRefreshPostgres(db)
+	userRoleRepo := repository.NewUserRolePostgres(db)
+	passwordResetRepo := repository.NewPasswordResetPostgres(db)
 	hasher := hash.NewBcryptHasher()
-	jwtManager := jwt.NewManager(cfg.AccessSecret, cfg.RefreshSecret, 15*time.Minute, 7*24*time.Hour)
+	jwtManager := jwt.NewManager(cfg.AccessSecret, cfg.RefreshSecret, 1*time.Hour, 7*24*time.Hour)
+	
+	// Initialize logger
+	appLogger := logger.NewDefault()
+	
+	// Initialize metrics
+	metricsCollector := metrics.NewMetrics()
+	log.Printf("Initialized metrics collector")
+	
+	// Initialize notification service based on configuration
+	var notificationSvc domain.NotificationService
+	if cfg.NotificationServiceType == "max" {
+		maxService, err := notification.NewMaxNotificationService(cfg.MaxBotServiceAddr, appLogger)
+		if err != nil {
+			log.Fatalf("Failed to initialize MAX notification service: %v", err)
+		}
+		// Wrap with metrics
+		notificationSvc = notification.NewMetricsWrapper(maxService, metricsCollector)
+		log.Printf("Initialized MAX notification service (MaxBot: %s)", cfg.MaxBotServiceAddr)
+	} else {
+		mockService := notification.NewMockNotificationService(appLogger)
+		// Wrap with metrics
+		notificationSvc = notification.NewMetricsWrapper(mockService, metricsCollector)
+		log.Printf("Initialized MOCK notification service")
+	}
 
-	authUC := usecase.NewAuthService(repo, refreshRepo, hasher, jwtManager)
+	authUC := usecase.NewAuthService(repo, refreshRepo, hasher, jwtManager, userRoleRepo)
+	
+	// Set password configuration
+	authUC.SetPasswordConfig(cfg.MinPasswordLength, time.Duration(cfg.ResetTokenExpiration)*time.Minute)
+	
+	// Set optional dependencies
+	authUC.SetPasswordResetRepository(passwordResetRepo)
+	authUC.SetNotificationService(notificationSvc)
+	authUC.SetLogger(appLogger)
+	authUC.SetMetrics(metricsCollector)
+	
 	handler := http.NewHandler(authUC)
 
 	// HTTP server
@@ -47,6 +94,15 @@ func main() {
 	// gRPC server
 	grpcHandler := grpc.NewAuthHandler(authUC)
 	grpcServer := grpc.NewServer(grpcHandler, cfg.GRPCPort)
+
+	// Token cleanup job
+	cleanupInterval := time.Duration(cfg.TokenCleanupInterval) * time.Minute
+	cleanupLogger := log.New(os.Stdout, "[CLEANUP] ", log.LstdFlags)
+	cleanupJob := cleanup.NewTokenCleanupJob(passwordResetRepo, cleanupInterval, cleanupLogger)
+	ctx := context.Background()
+	
+	// Start cleanup job in background
+	go cleanupJob.Start(ctx)
 
 	// Запускаем оба сервера
 	go func() {

@@ -3,10 +3,18 @@ module employee-service
 go 1.24.0
 
 require (
+	auth-service v0.0.0
 	github.com/lib/pq v1.10.9
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.6
 	google.golang.org/grpc v1.66.0
+	google.golang.org/protobuf v1.34.2
+	maxbot-service v0.0.0
+)
+
+replace (
+	auth-service => ../auth-service
+	maxbot-service => ../maxbot-service
 )
 
 require (
@@ -25,6 +33,5 @@ require (
 	golang.org/x/text v0.31.0 // indirect
 	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240604185151-ef581f913117 // indirect
-	google.golang.org/protobuf v1.34.2 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )

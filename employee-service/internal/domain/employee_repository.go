@@ -20,10 +20,22 @@ type EmployeeRepository interface {
 	// GetAll получает всех сотрудников с пагинацией
 	GetAll(limit, offset int) ([]*Employee, error)
 	
+	// GetAllWithSortingAndSearch получает всех сотрудников с пагинацией, сортировкой и поиском
+	GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*Employee, error)
+	
+	// CountAllWithSearch подсчитывает общее количество сотрудников с учетом поиска
+	CountAllWithSearch(search string) (int, error)
+	
 	// Update обновляет данные сотрудника
 	Update(employee *Employee) error
 	
 	// Delete удаляет сотрудника
 	Delete(id int64) error
+	
+	// GetEmployeesWithoutMaxID получает сотрудников без MAX_id
+	GetEmployeesWithoutMaxID(limit, offset int) ([]*Employee, error)
+	
+	// CountEmployeesWithoutMaxID подсчитывает количество сотрудников без MAX_id
+	CountEmployeesWithoutMaxID() (int, error)
 }
 

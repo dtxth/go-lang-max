@@ -5,14 +5,23 @@ WORKDIR /app
 RUN apk add --no-cache git protobuf protobuf-dev
 RUN go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
 RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+RUN go install github.com/swaggo/swag/cmd/swag@latest
 ENV PATH=$PATH:/root/go/bin
-COPY go.mod go.sum ./
-RUN go mod download
+
+# Copy the entire project (needed for replace directives)
 COPY . .
-# Генерируем proto файлы
-RUN protoc --go_out=. --go_opt=paths=source_relative \
-    --go-grpc_out=. --go-grpc_opt=paths=source_relative \
-    api/proto/auth.proto
+
+# Change to auth-service directory
+WORKDIR /app/auth-service
+
+# Download dependencies (replace directives will work now)
+RUN go mod download
+
+# Skip proto generation for now - using existing generated files
+
+# Skip swagger generation for now
+
+# Build the service
 RUN CGO_ENABLED=0 GOOS=linux go build -o /auth-service ./cmd/auth
 
 # final

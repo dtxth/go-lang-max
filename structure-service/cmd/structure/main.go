@@ -2,10 +2,14 @@ package main
 
 import (
 	"database/sql"
+	"log"
+	"os"
 	"structure-service/internal/app"
 	"structure-service/internal/config"
+	"structure-service/internal/infrastructure/employee"
 	"structure-service/internal/infrastructure/grpc"
 	"structure-service/internal/infrastructure/http"
+	"structure-service/internal/infrastructure/logger"
 	"structure-service/internal/infrastructure/repository"
 	"structure-service/internal/usecase"
 
@@ -22,12 +26,18 @@ import (
 func main() {
 	cfg := config.Load()
 
+	// Инициализируем logger
+	appLogger := logger.New(os.Stdout, logger.INFO)
+	log.Println("Starting structure-service server on port", cfg.Port)
+	log.Println("Starting gRPC server on port", cfg.GRPCPort)
+
 	db, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
 		panic(err)
 	}
 
 	repo := repository.NewStructurePostgres(db)
+	dmRepo := repository.NewDepartmentManagerPostgres(db)
 	
 	// Инициализируем gRPC клиент для chat-service
 	chatClient, err := grpc.NewChatClient(cfg.ChatService)
@@ -36,8 +46,22 @@ func main() {
 	}
 	defer chatClient.Close()
 
+	// Инициализируем gRPC клиент для employee-service
+	employeeClient, err := employee.NewEmployeeClient(cfg.EmployeeService)
+	if err != nil {
+		panic(err)
+	}
+	defer employeeClient.Close()
+
+	// Create chat service adapter
+	chatServiceAdapter := grpc.NewChatServiceAdapter(chatClient)
+
 	structureUC := usecase.NewStructureService(repo)
-	handler := http.NewHandler(structureUC)
+	getUniversityStructureUC := usecase.NewGetUniversityStructureUseCase(repo, chatServiceAdapter)
+	assignOperatorUC := usecase.NewAssignOperatorToDepartmentUseCase(dmRepo, employeeClient)
+	importStructureUC := usecase.NewImportStructureFromExcelUseCase(repo, db)
+	createStructureUC := usecase.NewCreateStructureFromRowUseCase(repo)
+	handler := http.NewHandler(structureUC, getUniversityStructureUC, assignOperatorUC, importStructureUC, createStructureUC, dmRepo, appLogger)
 
 	// HTTP server
 	httpServer := &app.Server{
@@ -46,7 +70,7 @@ func main() {
 	}
 
 	// gRPC server
-	grpcHandler := grpc.NewStructureHandler(structureUC)
+	grpcHandler := grpc.NewStructureHandler(structureUC, createStructureUC)
 	grpcServer := grpc.NewServer(grpcHandler, cfg.GRPCPort)
 
 	// Запускаем оба сервера

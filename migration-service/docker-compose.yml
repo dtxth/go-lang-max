@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  migration-db:
+    image: postgres:15-alpine
+    container_name: migration-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: migration_db
+    ports:
+      - "5436:5432"
+    volumes:
+      - migration-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migration-service:
+    build: .
+    container_name: migration-service
+    environment:
+      SERVER_PORT: 8084
+      DB_HOST: migration-db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: migration_db
+      DB_SSLMODE: disable
+      CHAT_SERVICE_URL: http://chat-service:8082
+      STRUCTURE_SERVICE_URL: http://structure-service:8083
+      GOOGLE_CREDENTIALS_PATH: /app/credentials/google-credentials.json
+    ports:
+      - "8084:8084"
+    depends_on:
+      migration-db:
+        condition: service_healthy
+    volumes:
+      - ./credentials:/app/credentials
+      - ./uploads:/tmp/migration-uploads
+
+volumes:
+  migration-db-data:

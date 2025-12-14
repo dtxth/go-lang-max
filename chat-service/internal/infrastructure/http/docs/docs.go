@@ -15,7 +15,104 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/administrators": {
+            "get": {
+                "description": "Возвращает список всех администраторов с пагинацией и поиском",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "administrators"
+                ],
+                "summary": "Получить всех администраторов",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Поисковый запрос (телефон, MAX ID или название чата)",
+                        "name": "query",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Лимит результатов (по умолчанию 50, максимум 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Смещение для пагинации",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.AdministratorListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/administrators/{admin_id}": {
+            "get": {
+                "description": "Возвращает информацию об администраторе по его ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "administrators"
+                ],
+                "summary": "Получить администратора по ID",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "ID администратора",
+                        "name": "admin_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/http.Administrator"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
             "delete": {
                 "description": "Удаляет администратора из чата. Нельзя удалить последнего администратора (должно быть минимум 2)",
                 "consumes": [
@@ -81,6 +178,13 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
                         "description": "Поисковый запрос (название чата)",
                         "name": "query",
                         "in": "query"
@@ -96,18 +200,6 @@ const docTemplate = `{
                         "description": "Смещение для пагинации",
                         "name": "offset",
                         "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Роль пользователя (superadmin, admin, user)",
-                        "name": "user_role",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID вуза (для фильтрации, если не superadmin)",
-                        "name": "university_id",
-                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -115,6 +207,56 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/http.ChatListResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Создает новый чат",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "chats"
+                ],
+                "summary": "Создать чат",
+                "parameters": [
+                    {
+                        "description": "Данные чата",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.CreateChatRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/http.Chat"
                         }
                     },
                     "400": {
@@ -141,6 +283,13 @@ const docTemplate = `{
                 "summary": "Получить все чаты",
                 "parameters": [
                     {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
                         "type": "integer",
                         "description": "Лимит результатов (по умолчанию 50, максимум 100)",
                         "name": "limit",
@@ -150,18 +299,6 @@ const docTemplate = `{
                         "type": "integer",
                         "description": "Смещение для пагинации",
                         "name": "offset",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "description": "Роль пользователя (superadmin, admin, user)",
-                        "name": "user_role",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "description": "ID вуза (для фильтрации, если не superadmin)",
-                        "name": "university_id",
                         "in": "query"
                     }
                 ],
@@ -174,6 +311,18 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "type": "string"
                         }
@@ -277,12 +426,63 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/universities": {
+            "post": {
+                "description": "Создает новый университет или возвращает существующий по INN/KPP",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "universities"
+                ],
+                "summary": "Создать или получить университет",
+                "parameters": [
+                    {
+                        "description": "Данные университета",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.CreateUniversityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "integer"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
         "domain.Administrator": {
             "type": "object",
             "properties": {
+                "add_admin": {
+                    "description": "Может ли добавлять администраторов",
+                    "type": "boolean"
+                },
+                "add_user": {
+                    "description": "Может ли добавлять пользователей",
+                    "type": "boolean"
+                },
                 "chat_id": {
                     "type": "integer"
                 },
@@ -334,15 +534,39 @@ const docTemplate = `{
                 "phone"
             ],
             "properties": {
+                "add_admin": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "add_user": {
+                    "type": "boolean",
+                    "example": true
+                },
+                "max_id": {
+                    "type": "string",
+                    "example": "496728250"
+                },
                 "phone": {
                     "type": "string",
                     "example": "+79001234567"
+                },
+                "skip_phone_validation": {
+                    "type": "boolean",
+                    "example": false
                 }
             }
         },
         "http.Administrator": {
             "type": "object",
             "properties": {
+                "add_admin": {
+                    "description": "Может ли добавлять администраторов",
+                    "type": "boolean"
+                },
+                "add_user": {
+                    "description": "Может ли добавлять пользователей",
+                    "type": "boolean"
+                },
                 "chat_id": {
                     "type": "integer"
                 },
@@ -365,6 +589,26 @@ const docTemplate = `{
                 }
             }
         },
+        "http.AdministratorListResponse": {
+            "type": "object",
+            "properties": {
+                "administrators": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/http.Administrator"
+                    }
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "offset": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        },
         "http.Chat": {
             "type": "object",
             "properties": {
@@ -380,6 +624,10 @@ const docTemplate = `{
                 },
                 "department": {
                     "description": "Подразделение вуза",
+                    "type": "string"
+                },
+                "external_chat_id": {
+                    "description": "ID чата из внешней системы (Excel)",
                     "type": "string"
                 },
                 "id": {
@@ -439,6 +687,61 @@ const docTemplate = `{
                 },
                 "total_count": {
                     "type": "integer"
+                }
+            }
+        },
+        "http.CreateChatRequest": {
+            "type": "object",
+            "required": [
+                "name",
+                "source",
+                "url"
+            ],
+            "properties": {
+                "branch_id": {
+                    "type": "integer"
+                },
+                "department": {
+                    "type": "string"
+                },
+                "external_chat_id": {
+                    "type": "string"
+                },
+                "faculty_id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "participants_count": {
+                    "type": "integer"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "university_id": {
+                    "type": "integer"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.CreateUniversityRequest": {
+            "type": "object",
+            "required": [
+                "inn",
+                "name"
+            ],
+            "properties": {
+                "inn": {
+                    "type": "string"
+                },
+                "kpp": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
                 }
             }
         },

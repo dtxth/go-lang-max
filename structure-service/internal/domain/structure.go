@@ -4,13 +4,14 @@ import "time"
 
 // University представляет вуз
 type University struct {
-	ID        int64     `json:"id"`
-	Name      string    `json:"name"`
-	INN       string    `json:"inn"`
-	KPP       string    `json:"kpp,omitempty"`
-	FOIV      string    `json:"foiv,omitempty"` // ФОИВ
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
+	ID         int64     `json:"id"`
+	Name       string    `json:"name"`
+	INN        string    `json:"inn"`
+	KPP        string    `json:"kpp,omitempty"`
+	FOIV       string    `json:"foiv,omitempty"` // ФОИВ
+	ChatsCount int       `json:"chats_count"`
+	CreatedAt  time.Time `json:"created_at"`
+	UpdatedAt  time.Time `json:"updated_at"`
 }
 
 // Branch представляет филиал/головное подразделение
@@ -38,6 +39,8 @@ type Group struct {
 	Course     int       `json:"course"`      // Курс обучения
 	Number     string    `json:"number"`     // Номер группы
 	ChatID     *int64    `json:"chat_id,omitempty"` // ID чата (может быть NULL)
+	ChatURL    string    `json:"chat_url,omitempty"` // URL чата
+	ChatName   string    `json:"chat_name,omitempty"` // Название чата
 	CreatedAt  time.Time `json:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at"`
 }
@@ -59,6 +62,7 @@ type StructureNode struct {
 	Chat      *Chat            `json:"chat,omitempty"`
 	Course    *int             `json:"course,omitempty"`
 	GroupNum  *string          `json:"group_num,omitempty"`
+	ChatCount *int             `json:"chat_count"`
 }
 
 // ExcelRow представляет строку из Excel файла
@@ -75,5 +79,18 @@ type ExcelRow struct {
 	ChatName        string // Название чата
 	ChatURL         string // Ссылка на чат
 	ChatID          string // ID чата (из ссылки)
+}
+
+// ImportResult представляет результат импорта структуры
+type ImportResult struct {
+	Created int      `json:"created"` // Количество созданных записей
+	Updated int      `json:"updated"` // Количество обновленных записей
+	Failed  int      `json:"failed"`  // Количество неудачных записей
+	Errors  []string `json:"errors,omitempty"` // Список ошибок
+}
+
+// UpdateNameRequest представляет запрос на обновление названия
+type UpdateNameRequest struct {
+	Name string `json:"name" validate:"required,min=1,max=500"`
 }
 

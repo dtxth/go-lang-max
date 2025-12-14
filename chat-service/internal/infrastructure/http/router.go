@@ -1,6 +1,7 @@
 package http
 
 import (
+	"chat-service/internal/infrastructure/middleware"
 	"net/http"
 	"strings"
 
@@ -10,11 +11,13 @@ import (
 func (h *Handler) Router() http.Handler {
 	mux := http.NewServeMux()
 
-	// Чаты
+	// Чаты (с аутентификацией)
 	mux.HandleFunc("/chats", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			h.SearchChats(w, r)
+			h.authMiddleware.Authenticate(h.SearchChats)(w, r)
+		case http.MethodPost:
+			h.CreateChat(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -25,7 +28,7 @@ func (h *Handler) Router() http.Handler {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		h.GetAllChats(w, r)
+		h.authMiddleware.Authenticate(h.GetAllChats)(w, r)
 	})
 
 	// Обработка /chats/{id}
@@ -43,16 +46,29 @@ func (h *Handler) Router() http.Handler {
 			return
 		}
 
-		// Проверяем, является ли это запросом к /chats/{id}/administrators
+		// Проверяем специальные пути
 		parts := strings.Split(path, "/")
-		if len(parts) == 2 && parts[1] == "administrators" {
-			switch r.Method {
-			case http.MethodPost:
-				h.AddAdministrator(w, r)
-			default:
-				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		if len(parts) == 2 {
+			switch parts[1] {
+			case "administrators":
+				// /chats/{id}/administrators
+				switch r.Method {
+				case http.MethodPost:
+					h.AddAdministrator(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+				return
+			case "refresh-participants":
+				// /chats/{id}/refresh-participants
+				switch r.Method {
+				case http.MethodPost:
+					h.authMiddleware.Authenticate(h.RefreshParticipantsCount)(w, r)
+				default:
+					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				}
+				return
 			}
-			return
 		}
 
 		// Проверяем, что это числовой ID
@@ -64,15 +80,38 @@ func (h *Handler) Router() http.Handler {
 		}
 	})
 
+	// Обработка /administrators (список всех)
+	mux.HandleFunc("/administrators", func(w http.ResponseWriter, r *http.Request) {
+		// Точное совпадение пути
+		if r.URL.Path != "/administrators" {
+			http.Error(w, "not found", http.StatusNotFound)
+			return
+		}
+		if r.Method != http.MethodGet {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.GetAllAdministrators(w, r)
+	})
+
 	// Обработка /administrators/{id}
 	mux.HandleFunc("/administrators/", func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/administrators/")
+		
+		// Если путь пустой после /administrators/, это тоже список всех
 		if path == "" {
-			http.Error(w, "administrator id is required", http.StatusBadRequest)
+			if r.Method != http.MethodGet {
+				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+				return
+			}
+			h.GetAllAdministrators(w, r)
 			return
 		}
 
+		// Иначе это запрос к /administrators/{id}
 		switch r.Method {
+		case http.MethodGet:
+			h.GetAdministratorByID(w, r)
 		case http.MethodDelete:
 			h.RemoveAdministrator(w, r)
 		default:
@@ -83,12 +122,15 @@ func (h *Handler) Router() http.Handler {
 	// Swagger UI
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
+
+
 	// Health check
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
-	return mux
+	// Wrap with request ID middleware
+	return middleware.RequestIDMiddleware(h.logger)(mux)
 }
 

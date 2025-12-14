@@ -19,5 +19,8 @@ type AdministratorRepository interface {
 
 	// CountByChatID подсчитывает количество администраторов у чата
 	CountByChatID(chatID int64) (int, error)
+
+	// GetAll получает всех администраторов с пагинацией и поиском
+	GetAll(query string, limit, offset int) ([]*Administrator, int, error)
 }
 

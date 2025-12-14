@@ -3,6 +3,7 @@ package repository
 import (
 	"employee-service/internal/domain"
 	"database/sql"
+	"strconv"
 	"strings"
 )
 
@@ -16,10 +17,11 @@ func NewEmployeePostgres(db *sql.DB) *EmployeePostgres {
 
 func (r *EmployeePostgres) Create(employee *domain.Employee) error {
 	err := r.db.QueryRow(
-		`INSERT INTO employees (first_name, last_name, middle_name, phone, max_id, inn, kpp, university_id) 
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, updated_at`,
+		`INSERT INTO employees (first_name, last_name, middle_name, phone, max_id, inn, kpp, university_id, role, user_id, max_id_updated_at) 
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING id, created_at, updated_at`,
 		employee.FirstName, employee.LastName, employee.MiddleName, employee.Phone,
 		employee.MaxID, employee.INN, employee.KPP, employee.UniversityID,
+		employee.Role, employee.UserID, employee.MaxIDUpdatedAt,
 	).Scan(&employee.ID, &employee.CreatedAt, &employee.UpdatedAt)
 	return err
 }
@@ -30,7 +32,7 @@ func (r *EmployeePostgres) GetByID(id int64) (*domain.Employee, error) {
 	
 	err := r.db.QueryRow(
 		`SELECT e.id, e.first_name, e.last_name, e.middle_name, e.phone, e.max_id, e.inn, e.kpp, 
-		        e.university_id, e.created_at, e.updated_at,
+		        e.university_id, e.role, e.user_id, e.max_id_updated_at, e.created_at, e.updated_at,
 		        u.id, u.name, u.inn, u.kpp, u.created_at, u.updated_at
 		 FROM employees e
 		 JOIN universities u ON e.university_id = u.id
@@ -39,7 +41,8 @@ func (r *EmployeePostgres) GetByID(id int64) (*domain.Employee, error) {
 	).Scan(
 		&employee.ID, &employee.FirstName, &employee.LastName, &employee.MiddleName,
 		&employee.Phone, &employee.MaxID, &employee.INN, &employee.KPP,
-		&employee.UniversityID, &employee.CreatedAt, &employee.UpdatedAt,
+		&employee.UniversityID, &employee.Role, &employee.UserID, &employee.MaxIDUpdatedAt,
+		&employee.CreatedAt, &employee.UpdatedAt,
 		&university.ID, &university.Name, &university.INN, &university.KPP,
 		&university.CreatedAt, &university.UpdatedAt,
 	)
@@ -58,7 +61,7 @@ func (r *EmployeePostgres) GetByPhone(phone string) (*domain.Employee, error) {
 	
 	err := r.db.QueryRow(
 		`SELECT e.id, e.first_name, e.last_name, e.middle_name, e.phone, e.max_id, e.inn, e.kpp, 
-		        e.university_id, e.created_at, e.updated_at,
+		        e.university_id, e.role, e.user_id, e.max_id_updated_at, e.created_at, e.updated_at,
 		        u.id, u.name, u.inn, u.kpp, u.created_at, u.updated_at
 		 FROM employees e
 		 JOIN universities u ON e.university_id = u.id
@@ -67,7 +70,8 @@ func (r *EmployeePostgres) GetByPhone(phone string) (*domain.Employee, error) {
 	).Scan(
 		&employee.ID, &employee.FirstName, &employee.LastName, &employee.MiddleName,
 		&employee.Phone, &employee.MaxID, &employee.INN, &employee.KPP,
-		&employee.UniversityID, &employee.CreatedAt, &employee.UpdatedAt,
+		&employee.UniversityID, &employee.Role, &employee.UserID, &employee.MaxIDUpdatedAt,
+		&employee.CreatedAt, &employee.UpdatedAt,
 		&university.ID, &university.Name, &university.INN, &university.KPP,
 		&university.CreatedAt, &university.UpdatedAt,
 	)
@@ -86,7 +90,7 @@ func (r *EmployeePostgres) GetByMaxID(maxID string) (*domain.Employee, error) {
 	
 	err := r.db.QueryRow(
 		`SELECT e.id, e.first_name, e.last_name, e.middle_name, e.phone, e.max_id, e.inn, e.kpp, 
-		        e.university_id, e.created_at, e.updated_at,
+		        e.university_id, e.role, e.user_id, e.max_id_updated_at, e.created_at, e.updated_at,
 		        u.id, u.name, u.inn, u.kpp, u.created_at, u.updated_at
 		 FROM employees e
 		 JOIN universities u ON e.university_id = u.id
@@ -95,7 +99,8 @@ func (r *EmployeePostgres) GetByMaxID(maxID string) (*domain.Employee, error) {
 	).Scan(
 		&employee.ID, &employee.FirstName, &employee.LastName, &employee.MiddleName,
 		&employee.Phone, &employee.MaxID, &employee.INN, &employee.KPP,
-		&employee.UniversityID, &employee.CreatedAt, &employee.UpdatedAt,
+		&employee.UniversityID, &employee.Role, &employee.UserID, &employee.MaxIDUpdatedAt,
+		&employee.CreatedAt, &employee.UpdatedAt,
 		&university.ID, &university.Name, &university.INN, &university.KPP,
 		&university.CreatedAt, &university.UpdatedAt,
 	)
@@ -118,7 +123,7 @@ func (r *EmployeePostgres) Search(query string, limit, offset int) ([]*domain.Em
 	
 	rows, err := r.db.Query(
 		`SELECT e.id, e.first_name, e.last_name, e.middle_name, e.phone, e.max_id, e.inn, e.kpp, 
-		        e.university_id, e.created_at, e.updated_at,
+		        e.university_id, e.role, e.user_id, e.max_id_updated_at, e.created_at, e.updated_at,
 		        u.id, u.name, u.inn, u.kpp, u.created_at, u.updated_at
 		 FROM employees e
 		 JOIN universities u ON e.university_id = u.id
@@ -144,7 +149,8 @@ func (r *EmployeePostgres) Search(query string, limit, offset int) ([]*domain.Em
 		err := rows.Scan(
 			&employee.ID, &employee.FirstName, &employee.LastName, &employee.MiddleName,
 			&employee.Phone, &employee.MaxID, &employee.INN, &employee.KPP,
-			&employee.UniversityID, &employee.CreatedAt, &employee.UpdatedAt,
+			&employee.UniversityID, &employee.Role, &employee.UserID, &employee.MaxIDUpdatedAt,
+			&employee.CreatedAt, &employee.UpdatedAt,
 			&university.ID, &university.Name, &university.INN, &university.KPP,
 			&university.CreatedAt, &university.UpdatedAt,
 		)
@@ -162,7 +168,7 @@ func (r *EmployeePostgres) Search(query string, limit, offset int) ([]*domain.Em
 func (r *EmployeePostgres) GetAll(limit, offset int) ([]*domain.Employee, error) {
 	rows, err := r.db.Query(
 		`SELECT e.id, e.first_name, e.last_name, e.middle_name, e.phone, e.max_id, e.inn, e.kpp, 
-		        e.university_id, e.created_at, e.updated_at,
+		        e.university_id, e.role, e.user_id, e.max_id_updated_at, e.created_at, e.updated_at,
 		        u.id, u.name, u.inn, u.kpp, u.created_at, u.updated_at
 		 FROM employees e
 		 JOIN universities u ON e.university_id = u.id
@@ -184,7 +190,8 @@ func (r *EmployeePostgres) GetAll(limit, offset int) ([]*domain.Employee, error)
 		err := rows.Scan(
 			&employee.ID, &employee.FirstName, &employee.LastName, &employee.MiddleName,
 			&employee.Phone, &employee.MaxID, &employee.INN, &employee.KPP,
-			&employee.UniversityID, &employee.CreatedAt, &employee.UpdatedAt,
+			&employee.UniversityID, &employee.Role, &employee.UserID, &employee.MaxIDUpdatedAt,
+			&employee.CreatedAt, &employee.UpdatedAt,
 			&university.ID, &university.Name, &university.INN, &university.KPP,
 			&university.CreatedAt, &university.UpdatedAt,
 		)
@@ -203,10 +210,12 @@ func (r *EmployeePostgres) Update(employee *domain.Employee) error {
 	_, err := r.db.Exec(
 		`UPDATE employees 
 		 SET first_name = $1, last_name = $2, middle_name = $3, phone = $4, max_id = $5, 
-		     inn = $6, kpp = $7, university_id = $8, updated_at = now()
-		 WHERE id = $9`,
+		     inn = $6, kpp = $7, university_id = $8, role = $9, user_id = $10, 
+		     max_id_updated_at = $11, updated_at = now()
+		 WHERE id = $12`,
 		employee.FirstName, employee.LastName, employee.MiddleName, employee.Phone,
-		employee.MaxID, employee.INN, employee.KPP, employee.UniversityID, employee.ID,
+		employee.MaxID, employee.INN, employee.KPP, employee.UniversityID,
+		employee.Role, employee.UserID, employee.MaxIDUpdatedAt, employee.ID,
 	)
 	return err
 }
@@ -214,5 +223,172 @@ func (r *EmployeePostgres) Update(employee *domain.Employee) error {
 func (r *EmployeePostgres) Delete(id int64) error {
 	_, err := r.db.Exec(`DELETE FROM employees WHERE id = $1`, id)
 	return err
+}
+
+func (r *EmployeePostgres) GetEmployeesWithoutMaxID(limit, offset int) ([]*domain.Employee, error) {
+	rows, err := r.db.Query(
+		`SELECT e.id, e.first_name, e.last_name, e.middle_name, e.phone, e.max_id, e.inn, e.kpp, 
+		        e.university_id, e.role, e.user_id, e.max_id_updated_at, e.created_at, e.updated_at,
+		        u.id, u.name, u.inn, u.kpp, u.created_at, u.updated_at
+		 FROM employees e
+		 JOIN universities u ON e.university_id = u.id
+		 WHERE e.max_id = '' OR e.max_id IS NULL
+		 ORDER BY e.id
+		 LIMIT $1 OFFSET $2`,
+		limit, offset,
+	)
+	
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var employees []*domain.Employee
+	for rows.Next() {
+		employee := &domain.Employee{}
+		university := &domain.University{}
+		
+		err := rows.Scan(
+			&employee.ID, &employee.FirstName, &employee.LastName, &employee.MiddleName,
+			&employee.Phone, &employee.MaxID, &employee.INN, &employee.KPP,
+			&employee.UniversityID, &employee.Role, &employee.UserID, &employee.MaxIDUpdatedAt,
+			&employee.CreatedAt, &employee.UpdatedAt,
+			&university.ID, &university.Name, &university.INN, &university.KPP,
+			&university.CreatedAt, &university.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		
+		employee.University = university
+		employees = append(employees, employee)
+	}
+	
+	return employees, rows.Err()
+}
+
+func (r *EmployeePostgres) CountEmployeesWithoutMaxID() (int, error) {
+	var count int
+	err := r.db.QueryRow(
+		`SELECT COUNT(*) FROM employees WHERE max_id = '' OR max_id IS NULL`,
+	).Scan(&count)
+	return count, err
+}
+
+func (r *EmployeePostgres) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*domain.Employee, error) {
+	// Валидация параметров сортировки
+	validSortFields := map[string]string{
+		"id":           "e.id",
+		"first_name":   "e.first_name",
+		"last_name":    "e.last_name",
+		"middle_name":  "e.middle_name",
+		"phone":        "e.phone",
+		"max_id":       "e.max_id",
+		"inn":          "e.inn",
+		"kpp":          "e.kpp",
+		"role":         "e.role",
+		"university":   "u.name",
+		"created_at":   "e.created_at",
+		"updated_at":   "e.updated_at",
+	}
+	
+	sortField, exists := validSortFields[sortBy]
+	if !exists {
+		sortField = "e.last_name" // по умолчанию сортировка по фамилии
+	}
+	
+	if sortOrder != "asc" && sortOrder != "desc" {
+		sortOrder = "asc" // по умолчанию по возрастанию
+	}
+	
+	// Построение WHERE условия для поиска
+	whereClause := ""
+	args := []interface{}{}
+	argIndex := 1
+	
+	if search != "" {
+		searchPattern := "%" + strings.ToLower(search) + "%"
+		whereClause = `WHERE (LOWER(e.first_name) LIKE $` + strconv.Itoa(argIndex) + ` 
+		                  OR LOWER(e.last_name) LIKE $` + strconv.Itoa(argIndex) + ` 
+		                  OR LOWER(e.middle_name) LIKE $` + strconv.Itoa(argIndex) + `
+		                  OR LOWER(u.name) LIKE $` + strconv.Itoa(argIndex) + `
+		                  OR LOWER(e.phone) LIKE $` + strconv.Itoa(argIndex) + `
+		                  OR LOWER(e.max_id) LIKE $` + strconv.Itoa(argIndex) + `
+		                  OR LOWER(e.inn) LIKE $` + strconv.Itoa(argIndex) + `
+		                  OR LOWER(e.kpp) LIKE $` + strconv.Itoa(argIndex) + `
+		                  OR LOWER(e.role) LIKE $` + strconv.Itoa(argIndex) + `)`
+		args = append(args, searchPattern)
+		argIndex++
+	}
+	
+	// Добавляем LIMIT и OFFSET
+	args = append(args, limit, offset)
+	limitArg := "$" + strconv.Itoa(argIndex)
+	offsetArg := "$" + strconv.Itoa(argIndex+1)
+	
+	query := `SELECT e.id, e.first_name, e.last_name, e.middle_name, e.phone, e.max_id, e.inn, e.kpp, 
+		        e.university_id, e.role, e.user_id, e.max_id_updated_at, e.created_at, e.updated_at,
+		        u.id, u.name, u.inn, u.kpp, u.created_at, u.updated_at
+		 FROM employees e
+		 JOIN universities u ON e.university_id = u.id ` +
+		whereClause + `
+		 ORDER BY ` + sortField + ` ` + sortOrder + `
+		 LIMIT ` + limitArg + ` OFFSET ` + offsetArg
+	
+	rows, err := r.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var employees []*domain.Employee
+	for rows.Next() {
+		employee := &domain.Employee{}
+		university := &domain.University{}
+		
+		err := rows.Scan(
+			&employee.ID, &employee.FirstName, &employee.LastName, &employee.MiddleName,
+			&employee.Phone, &employee.MaxID, &employee.INN, &employee.KPP,
+			&employee.UniversityID, &employee.Role, &employee.UserID, &employee.MaxIDUpdatedAt,
+			&employee.CreatedAt, &employee.UpdatedAt,
+			&university.ID, &university.Name, &university.INN, &university.KPP,
+			&university.CreatedAt, &university.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		
+		employee.University = university
+		employees = append(employees, employee)
+	}
+	
+	return employees, rows.Err()
+}
+
+func (r *EmployeePostgres) CountAllWithSearch(search string) (int, error) {
+	var count int
+	var err error
+	
+	if search == "" {
+		err = r.db.QueryRow(`SELECT COUNT(*) FROM employees`).Scan(&count)
+	} else {
+		searchPattern := "%" + strings.ToLower(search) + "%"
+		err = r.db.QueryRow(
+			`SELECT COUNT(*) FROM employees e
+			 JOIN universities u ON e.university_id = u.id
+			 WHERE (LOWER(e.first_name) LIKE $1 
+			     OR LOWER(e.last_name) LIKE $1 
+			     OR LOWER(e.middle_name) LIKE $1
+			     OR LOWER(u.name) LIKE $1
+			     OR LOWER(e.phone) LIKE $1
+			     OR LOWER(e.max_id) LIKE $1
+			     OR LOWER(e.inn) LIKE $1
+			     OR LOWER(e.kpp) LIKE $1
+			     OR LOWER(e.role) LIKE $1)`,
+			searchPattern,
+		).Scan(&count)
+	}
+	
+	return count, err
 }
 

@@ -23,6 +23,21 @@ func (s *StructureService) GetAllUniversities() ([]*domain.University, error) {
 	return s.repo.GetAllUniversities()
 }
 
+// GetAllUniversitiesWithSortingAndSearch получает список всех вузов с пагинацией, сортировкой и поиском
+func (s *StructureService) GetAllUniversitiesWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string) ([]*domain.University, int, error) {
+	if limit <= 0 {
+		limit = 50
+	}
+	if limit > 100 {
+		limit = 100
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	
+	return s.repo.GetAllUniversitiesWithSortingAndSearch(limit, offset, sortBy, sortOrder, search)
+}
+
 // GetUniversity получает вуз по ID
 func (s *StructureService) GetUniversity(id int64) (*domain.University, error) {
 	return s.repo.GetUniversityByID(id)
@@ -36,6 +51,29 @@ func (s *StructureService) GetUniversityByINN(inn string) (*domain.University, e
 // CreateUniversity создает новый вуз
 func (s *StructureService) CreateUniversity(u *domain.University) error {
 	return s.repo.CreateUniversity(u)
+}
+
+// CreateOrGetUniversity создает или получает университет по INN/KPP
+func (s *StructureService) CreateOrGetUniversity(inn, kpp, name, foiv string) (*domain.University, error) {
+	// Пытаемся найти существующий университет по INN
+	university, err := s.repo.GetUniversityByINN(inn)
+	if err == nil {
+		return university, nil
+	}
+
+	// Если не найден, создаем новый
+	university = &domain.University{
+		INN:  inn,
+		KPP:  kpp,
+		Name: name,
+		FOIV: foiv,
+	}
+
+	if err := s.repo.CreateUniversity(university); err != nil {
+		return nil, err
+	}
+
+	return university, nil
 }
 
 // UpdateUniversity обновляет информацию о вузе
@@ -81,6 +119,11 @@ func (s *StructureService) DeleteFaculty(id int64) error {
 // CreateGroup создает новую группу
 func (s *StructureService) CreateGroup(g *domain.Group) error {
 	return s.repo.CreateGroup(g)
+}
+
+// GetGroupByID получает группу по ID
+func (s *StructureService) GetGroupByID(id int64) (*domain.Group, error) {
+	return s.repo.GetGroupByID(id)
 }
 
 // UpdateGroup обновляет информацию о группе
@@ -183,5 +226,59 @@ func (s *StructureService) ImportFromExcel(rows []*domain.ExcelRow) error {
 	}
 
 	return nil
+}
+
+// UpdateUniversityName обновляет название университета
+func (s *StructureService) UpdateUniversityName(id int64, name string) error {
+	university, err := s.repo.GetUniversityByID(id)
+	if err != nil {
+		return err
+	}
+	
+	university.Name = name
+	return s.repo.UpdateUniversity(university)
+}
+
+// UpdateBranchName обновляет название филиала
+func (s *StructureService) UpdateBranchName(id int64, name string) error {
+	branch, err := s.repo.GetBranchByID(id)
+	if err != nil {
+		return err
+	}
+	
+	branch.Name = name
+	return s.repo.UpdateBranch(branch)
+}
+
+// UpdateFacultyName обновляет название факультета
+func (s *StructureService) UpdateFacultyName(id int64, name string) error {
+	faculty, err := s.repo.GetFacultyByID(id)
+	if err != nil {
+		return err
+	}
+	
+	faculty.Name = name
+	return s.repo.UpdateFaculty(faculty)
+}
+
+// UpdateGroupName обновляет номер группы
+func (s *StructureService) UpdateGroupName(id int64, name string) error {
+	group, err := s.repo.GetGroupByID(id)
+	if err != nil {
+		return err
+	}
+	
+	group.Number = name
+	return s.repo.UpdateGroup(group)
+}
+
+// GetBranchByID получает филиал по ID
+func (s *StructureService) GetBranchByID(id int64) (*domain.Branch, error) {
+	return s.repo.GetBranchByID(id)
+}
+
+// GetFacultyByID получает факультет по ID
+func (s *StructureService) GetFacultyByID(id int64) (*domain.Faculty, error) {
+	return s.repo.GetFacultyByID(id)
 }
 

@@ -78,3 +78,23 @@ func (h *EmployeeHandler) GetUniversityByINNAndKPP(ctx context.Context, req *pro
 	}, nil
 }
 
+func (h *EmployeeHandler) GetEmployeeByID(ctx context.Context, req *proto.GetEmployeeByIDRequest) (*proto.GetEmployeeByIDResponse, error) {
+	employee, err := h.employeeService.GetEmployeeByID(req.Id)
+	if err != nil {
+		return &proto.GetEmployeeByIDResponse{
+			Error: err.Error(),
+		}, nil
+	}
+
+	return &proto.GetEmployeeByIDResponse{
+		Employee: &proto.Employee{
+			Id:           employee.ID,
+			FirstName:    employee.FirstName,
+			LastName:     employee.LastName,
+			Phone:        employee.Phone,
+			Role:         employee.Role,
+			UniversityId: employee.UniversityID,
+		},
+	}, nil
+}
+

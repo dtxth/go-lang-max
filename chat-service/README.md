@@ -15,6 +15,8 @@
 - Пагинация списка чатов
 - Фильтрация чатов по роли пользователя и вузу
 - Управление администраторами чатов:
+  - Получение списка всех администраторов с пагинацией и поиском
+  - Получение администратора по ID
   - Добавление администратора
   - Удаление администратора (нельзя удалить последнего)
 
@@ -68,6 +70,8 @@ chat-service/
 
 ### Администраторы
 
+- `GET /administrators` - Получить всех администраторов с пагинацией и поиском
+- `GET /administrators/{admin_id}` - Получить администратора по ID
 - `POST /chats/{chat_id}/administrators` - Добавить администратора к чату
 - `DELETE /administrators/{admin_id}` - Удалить администратора из чата
 
@@ -134,4 +138,11 @@ http://localhost:8082/swagger/index.html
 ```bash
 make swagger
 ```
+
+## Дополнительная документация
+
+- [ADMINISTRATORS_API.md](./ADMINISTRATORS_API.md) - Полная документация API администраторов
+- [ADMINISTRATORS_QUICK_START.md](./ADMINISTRATORS_QUICK_START.md) - Быстрый старт с примерами
+- [ADMINISTRATORS_IMPLEMENTATION_SUMMARY.md](./ADMINISTRATORS_IMPLEMENTATION_SUMMARY.md) - Сводка реализации
+- [DEPLOYMENT_SUCCESS.md](./DEPLOYMENT_SUCCESS.md) - Результаты развертывания и тестирования
 
