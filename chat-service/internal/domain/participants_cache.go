@@ -64,4 +64,5 @@ type ParticipantsConfig struct {
 	StaleThreshold        time.Duration `env:"PARTICIPANTS_STALE_THRESHOLD" default:"1h"`
 	EnableBackgroundSync  bool          `env:"PARTICIPANTS_ENABLE_BACKGROUND_SYNC" default:"true"`
 	EnableLazyUpdate      bool          `env:"PARTICIPANTS_ENABLE_LAZY_UPDATE" default:"true"`
+	MaxRetries            int           `env:"PARTICIPANTS_MAX_RETRIES" default:"3"`
 }

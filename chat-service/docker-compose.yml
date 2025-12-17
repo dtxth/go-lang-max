@@ -1,6 +1,27 @@
 version: '3.8'
 
 services:
+  # Redis Cache for Participants Background Sync
+  redis:
+    image: redis:7-alpine
+    container_name: chat-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
+    networks:
+      - chat-network
+
   chat-db:
     image: postgres:15-alpine
     environment:
@@ -17,19 +38,44 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    networks:
+      - chat-network
 
   chat-service:
     build: .
     ports:
       - "8082:8082"
+      - "9092:9092"
     environment:
       DATABASE_URL: postgres://chat_user:chat_pass@chat-db:5432/chat_db?sslmode=disable
       PORT: 8082
+      GRPC_PORT: 9092
+      # Redis Configuration for Participants Background Sync
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      PARTICIPANTS_CACHE_TTL: ${PARTICIPANTS_CACHE_TTL:-1h}
+      PARTICIPANTS_UPDATE_INTERVAL: ${PARTICIPANTS_UPDATE_INTERVAL:-15m}
+      PARTICIPANTS_FULL_UPDATE_HOUR: ${PARTICIPANTS_FULL_UPDATE_HOUR:-3}
+      PARTICIPANTS_BATCH_SIZE: ${PARTICIPANTS_BATCH_SIZE:-50}
+      PARTICIPANTS_MAX_API_TIMEOUT: ${PARTICIPANTS_MAX_API_TIMEOUT:-30s}
+      PARTICIPANTS_STALE_THRESHOLD: ${PARTICIPANTS_STALE_THRESHOLD:-1h}
+      PARTICIPANTS_ENABLE_BACKGROUND_SYNC: ${PARTICIPANTS_ENABLE_BACKGROUND_SYNC:-true}
+      PARTICIPANTS_ENABLE_LAZY_UPDATE: ${PARTICIPANTS_ENABLE_LAZY_UPDATE:-true}
+      PARTICIPANTS_INTEGRATION_DISABLED: ${PARTICIPANTS_INTEGRATION_DISABLED:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
     depends_on:
       chat-db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
     restart: unless-stopped
+    networks:
+      - chat-network
 
 volumes:
   chat_db_data:
+  redis_data:
+
+networks:
+  chat-network:
+    driver: bridge
 

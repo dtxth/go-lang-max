@@ -124,3 +124,29 @@ func TestRemoveAdministrator_InvalidID(t *testing.T) {
 		t.Errorf("expected status 400, got %d", w.Code)
 	}
 }
+
+func TestRefreshParticipantsCount_InvalidChatID(t *testing.T) {
+	handler := NewHandler(nil, nil, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/chats/invalid/refresh-participants", nil)
+	w := httptest.NewRecorder()
+
+	handler.RefreshParticipantsCount(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", w.Code)
+	}
+}
+
+func TestRefreshParticipantsCount_InvalidPath(t *testing.T) {
+	handler := NewHandler(nil, nil, nil)
+
+	req := httptest.NewRequest(http.MethodPost, "/chats/1/invalid", nil)
+	w := httptest.NewRecorder()
+
+	handler.RefreshParticipantsCount(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("expected status 400, got %d", w.Code)
+	}
+}

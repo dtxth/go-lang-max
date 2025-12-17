@@ -2,3 +2,45 @@
 .DS_Store
 **/.DS_Store
 .vscode/settings.json
+
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.production
+
+# Go build artifacts
+**/main
+**/auth
+bin/
+*.exe
+
+# Database data
+pgdata/
+*_pgdata/
+*_db_data/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE files
+.idea/
+*.swp
+*.swo
+
+# Test coverage
+coverage.out
+*.cover
+
+# Migration uploads
+migration-service/uploads/*
+!migration-service/uploads/.gitkeep
+
+# Google credentials
+**/credentials/*.json
+!**/credentials/.gitkeep

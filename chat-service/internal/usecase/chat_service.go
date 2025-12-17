@@ -86,8 +86,8 @@ func (s *ChatService) GetAllChatsWithSortingAndSearch(limit, offset int, sortBy,
 		return nil, 0, err
 	}
 	
-	// Обогащаем чаты актуальными данными об участниках
-	enrichedChats, err := s.enrichChatsWithParticipants(context.Background(), chats)
+	// Обогащаем чаты актуальными данными об участниках с cache-first логикой
+	enrichedChats, err := s.enrichChatsWithParticipantsLazy(context.Background(), chats)
 	if err != nil {
 		// Логируем ошибку, но не прерываем выполнение - возвращаем данные из БД
 		// s.logger.Error("Failed to enrich chats with participants", "error", err)
@@ -265,13 +265,50 @@ func (s *ChatService) DeleteChat(id int64) error {
 	return s.chatRepo.Delete(id)
 }
 
-// enrichChatsWithParticipants обогащает чаты актуальными данными об участниках
-func (s *ChatService) enrichChatsWithParticipants(ctx context.Context, chats []*domain.Chat) ([]*domain.Chat, error) {
+// RefreshParticipantsCount принудительно обновляет количество участников для чата
+func (s *ChatService) RefreshParticipantsCount(ctx context.Context, chatID int64) (*domain.ParticipantsInfo, error) {
+	// Проверяем, что у нас есть ParticipantsUpdater
+	if s.participantsUpdater == nil {
+		return nil, errors.New("participants updater not available")
+	}
+	
+	// Получаем чат для проверки существования и получения MAX Chat ID
+	chat, err := s.chatRepo.GetByID(chatID)
+	if err != nil {
+		return nil, domain.ErrChatNotFound
+	}
+	
+	// Если нет MAX Chat ID, возвращаем данные из БД как fallback
+	if chat.MaxChatID == "" {
+		return &domain.ParticipantsInfo{
+			Count:     chat.ParticipantsCount,
+			UpdatedAt: chat.UpdatedAt,
+			Source:    "database",
+		}, nil
+	}
+	
+	// Используем ParticipantsUpdater для обновления
+	info, err := s.participantsUpdater.UpdateSingle(ctx, chatID, chat.MaxChatID)
+	if err != nil {
+		// При ошибке возвращаем fallback данные из БД
+		return &domain.ParticipantsInfo{
+			Count:     chat.ParticipantsCount,
+			UpdatedAt: chat.UpdatedAt,
+			Source:    "database",
+		}, nil
+	}
+	
+	return info, nil
+}
+
+// enrichChatsWithParticipantsLazy обогащает чаты актуальными данными об участниках с cache-first логикой
+func (s *ChatService) enrichChatsWithParticipantsLazy(ctx context.Context, chats []*domain.Chat) ([]*domain.Chat, error) {
+	// Проверяем, что у нас есть все необходимые компоненты для работы с участниками
 	if len(chats) == 0 || s.participantsCache == nil || s.participantsConfig == nil || !s.participantsConfig.EnableLazyUpdate {
 		return chats, nil
 	}
 	
-	// Собираем ID чатов для батчевого запроса
+	// Собираем ID чатов для батчевого запроса к кэшу
 	chatIDs := make([]int64, len(chats))
 	chatMap := make(map[int64]*domain.Chat)
 	for i, chat := range chats {
@@ -279,53 +316,64 @@ func (s *ChatService) enrichChatsWithParticipants(ctx context.Context, chats []*
 		chatMap[chat.ID] = chat
 	}
 	
-	// Получаем данные из кэша с fallback
+	// Шаг 1: Проверяем кэш для всех чатов
 	cachedData, err := s.participantsCache.GetMultiple(ctx, chatIDs)
 	if err != nil {
-		// Логируем ошибку, но продолжаем работу с данными из БД
+		// При ошибке кэша возвращаем данные из БД как fallback
 		// TODO: добавить метрику participants_cache_errors_total
-		return chats, nil // Возвращаем исходные данные из БД
+		return chats, nil
 	}
 	
-	// Определяем чаты, которые нужно обновить
+	// Шаг 2: Определяем стратегию для каждого чата
 	chatsToUpdate := make([]domain.ChatUpdateRequest, 0)
 	staleThreshold := time.Now().Add(-s.participantsConfig.StaleThreshold)
 	
 	for _, chat := range chats {
 		cachedInfo, exists := cachedData[chat.ID]
 		
-		// Если данных нет в кэше или они устарели
-		if !exists || cachedInfo.UpdatedAt.Before(staleThreshold) {
-			if chat.MaxChatID != "" {
-				chatsToUpdate = append(chatsToUpdate, domain.ChatUpdateRequest{
-					ChatID:    chat.ID,
-					MaxChatID: chat.MaxChatID,
-				})
-			}
-		} else {
-			// Используем данные из кэша
+		if exists && cachedInfo.UpdatedAt.After(staleThreshold) {
+			// Данные свежие - используем из кэша
 			chat.ParticipantsCount = cachedInfo.Count
+		} else if chat.MaxChatID != "" {
+			// Данные отсутствуют или устарели - добавляем в список для обновления
+			chatsToUpdate = append(chatsToUpdate, domain.ChatUpdateRequest{
+				ChatID:    chat.ID,
+				MaxChatID: chat.MaxChatID,
+			})
 		}
+		// Если нет MaxChatID, оставляем данные из БД без изменений
 	}
 	
-	// Асинхронно обновляем устаревшие данные (если их немного)
-	if len(chatsToUpdate) > 0 && len(chatsToUpdate) <= 10 {
-		go func() {
-			updateCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-			defer cancel()
-			
-			updatedData, err := s.participantsUpdater.UpdateBatch(updateCtx, chatsToUpdate)
+	// Шаг 3: Обновляем устаревшие данные
+	if len(chatsToUpdate) > 0 {
+		// Для небольшого количества чатов делаем синхронное обновление
+		if len(chatsToUpdate) <= 5 {
+			updatedData, err := s.participantsUpdater.UpdateBatch(ctx, chatsToUpdate)
 			if err != nil {
-				return // логирование уже внутри UpdateBatch
+				// При ошибке API возвращаем данные из БД/кэша как fallback
+				return chats, nil
 			}
 			
-			// Обновляем данные в исходных объектах чатов
+			// Применяем обновленные данные
 			for chatID, info := range updatedData {
 				if chat, exists := chatMap[chatID]; exists {
 					chat.ParticipantsCount = info.Count
 				}
 			}
-		}()
+		} else {
+			// Для большого количества чатов запускаем асинхронное обновление
+			go func() {
+				updateCtx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+				defer cancel()
+				
+				_, err := s.participantsUpdater.UpdateBatch(updateCtx, chatsToUpdate)
+				if err != nil {
+					// Логирование ошибки уже внутри UpdateBatch
+					return
+				}
+				// Асинхронное обновление не влияет на текущий ответ
+			}()
+		}
 	}
 	
 	return chats, nil

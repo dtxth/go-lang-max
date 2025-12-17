@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 )
 
 type Handler struct {
@@ -461,25 +460,27 @@ func (h *Handler) RefreshParticipantsCount(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	// Получаем чат для проверки существования и получения MAX Chat ID
-	chat, err := h.chatService.GetChatByID(chatID)
+	// Используем ChatService для обновления участников
+	ctx := r.Context()
+	info, err := h.chatService.RefreshParticipantsCount(ctx, chatID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusNotFound)
+		statusCode := http.StatusInternalServerError
+		if err == domain.ErrChatNotFound {
+			statusCode = http.StatusNotFound
+		} else if strings.Contains(err.Error(), "not available") {
+			statusCode = http.StatusServiceUnavailable
+		}
+		http.Error(w, err.Error(), statusCode)
 		return
 	}
 
-	if chat.MaxChatID == "" {
-		http.Error(w, "chat has no MAX Chat ID", http.StatusBadRequest)
-		return
-	}
-
-	// Здесь должен быть вызов к ParticipantsUpdater, но пока возвращаем заглушку
+	// Формируем ответ с обновленными данными
 	response := map[string]interface{}{
 		"status":             "updated",
 		"chat_id":            chatID,
-		"participants_count": chat.ParticipantsCount,
-		"updated_at":         time.Now(),
-		"source":             "api",
+		"participants_count": info.Count,
+		"updated_at":         info.UpdatedAt,
+		"source":             info.Source,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

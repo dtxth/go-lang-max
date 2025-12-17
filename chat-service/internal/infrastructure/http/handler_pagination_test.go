@@ -284,3 +284,11 @@ func (m *mockChatServiceWrapper) RemoveAdministrator(adminID int64) error {
 func (m *mockChatServiceWrapper) CreateChat(name, url, maxChatID, source string, participantsCount int, universityID *int64, department string) (*domain.Chat, error) {
 	return nil, nil
 }
+
+func (m *mockChatServiceWrapper) RefreshParticipantsCount(ctx context.Context, chatID int64) (*domain.ParticipantsInfo, error) {
+	return &domain.ParticipantsInfo{
+		Count:     100,
+		UpdatedAt: time.Now(),
+		Source:    "api",
+	}, nil
+}

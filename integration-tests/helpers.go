@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"testing"
 	"time"
@@ -186,15 +187,20 @@ func WaitForService(t *testing.T, url string, maxRetries int) {
 func CreateTestUser(t *testing.T, role string, universityID int) string {
 	client := NewHTTPClient()
 	
-	// Register user
+	// Register user with unique email
+	rand.Seed(time.Now().UnixNano())
+	timestamp := time.Now().UnixNano()
+	randomNum := rand.Intn(1000000)
 	registerBody := map[string]interface{}{
-		"email":    fmt.Sprintf("test-%s-%d@example.com", role, time.Now().Unix()),
+		"email":    fmt.Sprintf("test-%s-%d-%d-%d@example.com", role, universityID, timestamp, randomNum),
 		"password": "testpassword123",
 		"name":     fmt.Sprintf("Test %s", role),
 	}
 	
-	status, respBody := client.POST(t, AuthServiceURL+"/auth/register", registerBody)
-	require.Equal(t, http.StatusCreated, status, string(respBody))
+	status, respBody := client.POST(t, AuthServiceURL+"/register", registerBody)
+	if status != http.StatusOK && status != http.StatusCreated {
+		require.Equal(t, http.StatusCreated, status, string(respBody))
+	}
 	
 	var registerResp map[string]interface{}
 	err := json.Unmarshal(respBody, &registerResp)
@@ -206,7 +212,7 @@ func CreateTestUser(t *testing.T, role string, universityID int) string {
 		"password": registerBody["password"],
 	}
 	
-	status, respBody = client.POST(t, AuthServiceURL+"/auth/login", loginBody)
+	status, respBody = client.POST(t, AuthServiceURL+"/login", loginBody)
 	require.Equal(t, http.StatusOK, status, string(respBody))
 	
 	var loginResp map[string]interface{}

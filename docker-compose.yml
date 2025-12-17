@@ -6,9 +6,9 @@ services:
     image: postgres:15
     container_name: auth-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+      POSTGRES_USER: ${AUTH_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${AUTH_DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${AUTH_DB_NAME:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -32,17 +32,39 @@ services:
       auth-db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://postgres:postgres@auth-db:5432/postgres?sslmode=disable
-      PORT: "8080"
-      GRPC_PORT: "9090"
-      ACCESS_SECRET: "super-secret-access"
-      REFRESH_SECRET: "super-secret-refresh"
-      ACCESS_MINUTES: "15"
-      REFRESH_HOURS: "168"
+      DATABASE_URL: postgres://${AUTH_DB_USER:-postgres}:${AUTH_DB_PASSWORD:-postgres}@auth-db:5432/${AUTH_DB_NAME:-postgres}?sslmode=${DB_SSLMODE:-disable}
+      PORT: "${AUTH_SERVICE_PORT:-8080}"
+      GRPC_PORT: "${AUTH_GRPC_PORT:-9090}"
+      ACCESS_SECRET: "${ACCESS_SECRET:-super-secret-access}"
+      REFRESH_SECRET: "${REFRESH_SECRET:-super-secret-refresh}"
+      ACCESS_MINUTES: "${ACCESS_MINUTES:-15}"
+      REFRESH_HOURS: "${REFRESH_HOURS:-168}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
     ports:
-      - "8080:8080"
-      - "9090:9090"
+      - "${AUTH_SERVICE_PORT:-8080}:${AUTH_SERVICE_PORT:-8080}"
+      - "${AUTH_GRPC_PORT:-9090}:${AUTH_GRPC_PORT:-9090}"
     restart: on-failure
+    networks:
+      - microservices-network
+
+  # Redis Cache for Chat Service
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
     networks:
       - microservices-network
 
@@ -51,16 +73,16 @@ services:
     image: postgres:15-alpine
     container_name: chat-db
     environment:
-      POSTGRES_USER: chat_user
-      POSTGRES_PASSWORD: chat_pass
-      POSTGRES_DB: chat_db
+      POSTGRES_USER: ${CHAT_DB_USER:-chat_user}
+      POSTGRES_PASSWORD: ${CHAT_DB_PASSWORD:-chat_pass}
+      POSTGRES_DB: ${CHAT_DB_NAME:-chat_db}
     ports:
-      - "5434:5432"
+      - "${CHAT_DB_PORT:-5434}:5432"
     volumes:
       - chat_db_data:/var/lib/postgresql/data
       - ./chat-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chat_user -d chat_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${CHAT_DB_USER:-chat_user} -d ${CHAT_DB_NAME:-chat_db}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -74,18 +96,35 @@ services:
       dockerfile: ./chat-service/Dockerfile
     container_name: chat-service
     ports:
-      - "8082:8082"
-      - "9092:9092"
+      - "${CHAT_SERVICE_PORT:-8082}:${CHAT_SERVICE_PORT:-8082}"
+      - "${CHAT_GRPC_PORT:-9092}:${CHAT_GRPC_PORT:-9092}"
     environment:
-      DATABASE_URL: postgres://chat_user:chat_pass@chat-db:5432/chat_db?sslmode=disable
-      PORT: "8082"
-      GRPC_PORT: "9092"
-      MAXBOT_GRPC_ADDR: maxbot-service:9095
-      MAXBOT_TIMEOUT: 5s
-      AUTH_GRPC_ADDR: auth-service:9090
-      AUTH_TIMEOUT: 5s
+      DATABASE_URL: postgres://${CHAT_DB_USER:-chat_user}:${CHAT_DB_PASSWORD:-chat_pass}@chat-db:5432/${CHAT_DB_NAME:-chat_db}?sslmode=${DB_SSLMODE:-disable}
+      PORT: "${CHAT_SERVICE_PORT:-8082}"
+      GRPC_PORT: "${CHAT_GRPC_PORT:-9092}"
+      MAXBOT_GRPC_ADDR: ${MAXBOT_GRPC_ADDR:-maxbot-service:9095}
+      MAXBOT_TIMEOUT: ${MAXBOT_TIMEOUT:-5s}
+      AUTH_GRPC_ADDR: ${AUTH_GRPC_ADDR:-auth-service:9090}
+      AUTH_TIMEOUT: ${AUTH_TIMEOUT:-5s}
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+      # Redis Configuration for Participants Background Sync
+      REDIS_URL: ${REDIS_URL:-redis://redis:6379/0}
+      REDIS_MAX_RETRIES: ${REDIS_MAX_RETRIES:-5}
+      REDIS_RETRY_DELAY: ${REDIS_RETRY_DELAY:-1s}
+      REDIS_HEALTH_CHECK_INTERVAL: ${REDIS_HEALTH_CHECK_INTERVAL:-30s}
+      PARTICIPANTS_CACHE_TTL: ${PARTICIPANTS_CACHE_TTL:-1h}
+      PARTICIPANTS_UPDATE_INTERVAL: ${PARTICIPANTS_UPDATE_INTERVAL:-15m}
+      PARTICIPANTS_FULL_UPDATE_HOUR: ${PARTICIPANTS_FULL_UPDATE_HOUR:-3}
+      PARTICIPANTS_BATCH_SIZE: ${PARTICIPANTS_BATCH_SIZE:-50}
+      PARTICIPANTS_MAX_API_TIMEOUT: ${PARTICIPANTS_MAX_API_TIMEOUT:-30s}
+      PARTICIPANTS_STALE_THRESHOLD: ${PARTICIPANTS_STALE_THRESHOLD:-1h}
+      PARTICIPANTS_ENABLE_BACKGROUND_SYNC: ${PARTICIPANTS_ENABLE_BACKGROUND_SYNC:-true}
+      PARTICIPANTS_ENABLE_LAZY_UPDATE: ${PARTICIPANTS_ENABLE_LAZY_UPDATE:-true}
+      PARTICIPANTS_INTEGRATION_DISABLED: ${PARTICIPANTS_INTEGRATION_DISABLED:-false}
     depends_on:
       chat-db:
+        condition: service_healthy
+      redis:
         condition: service_healthy
       auth-service:
         condition: service_started
@@ -100,16 +139,16 @@ services:
     image: postgres:15-alpine
     container_name: employee-db
     environment:
-      POSTGRES_USER: employee_user
-      POSTGRES_PASSWORD: employee_pass
-      POSTGRES_DB: employee_db
+      POSTGRES_USER: ${EMPLOYEE_DB_USER:-employee_user}
+      POSTGRES_PASSWORD: ${EMPLOYEE_DB_PASSWORD:-employee_pass}
+      POSTGRES_DB: ${EMPLOYEE_DB_NAME:-employee_db}
     ports:
-      - "5433:5432"
+      - "${EMPLOYEE_DB_PORT:-5433}:5432"
     volumes:
       - employee_db_data:/var/lib/postgresql/data
       - ./employee-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U employee_user"]
+      test: ["CMD-SHELL", "pg_isready -U ${EMPLOYEE_DB_USER:-employee_user}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -123,15 +162,16 @@ services:
       dockerfile: ./employee-service/Dockerfile
     container_name: employee-service
     ports:
-      - "8081:8081"
-      - "9091:9091"
+      - "${EMPLOYEE_SERVICE_PORT:-8081}:${EMPLOYEE_SERVICE_PORT:-8081}"
+      - "${EMPLOYEE_GRPC_PORT:-9091}:${EMPLOYEE_GRPC_PORT:-9091}"
     environment:
-      DATABASE_URL: postgres://employee_user:employee_pass@employee-db:5432/employee_db?sslmode=disable
-      PORT: "8081"
-      GRPC_PORT: "9091"
-      MAXBOT_GRPC_ADDR: maxbot-service:9095
-      MAXBOT_TIMEOUT: 5s
-      AUTH_GRPC_ADDR: auth-service:9090
+      DATABASE_URL: postgres://${EMPLOYEE_DB_USER:-employee_user}:${EMPLOYEE_DB_PASSWORD:-employee_pass}@employee-db:5432/${EMPLOYEE_DB_NAME:-employee_db}?sslmode=${DB_SSLMODE:-disable}
+      PORT: "${EMPLOYEE_SERVICE_PORT:-8081}"
+      GRPC_PORT: "${EMPLOYEE_GRPC_PORT:-9091}"
+      MAXBOT_GRPC_ADDR: ${MAXBOT_GRPC_ADDR:-maxbot-service:9095}
+      MAXBOT_TIMEOUT: ${MAXBOT_TIMEOUT:-5s}
+      AUTH_GRPC_ADDR: ${AUTH_GRPC_ADDR:-auth-service:9090}
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
     depends_on:
       employee-db:
         condition: service_healthy
@@ -148,11 +188,11 @@ services:
     image: postgres:15
     container_name: structure-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: structure_db
+      POSTGRES_USER: ${STRUCTURE_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${STRUCTURE_DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${STRUCTURE_DB_NAME:-structure_db}
     ports:
-      - "5435:5432"
+      - "${STRUCTURE_DB_PORT:-5435}:5432"
     volumes:
       - structure_pgdata:/var/lib/postgresql/data
       - ./structure-service/migrations-init:/docker-entrypoint-initdb.d
@@ -178,14 +218,15 @@ services:
       employee-service:
         condition: service_started
     environment:
-      DATABASE_URL: postgres://postgres:postgres@structure-db:5432/structure_db?sslmode=disable
-      PORT: "8083"
-      GRPC_PORT: "9093"
-      CHAT_SERVICE_GRPC: chat-service:9092
-      EMPLOYEE_SERVICE_GRPC: employee-service:9091
+      DATABASE_URL: postgres://${STRUCTURE_DB_USER:-postgres}:${STRUCTURE_DB_PASSWORD:-postgres}@structure-db:5432/${STRUCTURE_DB_NAME:-structure_db}?sslmode=${DB_SSLMODE:-disable}
+      PORT: "${STRUCTURE_SERVICE_PORT:-8083}"
+      GRPC_PORT: "${STRUCTURE_GRPC_PORT:-9093}"
+      CHAT_SERVICE_GRPC: ${CHAT_GRPC_ADDR:-chat-service:9092}
+      EMPLOYEE_SERVICE_GRPC: ${EMPLOYEE_GRPC_ADDR:-employee-service:9091}
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
     ports:
-      - "8083:8083"
-      - "9093:9093"
+      - "${STRUCTURE_SERVICE_PORT:-8083}:${STRUCTURE_SERVICE_PORT:-8083}"
+      - "${STRUCTURE_GRPC_PORT:-9093}:${STRUCTURE_GRPC_PORT:-9093}"
     restart: on-failure
     networks:
       - microservices-network
@@ -196,13 +237,14 @@ services:
       dockerfile: ./maxbot-service/Dockerfile
     container_name: maxbot-service
     environment:
-      GRPC_PORT: "9095"
+      GRPC_PORT: "${MAXBOT_GRPC_PORT:-9095}"
       MAX_API_URL: ""
       MAX_API_TOKEN: "${MAX_API_TOKEN:-test-token-for-development}"
-      MAX_API_TIMEOUT: 5s
+      MAX_API_TIMEOUT: ${MAX_API_TIMEOUT:-5s}
       MOCK_MODE: "${MOCK_MODE:-true}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
     ports:
-      - "9095:9095"
+      - "${MAXBOT_GRPC_PORT:-9095}:${MAXBOT_GRPC_PORT:-9095}"
     restart: unless-stopped
     networks:
       - microservices-network
@@ -212,11 +254,11 @@ services:
     image: postgres:15-alpine
     container_name: migration-db
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: migration_db
+      POSTGRES_USER: ${MIGRATION_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${MIGRATION_DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${MIGRATION_DB_NAME:-migration_db}
     ports:
-      - "5436:5432"
+      - "${MIGRATION_DB_PORT:-5436}:5432"
     volumes:
       - migration_db_data:/var/lib/postgresql/data
       - ./migration-service/migrations-init:/docker-entrypoint-initdb.d
@@ -235,19 +277,20 @@ services:
       dockerfile: ./migration-service/Dockerfile
     container_name: migration-service
     environment:
-      SERVER_PORT: "8084"
+      SERVER_PORT: "${MIGRATION_SERVICE_PORT:-8084}"
       DB_HOST: migration-db
       DB_PORT: "5432"
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: migration_db
-      DB_SSLMODE: disable
-      CHAT_SERVICE_URL: http://chat-service:8082
-      STRUCTURE_SERVICE_URL: http://structure-service:8083
-      GOOGLE_CREDENTIALS_PATH: /app/credentials/google-credentials.json
-      GOOGLE_SPREADSHEET_ID: ""
+      DB_USER: ${MIGRATION_DB_USER:-postgres}
+      DB_PASSWORD: ${MIGRATION_DB_PASSWORD:-postgres}
+      DB_NAME: ${MIGRATION_DB_NAME:-migration_db}
+      DB_SSLMODE: ${DB_SSLMODE:-disable}
+      CHAT_SERVICE_URL: ${CHAT_SERVICE_URL:-http://chat-service:8082}
+      STRUCTURE_SERVICE_URL: ${STRUCTURE_SERVICE_URL:-http://structure-service:8083}
+      GOOGLE_CREDENTIALS_PATH: ${GOOGLE_CREDENTIALS_PATH:-/app/credentials/google-credentials.json}
+      GOOGLE_SPREADSHEET_ID: "${GOOGLE_SPREADSHEET_ID:-}"
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
     ports:
-      - "8084:8084"
+      - "${MIGRATION_SERVICE_PORT:-8084}:${MIGRATION_SERVICE_PORT:-8084}"
     depends_on:
       migration-db:
         condition: service_healthy
@@ -270,6 +313,7 @@ volumes:
   employee_db_data:
   structure_pgdata:
   migration_db_data:
+  redis_data:
 
 networks:
   microservices-network:
