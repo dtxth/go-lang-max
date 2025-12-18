@@ -132,6 +132,18 @@ func (m *mockMaxServiceForBatch) BatchGetMaxIDByPhone(phones []string) (map[stri
 	return result, nil
 }
 
+func (m *mockMaxServiceForBatch) GetUserProfileByPhone(phone string) (*domain.UserProfile, error) {
+	if maxID, ok := m.maxIDs[phone]; ok {
+		return &domain.UserProfile{
+			MaxID:     maxID,
+			Phone:     phone,
+			FirstName: "Test",
+			LastName:  "User",
+		}, nil
+	}
+	return nil, errors.New("not found")
+}
+
 func TestBatchUpdateMaxId_EmptyDatabase(t *testing.T) {
 	employeeRepo := &mockEmployeeRepoForBatch{
 		employees:         []*domain.Employee{},

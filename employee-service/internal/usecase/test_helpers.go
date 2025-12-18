@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"employee-service/internal/domain"
+	"strings"
 	"time"
 )
 
@@ -253,6 +254,30 @@ func (m *mockMaxService) BatchGetMaxIDByPhone(phones []string) (map[string]strin
 	return result, nil
 }
 
+func (m *mockMaxService) GetUserProfileByPhone(phone string) (*domain.UserProfile, error) {
+	if maxID, ok := m.users[phone]; ok {
+		// Mock profile data based on phone number
+		profile := &domain.UserProfile{
+			MaxID:     maxID,
+			Phone:     phone,
+			FirstName: "Иван",
+			LastName:  "Иванов",
+		}
+		
+		// Vary mock data based on phone number for testing
+		if strings.Contains(phone, "1234") {
+			profile.FirstName = "Петр"
+			profile.LastName = "Петров"
+		} else if strings.Contains(phone, "5678") {
+			profile.FirstName = "Анна"
+			profile.LastName = "Сидорова"
+		}
+		
+		return profile, nil
+	}
+	return nil, domain.ErrMaxIDNotFound
+}
+
 type mockAuthService struct {
 	nextUserID int64
 }
@@ -350,4 +375,35 @@ func (m *mockBatchUpdateJobRepo) GetByID(id int64) (*domain.BatchUpdateJob, erro
 
 func (m *mockBatchUpdateJobRepo) GetAll(limit, offset int) ([]*domain.BatchUpdateJob, error) {
 	return nil, nil
+}
+// mockProfileCacheService для тестирования
+type mockProfileCacheService struct {
+	profiles map[string]*domain.CachedUserProfile
+}
+
+func newMockProfileCacheService() *mockProfileCacheService {
+	return &mockProfileCacheService{
+		profiles: make(map[string]*domain.CachedUserProfile),
+	}
+}
+
+func (m *mockProfileCacheService) GetProfile(ctx context.Context, userID string) (*domain.CachedUserProfile, error) {
+	profile, ok := m.profiles[userID]
+	if !ok {
+		// Возвращаем пустой профиль по умолчанию
+		return &domain.CachedUserProfile{
+			UserID:           userID,
+			MaxFirstName:     "",
+			MaxLastName:      "",
+			UserProvidedName: "",
+			LastUpdated:      time.Now(),
+			Source:           domain.SourceDefault,
+		}, nil
+	}
+	return profile, nil
+}
+
+// Вспомогательный метод для тестов
+func (m *mockProfileCacheService) SetProfile(userID string, profile *domain.CachedUserProfile) {
+	m.profiles[userID] = profile
 }

@@ -10,6 +10,7 @@ import (
 	"auth-service/internal/infrastructure/http"
 	"auth-service/internal/infrastructure/jwt"
 	"auth-service/internal/infrastructure/logger"
+	"auth-service/internal/infrastructure/maxbot"
 	"auth-service/internal/infrastructure/metrics"
 	"auth-service/internal/infrastructure/notification"
 	"auth-service/internal/infrastructure/repository"
@@ -82,6 +83,24 @@ func main() {
 	authUC.SetNotificationService(notificationSvc)
 	authUC.SetLogger(appLogger)
 	authUC.SetMetrics(metricsCollector)
+	
+	// Initialize MaxBot client if configured
+	if cfg.MaxBotServiceAddr != "" {
+		maxBotClient, err := maxbot.NewClient(cfg.MaxBotServiceAddr)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize MaxBot client: %v", err)
+			// Use mock client as fallback
+			authUC.SetMaxBotClient(maxbot.NewMockClient())
+			log.Printf("Using mock MaxBot client as fallback")
+		} else {
+			authUC.SetMaxBotClient(maxBotClient)
+			log.Printf("Initialized MaxBot client (addr: %s)", cfg.MaxBotServiceAddr)
+		}
+	} else {
+		// Use mock client when no address is configured
+		authUC.SetMaxBotClient(maxbot.NewMockClient())
+		log.Printf("Using mock MaxBot client (no address configured)")
+	}
 	
 	handler := http.NewHandler(authUC)
 

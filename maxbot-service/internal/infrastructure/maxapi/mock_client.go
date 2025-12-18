@@ -243,3 +243,48 @@ func (c *MockClient) normalizePhone(phone string) string {
 
 	return ""
 }
+
+func (c *MockClient) GetMe(ctx context.Context) (*domain.BotInfo, error) {
+	// Mock implementation returns realistic bot information
+	result := &domain.BotInfo{
+		Name:    "Digital University Bot",
+		AddLink: "https://max.ru/bot/digital_university_bot",
+	}
+
+	log.Printf("[DEBUG] [MOCK] Successfully retrieved bot info: %s", result.Name)
+	return result, nil
+}
+
+func (c *MockClient) GetUserProfileByPhone(ctx context.Context, phone string) (*domain.UserProfile, error) {
+	// Validate phone first
+	valid, normalized, err := c.ValidatePhone(phone)
+	if err != nil {
+		return nil, err
+	}
+	if !valid {
+		log.Printf("[DEBUG] [MOCK] Invalid phone number: %s", maskPhone(phone))
+		return nil, domain.ErrInvalidPhone
+	}
+
+	// Mock user profile data based on phone number
+	profile := &domain.UserProfile{
+		MaxID:     normalized, // Use normalized phone as MAX_id in mock
+		Phone:     normalized,
+		FirstName: "Иван",     // Mock first name
+		LastName:  "Иванов",   // Mock last name
+	}
+
+	// Vary mock data based on phone number for testing
+	if strings.Contains(normalized, "1234") {
+		profile.FirstName = "Петр"
+		profile.LastName = "Петров"
+	} else if strings.Contains(normalized, "5678") {
+		profile.FirstName = "Анна"
+		profile.LastName = "Сидорова"
+	}
+
+	log.Printf("[DEBUG] [MOCK] Retrieved user profile for phone %s: %s %s", 
+		maskPhone(normalized), profile.FirstName, profile.LastName)
+	
+	return profile, nil
+}

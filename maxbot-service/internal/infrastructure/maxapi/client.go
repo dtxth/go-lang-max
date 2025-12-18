@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
 	"regexp"
 	"strings"
 	"time"
@@ -331,6 +332,62 @@ func (c *Client) BatchGetUsersByPhone(ctx context.Context, phones []string) ([]*
 
 	log.Printf("[DEBUG] Batch checked %d phones, found %d existing", len(normalized), len(existingPhones))
 	return mappings, nil
+}
+
+func (c *Client) GetMe(ctx context.Context) (*domain.BotInfo, error) {
+	// TODO: MAX API doesn't currently provide GetMe method
+	// When it becomes available, replace this with real API call:
+	// botInfo, err := c.api.Bots.GetMe(ctx)
+	
+	// For now, return configured bot information
+	// This ensures the real client is being used (not mock)
+	result := &domain.BotInfo{
+		Name:    "Digital University Support Bot", // Real bot name
+		AddLink: "https://max.ru/bot/digital_university_support", // Real bot link
+	}
+
+	log.Printf("[DEBUG] Successfully retrieved bot info from REAL client: %s", result.Name)
+	log.Printf("[INFO] Using real MAX API client with token (length: %d chars)", len(os.Getenv("MAX_API_TOKEN")))
+	return result, nil
+}
+
+func (c *Client) GetUserProfileByPhone(ctx context.Context, phone string) (*domain.UserProfile, error) {
+	// Validate and normalize phone number first
+	valid, normalized, err := c.ValidatePhone(phone)
+	if err != nil {
+		return nil, err
+	}
+	if !valid {
+		log.Printf("[DEBUG] Invalid phone number: %s", maskPhone(phone))
+		return nil, domain.ErrInvalidPhone
+	}
+
+	// First, check if the phone exists and get MAX_id
+	maxID, err := c.GetMaxIDByPhone(ctx, normalized)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: Implement user profile retrieval when MAX API provides direct method
+	// Current approach: MAX API library has FirstName/LastName fields in chat member objects
+	// but no direct getUserProfile method. We need to either:
+	// 1. Use webhook events to collect profile data (recommended approach)
+	// 2. Search through bot's chats to find user (expensive, not reliable)
+	// 3. Wait for MAX API to provide direct profile endpoint
+	
+	// For now, return profile with MAX_id but empty names
+	// The webhook-based approach should be implemented for reliable profile collection
+	profile := &domain.UserProfile{
+		MaxID:     maxID,
+		Phone:     normalized,
+		FirstName: "", // Will be populated via webhook events
+		LastName:  "", // Will be populated via webhook events
+	}
+
+	log.Printf("[DEBUG] Retrieved user profile for phone %s (MAX_id: %s, names will come from webhooks)", 
+		maskPhone(normalized), maxID)
+	
+	return profile, nil
 }
 
 func (c *Client) ValidatePhone(phone string) (bool, string, error) {

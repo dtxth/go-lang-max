@@ -12,5 +12,16 @@ type MaxService interface {
 	// BatchGetMaxIDByPhone получает MAX_id для нескольких телефонов
 	// Возвращает map[phone]maxID для успешных запросов
 	BatchGetMaxIDByPhone(phones []string) (map[string]string, error)
+	
+	// GetUserProfileByPhone получает профиль пользователя по номеру телефона
+	GetUserProfileByPhone(phone string) (*UserProfile, error)
+}
+
+// UserProfile содержит профиль пользователя MAX Messenger
+type UserProfile struct {
+	MaxID     string
+	FirstName string
+	LastName  string
+	Phone     string
 }
 

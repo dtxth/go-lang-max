@@ -22,6 +22,7 @@ type AuthService struct {
     userRoleRepo           domain.UserRoleRepository
     resetTokenRepo         domain.PasswordResetRepository
     notificationService    domain.NotificationService
+    maxBotClient           domain.MaxBotClient
     logger                 Logger
     metrics                *metrics.Metrics
     minPasswordLength      int
@@ -44,6 +45,11 @@ func NewAuthService(repo domain.UserRepository, refreshRepo domain.RefreshTokenR
         minPasswordLength:    12, // Default value
         resetTokenExpiration: 15 * time.Minute, // Default value
     }
+}
+
+// SetMaxBotClient sets the MaxBot client
+func (s *AuthService) SetMaxBotClient(client domain.MaxBotClient) {
+    s.maxBotClient = client
 }
 
 // SetPasswordConfig sets the password configuration
@@ -689,4 +695,30 @@ func sanitizePhone(phone string) string {
 		return "****"
 	}
 	return "****" + phone[len(phone)-4:]
+}
+// GetBotInfo retrieves bot information from MaxBot service
+func (s *AuthService) GetBotInfo(ctx context.Context) (*domain.BotInfo, error) {
+	if s.maxBotClient == nil {
+		return nil, fmt.Errorf("MaxBot client not configured")
+	}
+
+	botInfo, err := s.maxBotClient.GetBotInfo(ctx)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.Error(ctx, "failed_to_get_bot_info", map[string]interface{}{
+				"error":     err.Error(),
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+			})
+		}
+		return nil, fmt.Errorf("failed to get bot info: %w", err)
+	}
+
+	if s.logger != nil {
+		s.logger.Info(ctx, "bot_info_retrieved", map[string]interface{}{
+			"bot_name":  botInfo.Name,
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+	}
+
+	return botInfo, nil
 }

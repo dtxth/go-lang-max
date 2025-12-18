@@ -438,3 +438,39 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusOK)
     json.NewEncoder(w).Encode(map[string]string{"status": "healthy"})
 }
+
+// BotInfoResponse represents the response for /bot/me endpoint
+type BotInfoResponse struct {
+    Name    string `json:"name" example:"MAX Bot"`                    // Bot name
+    AddLink string `json:"add_link" example:"https://max.ru/add-bot"` // Link to add the bot
+}
+
+// GetBotMe godoc
+// @Summary      Get bot information
+// @Description  Get bot name and add bot link from MaxBot service
+// @Tags         bot
+// @Accept       json
+// @Produce      json
+// @Success      200  {object}  BotInfoResponse  "Bot information"
+// @Failure      500  {object}  object{error=string,message=string}  "Internal server error"
+// @Router       /bot/me [get]
+func (h *Handler) GetBotMe(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
+    // Get bot info from auth service (which will call maxbot service)
+    botInfo, err := h.auth.GetBotInfo(r.Context())
+    if err != nil {
+        errors.WriteError(w, err, requestID)
+        return
+    }
+
+    // Create response
+    response := BotInfoResponse{
+        Name:    botInfo.Name,
+        AddLink: botInfo.AddLink,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(response)
+}

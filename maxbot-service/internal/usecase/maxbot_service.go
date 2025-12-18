@@ -59,3 +59,11 @@ func (s *MaxBotService) NormalizePhone(phone string) (string, error) {
 func (s *MaxBotService) BatchGetUsersByPhone(ctx context.Context, phones []string) ([]*domain.UserPhoneMapping, error) {
 	return s.batchGetUsersByPhoneUC.Execute(ctx, phones)
 }
+
+func (s *MaxBotService) GetMe(ctx context.Context) (*domain.BotInfo, error) {
+	return s.apiClient.GetMe(ctx)
+}
+
+func (s *MaxBotService) GetUserProfileByPhone(ctx context.Context, phone string) (*domain.UserProfile, error) {
+	return s.apiClient.GetUserProfileByPhone(ctx, phone)
+}

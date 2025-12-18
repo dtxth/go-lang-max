@@ -15,4 +15,5 @@ var (
 	ErrResetTokenNotFound  = errors.NotFoundError("password reset token")
 	ErrResetTokenExpired   = errors.UnauthorizedError("password reset token has expired")
 	ErrResetTokenUsed      = errors.UnauthorizedError("password reset token has already been used")
+	ErrMaxBotUnavailable   = errors.ExternalServiceError("MaxBot", errors.InternalError("service unavailable", nil))
 )

@@ -190,6 +190,51 @@ func (h *MaxBotHandler) BatchGetUsersByPhone(ctx context.Context, req *maxbotpro
 	return &maxbotproto.BatchGetUsersByPhoneResponse{Mappings: protoMappings}, nil
 }
 
+func (h *MaxBotHandler) GetMe(ctx context.Context, req *maxbotproto.GetMeRequest) (*maxbotproto.GetMeResponse, error) {
+	botInfo, err := h.service.GetMe(ctx)
+	if err != nil {
+		return &maxbotproto.GetMeResponse{
+			Error:     err.Error(),
+			ErrorCode: mapError(err),
+		}, nil
+	}
+
+	return &maxbotproto.GetMeResponse{
+		Bot: &maxbotproto.BotInfo{
+			Name:    botInfo.Name,
+			AddLink: botInfo.AddLink,
+		},
+	}, nil
+}
+
+// TODO: Uncomment when protobuf files are regenerated with UserProfile definitions
+// func (h *MaxBotHandler) GetUserProfileByPhone(ctx context.Context, req *maxbotproto.GetUserProfileByPhoneRequest) (*maxbotproto.GetUserProfileByPhoneResponse, error) {
+// 	if req.Phone == "" {
+// 		return &maxbotproto.GetUserProfileByPhoneResponse{
+// 			ErrorCode: maxbotproto.ErrorCode_ERROR_CODE_INVALID_PHONE,
+// 			Error:     "phone number is required",
+// 		}, nil
+// 	}
+
+// 	profile, err := h.service.GetUserProfileByPhone(ctx, req.Phone)
+// 	if err != nil {
+// 		return &maxbotproto.GetUserProfileByPhoneResponse{
+// 			ErrorCode: mapError(err),
+// 			Error:     err.Error(),
+// 		}, nil
+// 	}
+
+// 	return &maxbotproto.GetUserProfileByPhoneResponse{
+// 		Profile: &maxbotproto.UserProfile{
+// 			MaxId:     profile.MaxID,
+// 			FirstName: profile.FirstName,
+// 			LastName:  profile.LastName,
+// 			Phone:     profile.Phone,
+// 		},
+// 		ErrorCode: maxbotproto.ErrorCode_ERROR_CODE_UNSPECIFIED,
+// 	}, nil
+// }
+
 func mapError(err error) maxbotproto.ErrorCode {
 	switch err {
 	case domain.ErrInvalidPhone:

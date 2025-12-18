@@ -2,18 +2,21 @@ module auth-service
 
 go 1.24.0
 
+replace maxbot-service => ../maxbot-service
+
 require (
 	github.com/golang-jwt/jwt/v5 v5.3.0 // or latest
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
 	golang.org/x/crypto v0.45.0 // or latest
 	google.golang.org/grpc v1.66.0
+	maxbot-service v0.0.0-00010101000000-000000000000
 )
 
 require (
 	github.com/golang/protobuf v1.5.2
 	github.com/leanovate/gopter v0.2.11
-	github.com/stretchr/testify v1.7.0
+	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.6
 	google.golang.org/protobuf v1.34.1
@@ -38,5 +41,5 @@ require (
 	golang.org/x/tools v0.38.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240604185151-ef581f913117 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

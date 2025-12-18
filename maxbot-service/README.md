@@ -7,6 +7,10 @@ MaxBot Service is a gRPC microservice that provides an interface for interacting
 - **User Lookup**: Retrieve Max Messenger user IDs by phone number
 - **Phone Validation**: Automatic normalization and validation of Russian phone numbers
 - **Max API Integration**: Full integration with Max Messenger Bot API using the official client library
+- **Webhook Integration**: Process MAX Messenger webhook events for profile collection
+- **Profile Caching**: Redis-based caching of user profile information with TTL
+- **Profile Management**: REST API for managing user profiles and names
+- **Monitoring & Analytics**: Comprehensive monitoring of profile quality and webhook processing
 - **gRPC Interface**: Clean gRPC API for service-to-service communication
 - **Error Handling**: Comprehensive error mapping and descriptive error messages
 
@@ -79,6 +83,19 @@ The service is configured through environment variables. All configuration optio
 |----------|-------------|---------|
 | `MAX_API_TOKEN` | Bot authentication token for Max Messenger API | `your-bot-token-here` |
 
+### Profile Integration Variables (NEW)
+
+| Variable | Description | Default | Example |
+|----------|-------------|---------|---------|
+| `REDIS_ADDR` | Redis server address for profile cache | `redis:6379` | `localhost:6379` |
+| `REDIS_PASSWORD` | Redis password (if required) | _(empty)_ | `secure-password` |
+| `REDIS_DB` | Redis database number for profiles | `1` | `1` |
+| `PROFILE_TTL` | Profile cache TTL | `720h` | `168h` |
+| `WEBHOOK_SECRET` | Webhook authentication secret | _(empty)_ | `secure-webhook-secret` |
+| `MONITORING_ENABLED` | Enable monitoring endpoints | `true` | `false` |
+| `PROFILE_QUALITY_ALERT_THRESHOLD` | Profile quality alert threshold | `0.8` | `0.9` |
+| `WEBHOOK_ERROR_ALERT_THRESHOLD` | Webhook error rate alert threshold | `0.05` | `0.1` |
+
 ### Optional Environment Variables
 
 | Variable | Description | Default |
@@ -86,6 +103,7 @@ The service is configured through environment variables. All configuration optio
 | `MAX_API_URL` | Base URL for Max Messenger API | `https://api.max.ru` |
 | `MAX_API_TIMEOUT` | Timeout for API requests | `5s` |
 | `GRPC_PORT` | Port for gRPC server | `9095` |
+| `MAXBOT_HTTP_PORT` | Port for HTTP server (webhooks, API) | `8095` |
 
 ### Configuration Examples
 
@@ -198,6 +216,32 @@ docker-compose down
 ```
 
 ## API Reference
+
+### HTTP Endpoints (NEW)
+
+The service now exposes HTTP endpoints for webhook processing and profile management:
+
+#### Webhook Processing
+
+- `POST /webhook/max` - Process MAX Messenger webhook events
+- `GET /health` - Service health check
+
+#### Profile Management
+
+- `GET /profiles/{user_id}` - Get user profile information
+- `PUT /profiles/{user_id}` - Update user profile (admin)
+- `POST /profiles/{user_id}/name` - Set user-provided name
+- `GET /profiles/stats` - Get profile statistics
+
+#### Monitoring
+
+- `GET /monitoring/profiles/coverage` - Profile coverage metrics
+- `GET /monitoring/profiles/quality` - Profile quality report
+- `GET /monitoring/webhook/stats` - Webhook processing statistics
+
+#### Documentation
+
+- `GET /swagger/` - Swagger UI for HTTP API documentation
 
 ### gRPC Methods
 
@@ -435,6 +479,42 @@ resp, err := client.CheckPhoneNumbers(context.Background(), &pb.CheckPhoneNumber
 fmt.Printf("Found %d existing phones\n", len(resp.ExistingPhones))
 ```
 
+#### GetMe
+
+Retrieves information about the bot (name and add bot link).
+
+**Request:**
+```protobuf
+message GetMeRequest {
+  // Empty request
+}
+```
+
+**Response:**
+```protobuf
+message GetMeResponse {
+  BotInfo bot = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+message BotInfo {
+  string name = 1;      // Bot name
+  string add_link = 2;  // Link to add the bot
+}
+```
+
+**Example Usage (Go):**
+
+```go
+resp, err := client.GetMe(context.Background(), &pb.GetMeRequest{})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("Bot Name: %s\n", resp.Bot.Name)
+fmt.Printf("Add Bot Link: %s\n", resp.Bot.AddLink)
+```
+
 ## Phone Number Validation
 
 The service automatically normalizes and validates phone numbers according to Russian phone number format rules:
@@ -468,6 +548,7 @@ The service automatically normalizes and validates phone numbers according to Ru
 - ✅ **Chat Members**: Retrieve list of chat participants with pagination
 - ✅ **Chat Admins**: Get list of chat administrators
 - ✅ **Bulk Phone Check**: Check multiple phone numbers for existence in Max Messenger
+- ✅ **Bot Information**: Get bot name and add bot link via GetMe method
 
 ### Available for Future Extension
 

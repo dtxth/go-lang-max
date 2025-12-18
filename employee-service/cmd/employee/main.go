@@ -11,6 +11,7 @@ import (
 	"employee-service/internal/infrastructure/max"
 	"employee-service/internal/infrastructure/notification"
 	"employee-service/internal/infrastructure/password"
+	"employee-service/internal/infrastructure/profile"
 	"employee-service/internal/infrastructure/repository"
 	"employee-service/internal/usecase"
 	"log"
@@ -58,6 +59,9 @@ func main() {
 	}
 	defer maxClient.Close()
 
+	// Инициализируем Profile Cache gRPC клиент (используем тот же адрес что и MaxBot)
+	profileCacheClient := profile.NewProfileCacheClient(maxClient.GetConnection())
+
 	// Инициализируем Auth gRPC клиент
 	log.Printf("Connecting to Auth Service at %s", cfg.AuthServiceAddress)
 	authClient, err := auth.NewAuthClient(cfg.AuthServiceAddress)
@@ -82,7 +86,7 @@ func main() {
 	}
 
 	// Инициализируем usecase
-	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient, authClient, passwordGenerator, notificationService)
+	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient, authClient, passwordGenerator, notificationService, profileCacheClient)
 	batchUpdateMaxIdUseCase := usecase.NewBatchUpdateMaxIdUseCase(employeeRepo, batchUpdateJobRepo, maxClient)
 	
 	// Инициализируем use case для поиска с ролевой фильтрацией
