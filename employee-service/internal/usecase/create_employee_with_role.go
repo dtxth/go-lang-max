@@ -145,7 +145,7 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 			return nil, errors.New("failed to generate password: " + err.Error())
 		}
 		
-		log.Printf("DEBUG: Generated password for phone ending in %s", sanitizePhone(phone))
+
 		
 		// Создаем пользователя в Auth Service (используем телефон как идентификатор)
 		userID, err := uc.authService.CreateUser(ctx, phone, password)

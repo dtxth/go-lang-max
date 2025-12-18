@@ -103,13 +103,12 @@ func (s *AuthService) Register(email, password, role string) (*domain.User, erro
 
 // CreateUser создает нового пользователя без роли (роль назначается отдельно через AssignRole)
 func (s *AuthService) CreateUser(phone, password string) (int64, error) {
-    log.Printf("DEBUG: CreateUser called for phone ending in %s", sanitizePhone(phone))
+
     
     // Проверяем, не существует ли уже пользователь с таким телефоном
     existingUser, err := s.repo.GetByPhone(phone)
     if err == nil && existingUser != nil && existingUser.ID > 0 {
-        log.Printf("DEBUG: User already exists for phone ending in %s, returning existing user ID: %d", 
-            sanitizePhone(phone), existingUser.ID)
+
         return existingUser.ID, nil // Возвращаем существующего пользователя
     }
 
@@ -186,8 +185,12 @@ func (s *AuthService) LoginByIdentifier(identifier, password string) (*TokensWit
     // Определяем, является ли идентификатор телефоном (начинается с +)
     if len(identifier) > 0 && identifier[0] == '+' {
         user, err = s.repo.GetByPhone(identifier)
+        if err != nil {
+        }
     } else {
         user, err = s.repo.GetByEmail(identifier)
+        if err != nil {
+        }
     }
     
     if err != nil {

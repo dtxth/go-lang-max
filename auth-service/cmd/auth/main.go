@@ -42,9 +42,25 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	
+	// Configure connection pool
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	// Don't set ConnMaxLifetime to avoid premature connection closure
+	
+	// Test the connection
+	if err := db.Ping(); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+	log.Printf("Main database connection established successfully")
 
-	// Initialize and run migrations
-	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	// Initialize and run migrations with separate connection
+	migrationDB, err := sql.Open("postgres", cfg.DBUrl)
+	if err != nil {
+		panic(err)
+	}
+	
+	migrator := migration.NewMigrator(migrationDB, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
 	
 	// Wait for database to be ready
 	if err := migrator.WaitForDatabase(); err != nil {
@@ -55,6 +71,9 @@ func main() {
 	if err := migrator.RunMigrations(); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
+	
+	// Close migration connection
+	migrationDB.Close()
 
 	repo := repository.NewUserPostgres(db)
 	refreshRepo := repository.NewRefreshPostgres(db)

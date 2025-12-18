@@ -551,11 +551,7 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 	// Используем телефон владельца чата
 	phone := row.OwnerPhone
 	
-	// DEBUG: Логируем первые 5 строк
-	if row.RowNumber <= 5 {
-		fmt.Printf("[DEBUG] Row %d: owner_phone='%s', normalized='%s', owner_id='%s'\n",
-			row.RowNumber, row.OwnerPhone, normalizePhone(phone), row.OwnerID)
-	}
+
 	
 	// Нормализуем телефон
 	phone = normalizePhone(phone)
@@ -580,12 +576,6 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 			AddAdmin: addAdmin,
 		}
 
-		// DEBUG: Log first 5 administrator creations
-		if row.RowNumber <= 5 {
-			fmt.Printf("[DEBUG] Adding administrator: chat_id=%d, phone=%s, owner_id=%s, add_user=%v, add_admin=%v\n",
-				chatID, phone, row.OwnerID, addUser, addAdmin)
-		}
-
 		if err := uc.chatService.AddAdministrator(ctx, adminData); err != nil {
 			// Log error but don't fail the migration
 			uc.logWarn(ctx, "Failed to add administrator", map[string]interface{}{
@@ -593,12 +583,6 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 				"phone":   phone,
 				"error":   err.Error(),
 			})
-			// DEBUG: Log first 5 errors
-			if row.RowNumber <= 5 {
-				fmt.Printf("[DEBUG] Error adding administrator: %v\n", err)
-			}
-		} else if row.RowNumber <= 5 {
-			fmt.Printf("[DEBUG] Administrator added successfully\n")
 		}
 	}
 

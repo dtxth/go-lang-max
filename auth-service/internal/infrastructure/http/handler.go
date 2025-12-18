@@ -6,7 +6,6 @@ import (
 	"auth-service/internal/infrastructure/phone"
 	"auth-service/internal/usecase"
 	"encoding/json"
-	"log"
 	"net/http"
 )
 
@@ -124,8 +123,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Debug logging
-    log.Printf("DEBUG: Login request - Email: '%s', Phone: '%s'", req.Email, req.Phone)
+
     
     // Validate that either email or phone is provided
     if req.Email == "" && req.Phone == "" {
@@ -144,8 +142,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
         normalizedPhone := phone.NormalizePhone(req.Phone)
         identifier = normalizedPhone
         
-        // Log the normalization for debugging
-        log.Printf("DEBUG: Phone normalized from '%s' to '%s'", req.Phone, normalizedPhone)
+
     }
 
     tokens, err := h.auth.LoginByIdentifier(identifier, req.Password)
@@ -173,6 +170,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 // @Router       /login-phone [post]
 func (h *Handler) LoginByPhone(w http.ResponseWriter, r *http.Request) {
     requestID := middleware.GetRequestID(r.Context())
+
     
     var req struct {
         Phone    string `json:"phone"`
