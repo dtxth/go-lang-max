@@ -3,12 +3,14 @@ package http
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"maxbot-service/internal/domain"
 	"maxbot-service/internal/infrastructure/errors"
 	"maxbot-service/internal/usecase"
@@ -45,6 +47,77 @@ type ErrorResponse struct {
 	Error   string `json:"error" example:"internal_error"`           // Error code
 	Message string `json:"message" example:"Internal server error"`  // Error message
 } // @name ErrorResponse
+
+// ChatInfoResponse represents the response for chat info endpoint
+// @Description Chat information response
+type ChatInfoResponse struct {
+	ChatID            int64  `json:"chat_id" example:"123456789"`                    // Chat ID
+	Title             string `json:"title" example:"Test Chat"`                      // Chat title
+	Type              string `json:"type" example:"group"`                           // Chat type
+	ParticipantsCount int    `json:"participants_count" example:"25"`               // Number of participants
+	Description       string `json:"description" example:"Test chat description"`   // Chat description
+} // @name ChatInfoResponse
+
+// GetChatInfo godoc
+// @Summary Get chat information
+// @Description Get information about a specific chat from MAX Messenger
+// @Tags Chat
+// @Accept json
+// @Produce json
+// @Param chat_id path int64 true "Chat ID"
+// @Success 200 {object} ChatInfoResponse "Chat information"
+// @Failure 400 {object} ErrorResponse "Invalid chat ID"
+// @Failure 404 {object} ErrorResponse "Chat not found"
+// @Failure 500 {object} ErrorResponse "Internal server error"
+// @Router /chats/{chat_id} [get]
+func (h *MaxBotHTTPHandler) GetChatInfo(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := getRequestID(ctx)
+
+	log.Printf("[DEBUG] GetChatInfo called with URL: %s", r.URL.Path)
+
+	// Extract chat_id from URL path
+	chatIDStr := extractChatIDFromPath(r)
+	log.Printf("[DEBUG] Extracted chat_id: '%s'", chatIDStr)
+	
+	if chatIDStr == "" {
+		log.Printf("[ERROR] chat_id is empty")
+		errors.WriteError(w, errors.ValidationError("chat_id is required"), requestID)
+		return
+	}
+
+	// Parse chat_id as int64
+	var chatID int64
+	if _, err := fmt.Sscanf(chatIDStr, "%d", &chatID); err != nil {
+		errors.WriteError(w, errors.ValidationError("invalid chat_id format"), requestID)
+		return
+	}
+
+	// Get chat info from service
+	chatInfo, err := h.service.GetChatInfo(ctx, chatID)
+	if err != nil {
+		errors.WriteError(w, err, requestID)
+		return
+	}
+
+	// Create response
+	response := ChatInfoResponse{
+		ChatID:            chatInfo.ChatID,
+		Title:             chatInfo.Title,
+		Type:              chatInfo.Type,
+		ParticipantsCount: chatInfo.ParticipantsCount,
+		Description:       chatInfo.Description,
+	}
+
+	// Write JSON response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		errors.WriteError(w, errors.InternalError("Failed to encode response", err), requestID)
+		return
+	}
+}
 
 // GetMe godoc
 // @Summary Get bot information
@@ -475,6 +548,14 @@ func extractUserIDFromPath(path string) string {
 	}
 	
 	return ""
+}
+
+// extractChatIDFromPath извлекает chat_id из пути URL используя mux.Vars
+func extractChatIDFromPath(r *http.Request) string {
+	vars := mux.Vars(r)
+	chatID := vars["chat_id"]
+	log.Printf("[DEBUG] mux.Vars: %+v, chat_id: '%s'", vars, chatID)
+	return chatID
 }
 
 // getRequestID extracts request ID from context, returns empty string if not found

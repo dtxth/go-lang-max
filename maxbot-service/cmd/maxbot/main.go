@@ -1,24 +1,17 @@
 package main
 
 import (
-	"context"
-	"log"
-	"os"
-	"os/signal"
-	"sync"
-	"syscall"
-	"time"
 	"bufio"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
 	"strings"
 
 	_ "maxbot-service/docs" // Import swagger docs
 	"maxbot-service/internal/config"
 	"maxbot-service/internal/domain"
-	"maxbot-service/internal/infrastructure/cache"
-	grpcServer "maxbot-service/internal/infrastructure/grpc"
-	httpServer "maxbot-service/internal/infrastructure/http"
 	"maxbot-service/internal/infrastructure/maxapi"
-	"maxbot-service/internal/infrastructure/monitoring"
 	"maxbot-service/internal/usecase"
 )
 
@@ -56,115 +49,90 @@ func main() {
 		log.Println("Max API client initialized successfully")
 	}
 
-	// Initialize profile cache service
-	log.Println("Initializing profile cache service...")
-	var profileCache domain.ProfileCacheService
-	var redisClient *cache.RedisClient
-	
-	if cfg.MockMode {
-		log.Println("Using mock profile cache service")
-		profileCache = cache.NewMockProfileCache()
-	} else {
-		log.Println("Initializing Redis profile cache...")
-		redisCache, client, err := cache.NewProfileCacheServiceWithClient(cfg)
-		if err != nil {
-			log.Printf("Failed to initialize Redis cache, using mock cache: %v", err)
-			profileCache = cache.NewMockProfileCache()
-		} else {
-			profileCache = redisCache
-			redisClient = client
-			log.Println("Redis profile cache initialized successfully")
-		}
-	}
-
-	// Initialize monitoring service
-	log.Println("Initializing monitoring service...")
-	var monitoringService domain.MonitoringService
-	
-	if cfg.MockMode || redisClient == nil {
-		log.Println("Using mock monitoring service")
-		monitoringService = monitoring.NewMockMonitoringService()
-	} else {
-		log.Println("Initializing Redis monitoring service...")
-		monitoringService = monitoring.NewRedisMonitoringService(redisClient.Client, profileCache)
-		log.Println("Redis monitoring service initialized successfully")
-	}
-
 	// Initialize service layer
 	log.Println("Initializing MaxBot service...")
 	service := usecase.NewMaxBotService(apiClient)
-	
-	// Initialize webhook handler
-	log.Println("Initializing webhook handler...")
-	webhookHandler := usecase.NewWebhookHandlerService(profileCache, monitoringService)
-	
-	// Initialize profile management service
-	log.Println("Initializing profile management service...")
-	profileManagement := usecase.NewProfileManagementService(profileCache, apiClient)
 
-	// Initialize servers
-	log.Println("Initializing servers...")
+	// Create working HTTP server with proper routing
+	log.Println("Creating HTTP server with proper routing...")
 	
-	// gRPC server
-	grpcHandler := grpcServer.NewMaxBotHandler(service)
-	grpcSrv := grpcServer.NewServer(grpcHandler, cfg.GRPCPort)
-	
-	// HTTP server
-	httpHandler := httpServer.NewMaxBotHTTPHandler(service, webhookHandler, profileManagement, monitoringService)
-	httpSrv := httpServer.NewServer(httpHandler, cfg.HTTPPort)
-
-	// Start servers concurrently
-	var wg sync.WaitGroup
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// Start gRPC server
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		log.Printf("Starting gRPC server on port %s", cfg.GRPCPort)
-		if err := grpcSrv.Run(); err != nil {
-			log.Printf("gRPC server error: %v", err)
-			cancel()
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Request: %s %s", r.Method, r.URL.Path)
+		
+		// Health check
+		if r.URL.Path == "/health" && r.Method == "GET" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprint(w, `{"status":"ok","service":"maxbot-service"}`)
+			return
 		}
-	}()
-
-	// Start HTTP server
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		log.Printf("Starting HTTP server on port %s", cfg.HTTPPort)
-		log.Printf("Swagger documentation available at: http://localhost:%s/swagger/index.html", cfg.HTTPPort)
-		if err := httpSrv.Run(); err != nil {
-			log.Printf("HTTP server error: %v", err)
-			cancel()
+		
+		// Bot info
+		if r.URL.Path == "/api/v1/me" && r.Method == "GET" {
+			botInfo, err := service.GetMe(r.Context())
+			if err != nil {
+				log.Printf("Error getting bot info: %v", err)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprint(w, `{"error":"internal_error"}`)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, `{"name":"%s","add_link":"%s"}`, botInfo.Name, botInfo.AddLink)
+			return
 		}
-	}()
-
-	// Wait for interrupt signal
-	sigChan := make(chan os.Signal, 1)
-	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	select {
-	case sig := <-sigChan:
-		log.Printf("Received signal %v, shutting down...", sig)
-	case <-ctx.Done():
-		log.Println("Context cancelled, shutting down...")
+		
+		// Chat endpoint
+		if strings.HasPrefix(r.URL.Path, "/api/v1/chats/") && r.Method == "GET" {
+			log.Printf("Chat endpoint called: %s", r.URL.Path)
+			path := strings.TrimPrefix(r.URL.Path, "/api/v1/chats/")
+			if path == "" {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(w, `{"error":"chat_id required"}`)
+				return
+			}
+			
+			var chatID int64
+			if _, err := fmt.Sscanf(path, "%d", &chatID); err != nil {
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusBadRequest)
+				fmt.Fprint(w, `{"error":"invalid chat_id"}`)
+				return
+			}
+			
+			log.Printf("Getting chat info for chatID: %d", chatID)
+			chatInfo, err := service.GetChatInfo(r.Context(), chatID)
+			if err != nil {
+				log.Printf("Error getting chat info: %v", err)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusNotFound)
+				fmt.Fprint(w, `{"error":"chat not found","message":"`+err.Error()+`"}`)
+				return
+			}
+			
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, `{"chat_id":%d,"title":"%s","type":"%s","participants_count":%d}`, 
+				chatInfo.ChatID, chatInfo.Title, chatInfo.Type, chatInfo.ParticipantsCount)
+			return
+		}
+		
+		// Unknown endpoint
+		log.Printf("Unknown endpoint: %s %s", r.Method, r.URL.Path)
+		w.WriteHeader(http.StatusNotFound)
+		fmt.Fprint(w, "404 page not found")
+	})
+	
+	httpSrv := &http.Server{
+		Addr:    ":" + cfg.HTTPPort,
+		Handler: mux,
 	}
-
-	// Graceful shutdown
-	log.Println("Shutting down servers...")
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer shutdownCancel()
-
-	// Shutdown HTTP server
-	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
-		log.Printf("HTTP server shutdown error: %v", err)
-	}
-
-	// Note: gRPC server doesn't have graceful shutdown in our current implementation
-	// In production, you might want to add graceful shutdown for gRPC as well
-
-	log.Println("MaxBot Service stopped")
+	
+	log.Printf("HTTP server created, starting on port %s", cfg.HTTPPort)
+	log.Fatal(httpSrv.ListenAndServe())
 }
 
 // loadEnvFile loads environment variables from .env file if it exists

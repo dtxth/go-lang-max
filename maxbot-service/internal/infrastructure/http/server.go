@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	httpSwagger "github.com/swaggo/http-swagger"
 )
 
 // Server represents the HTTP server
@@ -20,26 +19,55 @@ type Server struct {
 
 // NewServer creates a new HTTP server
 func NewServer(handler *MaxBotHTTPHandler, port string) *Server {
-	return &Server{
+	log.Printf("=== CREATING HTTP SERVER ON PORT %s ===", port)
+	log.Printf("Handler: %+v", handler)
+	server := &Server{
 		handler: handler,
 		port:    port,
 	}
+	log.Printf("=== HTTP SERVER CREATED SUCCESSFULLY ===")
+	return server
 }
 
 // Run starts the HTTP server
 func (s *Server) Run() error {
-	router := s.setupRoutes()
+	log.Printf("=== HTTP Server Run() called ===")
+	
+	// Создаем максимально простой HTTP сервер для диагностики
+	simpleMux := http.NewServeMux()
+	
+	// Простейший endpoint
+	simpleMux.HandleFunc("/simple", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Simple endpoint called!")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"message":"simple works"}`)
+	})
+	
+	// Health check
+	simpleMux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Health endpoint called!")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"status":"ok","service":"maxbot-service"}`)
+	})
+	
+	log.Printf("=== Simple mux created with /simple and /health endpoints ===")
 	
 	s.server = &http.Server{
 		Addr:         ":" + s.port,
-		Handler:      router,
+		Handler:      simpleMux,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
-	log.Printf("HTTP server starting on port %s", s.port)
-	return s.server.ListenAndServe()
+	log.Printf("=== HTTP server starting on port %s ===", s.port)
+	log.Printf("Server configuration: Addr=%s", s.server.Addr)
+	
+	err := s.server.ListenAndServe()
+	log.Printf("=== HTTP server ListenAndServe returned with error: %v ===", err)
+	return err
 }
 
 // Shutdown gracefully shuts down the HTTP server
@@ -52,39 +80,56 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 // setupRoutes configures the HTTP routes
 func (s *Server) setupRoutes() *mux.Router {
+	log.Printf("=== SETTING UP HTTP ROUTES ===")
+	
+	if s.handler == nil {
+		log.Printf("❌ CRITICAL ERROR: s.handler is nil!")
+		return nil
+	}
+	
 	router := mux.NewRouter()
+	log.Printf("✅ Created mux.Router")
+
+	// Health check - самый простой endpoint
+	router.HandleFunc("/health", s.healthCheck).Methods("GET")
+	log.Printf("✅ Registered /health endpoint")
+
+	// Простой тестовый endpoint без middleware
+	router.HandleFunc("/test-simple", func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("Simple test endpoint called")
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"message":"simple test works"}`)
+	}).Methods("GET")
+	log.Printf("✅ Registered /test-simple endpoint")
 
 	// Add middleware
 	router.Use(s.loggingMiddleware)
 	router.Use(s.corsMiddleware)
 	router.Use(s.requestIDMiddleware)
+	log.Printf("✅ Middleware added")
 
 	// API routes
 	api := router.PathPrefix("/api/v1").Subrouter()
+	log.Printf("✅ Created API subrouter with prefix /api/v1")
 	
 	// Bot endpoints
 	api.HandleFunc("/me", s.handler.GetMe).Methods("GET")
+	log.Printf("✅ Registered /api/v1/me endpoint")
 	
-	// Webhook endpoints
-	api.HandleFunc("/webhook/max", s.handler.HandleMaxWebhook).Methods("POST")
+	// Chat endpoints - CRITICAL FIX
+	api.HandleFunc("/chats/{chat_id}", s.handler.GetChatInfo).Methods("GET")
+	log.Printf("✅ Registered /api/v1/chats/{chat_id} endpoint")
 	
-	// Profile management endpoints (Requirements 5.4, 5.5)
-	api.HandleFunc("/profiles/stats", s.handler.GetProfileStats).Methods("GET")
-	api.HandleFunc("/profiles/{user_id}", s.handler.GetProfile).Methods("GET")
-	api.HandleFunc("/profiles/{user_id}", s.handler.UpdateProfile).Methods("PUT")
-	api.HandleFunc("/profiles/{user_id}/name", s.handler.SetUserProvidedName).Methods("POST")
+	// Test endpoint
+	api.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprint(w, `{"message":"test endpoint works"}`)
+	}).Methods("GET")
+	log.Printf("✅ Registered /api/v1/test endpoint")
 
-	// Monitoring and analytics endpoints (Requirements 6.1, 6.3, 6.4)
-	api.HandleFunc("/monitoring/webhook/stats", s.handler.GetWebhookStats).Methods("GET")
-	api.HandleFunc("/monitoring/profiles/coverage", s.handler.GetProfileCoverage).Methods("GET")
-	api.HandleFunc("/monitoring/profiles/quality", s.handler.GetProfileQualityReport).Methods("GET")
-
-	// Health check
-	router.HandleFunc("/health", s.healthCheck).Methods("GET")
-
-	// Swagger documentation
-	router.PathPrefix("/swagger/").Handler(httpSwagger.WrapHandler)
-
+	log.Printf("=== HTTP ROUTES SETUP COMPLETED ===")
 	return router
 }
 
@@ -102,6 +147,9 @@ func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 		
 		// Create a response writer wrapper to capture status code
 		wrapper := &responseWriter{ResponseWriter: w, statusCode: http.StatusOK}
+		
+		// Log incoming request details
+		log.Printf("[DEBUG] Incoming request: %s %s", r.Method, r.URL.Path)
 		
 		next.ServeHTTP(wrapper, r)
 		
