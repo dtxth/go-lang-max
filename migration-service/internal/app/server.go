@@ -10,9 +10,11 @@ import (
 	"migration-service/internal/infrastructure/chat"
 	"migration-service/internal/infrastructure/grpc"
 	httpHandler "migration-service/internal/infrastructure/http"
+	"migration-service/internal/infrastructure/migration"
 	"migration-service/internal/infrastructure/repository"
 	"migration-service/internal/usecase"
 	"net/http"
+	"os"
 
 	_ "github.com/lib/pq"
 )
@@ -33,11 +35,25 @@ func NewServer(cfg *config.Config) (*Server, error) {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+	// Configure connection pool
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(0) // No limit on connection lifetime
+
+	// Initialize and run migrations
+	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	
+	// Wait for database to be ready
+	if err := migrator.WaitForDatabase(); err != nil {
+		return nil, fmt.Errorf("database connection failed: %w", err)
+	}
+	
+	// Run migrations
+	if err := migrator.RunMigrations(); err != nil {
+		return nil, fmt.Errorf("migration failed: %w", err)
 	}
 
-	log.Println("Connected to database")
+	log.Println("Connected to database and migrations completed")
 
 	return &Server{
 		config: cfg,
@@ -48,7 +64,7 @@ func NewServer(cfg *config.Config) (*Server, error) {
 // Start starts the HTTP server
 func (s *Server) Start() error {
 	// Initialize repositories
-	jobRepo := repository.NewMigrationJobPostgresRepository(s.db)
+	jobRepo := repository.NewMigrationJobPostgresRepositoryWithDSN(s.db, s.config.Database.GetDSN())
 	errorRepo := repository.NewMigrationErrorPostgresRepository(s.db)
 	universityRepo := repository.NewUniversityHTTPRepository(s.config.Services.StructureServiceURL)
 

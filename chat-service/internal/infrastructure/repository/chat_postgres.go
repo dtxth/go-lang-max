@@ -9,14 +9,57 @@ import (
 )
 
 type ChatPostgres struct {
-	db *sql.DB
+	db  *sql.DB
+	dsn string
 }
 
 func NewChatPostgres(db *sql.DB) *ChatPostgres {
 	return &ChatPostgres{db: db}
 }
 
+func NewChatPostgresWithDSN(db *sql.DB, dsn string) *ChatPostgres {
+	return &ChatPostgres{db: db, dsn: dsn}
+}
+
+// getDB returns a working database connection, reconnecting if necessary
+func (r *ChatPostgres) getDB() (*sql.DB, error) {
+	// Try to ping the existing connection
+	if r.db != nil {
+		if err := r.db.Ping(); err == nil {
+			return r.db, nil
+		}
+	}
+
+	// If we have a DSN, try to reconnect
+	if r.dsn != "" {
+		db, err := sql.Open("postgres", r.dsn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to reconnect to database: %w", err)
+		}
+		
+		// Configure connection pool
+		db.SetMaxOpenConns(25)
+		db.SetMaxIdleConns(5)
+		db.SetConnMaxLifetime(0)
+		
+		if err := db.Ping(); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to ping reconnected database: %w", err)
+		}
+		
+		r.db = db
+		return db, nil
+	}
+
+	return r.db, nil
+}
+
 func (r *ChatPostgres) Create(chat *domain.Chat) error {
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	var universityID interface{}
 	if chat.UniversityID != nil {
 		universityID = *chat.UniversityID
@@ -31,12 +74,16 @@ func (r *ChatPostgres) Create(chat *domain.Chat) error {
 		externalChatID = nil
 	}
 
-	err := r.db.QueryRow(
+	err = db.QueryRow(
 		`INSERT INTO chats (name, url, max_chat_id, external_chat_id, participants_count, university_id, department, source) 
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at, updated_at`,
 		chat.Name, chat.URL, chat.MaxChatID, externalChatID, chat.ParticipantsCount, universityID, chat.Department, chat.Source,
 	).Scan(&chat.ID, &chat.CreatedAt, &chat.UpdatedAt)
-	return err
+	
+	if err != nil {
+		return fmt.Errorf("failed to create chat: %w", err)
+	}
+	return nil
 }
 
 func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {

@@ -3,13 +3,15 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"migration-service/internal/domain"
 	"time"
 )
 
 // MigrationJobPostgresRepository implements MigrationJobRepository using PostgreSQL
 type MigrationJobPostgresRepository struct {
-	db *sql.DB
+	db  *sql.DB
+	dsn string
 }
 
 // NewMigrationJobPostgresRepository creates a new MigrationJobPostgresRepository
@@ -17,15 +19,58 @@ func NewMigrationJobPostgresRepository(db *sql.DB) *MigrationJobPostgresReposito
 	return &MigrationJobPostgresRepository{db: db}
 }
 
+// NewMigrationJobPostgresRepositoryWithDSN creates a new MigrationJobPostgresRepository with DSN for reconnection
+func NewMigrationJobPostgresRepositoryWithDSN(db *sql.DB, dsn string) *MigrationJobPostgresRepository {
+	return &MigrationJobPostgresRepository{db: db, dsn: dsn}
+}
+
+// getDB returns a working database connection, reconnecting if necessary
+func (r *MigrationJobPostgresRepository) getDB(ctx context.Context) (*sql.DB, error) {
+	// Try to ping the existing connection
+	if r.db != nil {
+		if err := r.db.PingContext(ctx); err == nil {
+			return r.db, nil
+		}
+	}
+
+	// If we have a DSN, try to reconnect
+	if r.dsn != "" {
+		db, err := sql.Open("postgres", r.dsn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to reconnect to database: %w", err)
+		}
+		
+		// Configure connection pool
+		db.SetMaxOpenConns(25)
+		db.SetMaxIdleConns(5)
+		db.SetConnMaxLifetime(0)
+		
+		if err := db.PingContext(ctx); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to ping reconnected database: %w", err)
+		}
+		
+		r.db = db
+		return db, nil
+	}
+
+	return r.db, nil
+}
+
 // Create creates a new migration job
 func (r *MigrationJobPostgresRepository) Create(ctx context.Context, job *domain.MigrationJob) error {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	query := `
 		INSERT INTO migration_jobs (source_type, source_identifier, status, total, processed, failed, started_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 		RETURNING id, started_at
 	`
 
-	err := r.db.QueryRowContext(
+	err = db.QueryRowContext(
 		ctx,
 		query,
 		job.SourceType,
@@ -37,7 +82,11 @@ func (r *MigrationJobPostgresRepository) Create(ctx context.Context, job *domain
 		time.Now(),
 	).Scan(&job.ID, &job.StartedAt)
 
-	return err
+	if err != nil {
+		return fmt.Errorf("failed to insert migration job: %w", err)
+	}
+
+	return nil
 }
 
 // GetByID retrieves a migration job by ID
@@ -70,15 +119,20 @@ func (r *MigrationJobPostgresRepository) GetByID(ctx context.Context, id int) (*
 
 // List retrieves all migration jobs
 func (r *MigrationJobPostgresRepository) List(ctx context.Context) ([]*domain.MigrationJob, error) {
+	db, err := r.getDB(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	query := `
 		SELECT id, source_type, source_identifier, status, total, processed, failed, started_at, completed_at
 		FROM migration_jobs
 		ORDER BY started_at DESC
 	`
 
-	rows, err := r.db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, query)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to query migration jobs: %w", err)
 	}
 	defer rows.Close()
 
@@ -97,12 +151,16 @@ func (r *MigrationJobPostgresRepository) List(ctx context.Context) ([]*domain.Mi
 			&job.CompletedAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to scan migration job: %w", err)
 		}
 		jobs = append(jobs, job)
 	}
 
-	return jobs, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating migration jobs: %w", err)
+	}
+
+	return jobs, nil
 }
 
 // Update updates a migration job

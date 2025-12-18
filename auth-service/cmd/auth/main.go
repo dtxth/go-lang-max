@@ -12,6 +12,7 @@ import (
 	"auth-service/internal/infrastructure/logger"
 	"auth-service/internal/infrastructure/maxbot"
 	"auth-service/internal/infrastructure/metrics"
+	"auth-service/internal/infrastructure/migration"
 	"auth-service/internal/infrastructure/notification"
 	"auth-service/internal/infrastructure/repository"
 	"auth-service/internal/usecase"
@@ -40,6 +41,19 @@ func main() {
 	db, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
 		panic(err)
+	}
+
+	// Initialize and run migrations
+	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	
+	// Wait for database to be ready
+	if err := migrator.WaitForDatabase(); err != nil {
+		log.Fatalf("Database connection failed: %v", err)
+	}
+	
+	// Run migrations
+	if err := migrator.RunMigrations(); err != nil {
+		log.Fatalf("Migration failed: %v", err)
 	}
 
 	repo := repository.NewUserPostgres(db)

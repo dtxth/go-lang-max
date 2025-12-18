@@ -180,6 +180,11 @@ make test
 **Документация:**
 - [README MaxBot Service](./maxbot-service/README.md)
 - [Руководство по интеграции](./maxbot-service/INTEGRATION_GUIDE.md)
+- **Интеграция профилей через webhook:**
+  - [Документация по интеграции профилей](./MAX_WEBHOOK_PROFILE_INTEGRATION.md) - Полное описание системы
+  - [Руководство по миграции](./WEBHOOK_INTEGRATION_MIGRATION_GUIDE.md) - Переход на webhook интеграцию
+  - [Руководство по развертыванию](./PROFILE_INTEGRATION_DEPLOYMENT.md) - Пошаговое развертывание
+  - [Индекс документации](./PROFILE_INTEGRATION_DOCUMENTATION_INDEX.md) - Навигация по всей документации
 - [Реализация пакетных операций](./maxbot-service/BATCH_OPERATIONS_IMPLEMENTATION.md)
 - [Нормализация телефонов](./maxbot-service/internal/usecase/normalize_phone.go)
 

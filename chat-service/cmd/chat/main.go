@@ -8,6 +8,7 @@ import (
 	"chat-service/internal/infrastructure/http"
 	"chat-service/internal/infrastructure/logger"
 	"chat-service/internal/infrastructure/max"
+	"chat-service/internal/infrastructure/migration"
 	"chat-service/internal/infrastructure/repository"
 	"chat-service/internal/usecase"
 	"context"
@@ -43,13 +44,21 @@ func main() {
 	}
 	defer db.Close()
 
-	// Проверяем подключение к БД
-	if err := db.Ping(); err != nil {
-		panic(err)
+	// Initialize and run migrations
+	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	
+	// Wait for database to be ready
+	if err := migrator.WaitForDatabase(); err != nil {
+		log.Fatalf("Database connection failed: %v", err)
+	}
+	
+	// Run migrations
+	if err := migrator.RunMigrations(); err != nil {
+		log.Fatalf("Migration failed: %v", err)
 	}
 
 	// Инициализируем репозитории
-	chatRepo := repository.NewChatPostgres(db)
+	chatRepo := repository.NewChatPostgresWithDSN(db, cfg.DBUrl)
 	administratorRepo := repository.NewAdministratorPostgres(db)
 
 	// Инициализируем MAX gRPC клиент

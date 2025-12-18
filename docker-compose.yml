@@ -13,7 +13,6 @@ services:
       - "5432:5432"
     volumes:
       - auth_pgdata:/var/lib/postgresql/data
-      - ./auth-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -80,7 +79,6 @@ services:
       - "${CHAT_DB_PORT:-5434}:5432"
     volumes:
       - chat_db_data:/var/lib/postgresql/data
-      - ./chat-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${CHAT_DB_USER:-chat_user} -d ${CHAT_DB_NAME:-chat_db}"]
       interval: 10s
@@ -146,7 +144,6 @@ services:
       - "${EMPLOYEE_DB_PORT:-5433}:5432"
     volumes:
       - employee_db_data:/var/lib/postgresql/data
-      - ./employee-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${EMPLOYEE_DB_USER:-employee_user}"]
       interval: 10s
@@ -172,6 +169,9 @@ services:
       MAXBOT_TIMEOUT: ${MAXBOT_TIMEOUT:-5s}
       AUTH_GRPC_ADDR: ${AUTH_GRPC_ADDR:-auth-service:9090}
       LOG_LEVEL: "${LOG_LEVEL:-info}"
+      # Profile Cache Integration
+      PROFILE_CACHE_ENABLED: ${PROFILE_CACHE_ENABLED:-true}
+      PROFILE_CACHE_TIMEOUT: ${PROFILE_CACHE_TIMEOUT:-3s}
     depends_on:
       employee-db:
         condition: service_healthy
@@ -195,7 +195,6 @@ services:
       - "${STRUCTURE_DB_PORT:-5435}:5432"
     volumes:
       - structure_pgdata:/var/lib/postgresql/data
-      - ./structure-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -238,13 +237,29 @@ services:
     container_name: maxbot-service
     environment:
       GRPC_PORT: "${MAXBOT_GRPC_PORT:-9095}"
+      HTTP_PORT: "${MAXBOT_HTTP_PORT:-8095}"
       MAX_API_URL: ""
       MAX_API_TOKEN: "${MAX_API_TOKEN:-test-token-for-development}"
       MAX_API_TIMEOUT: ${MAX_API_TIMEOUT:-5s}
       MOCK_MODE: "${MOCK_MODE:-true}"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
+      # Redis Configuration for Profile Cache
+      REDIS_ADDR: ${REDIS_ADDR:-redis:6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      REDIS_DB: ${REDIS_DB:-1}
+      PROFILE_TTL: ${PROFILE_TTL:-720h}
+      # Webhook Configuration
+      WEBHOOK_SECRET: ${WEBHOOK_SECRET:-}
+      # Monitoring Configuration
+      MONITORING_ENABLED: ${MONITORING_ENABLED:-true}
+      PROFILE_QUALITY_ALERT_THRESHOLD: ${PROFILE_QUALITY_ALERT_THRESHOLD:-0.8}
+      WEBHOOK_ERROR_ALERT_THRESHOLD: ${WEBHOOK_ERROR_ALERT_THRESHOLD:-0.05}
     ports:
       - "${MAXBOT_GRPC_PORT:-9095}:${MAXBOT_GRPC_PORT:-9095}"
+      - "${MAXBOT_HTTP_PORT:-8095}:${MAXBOT_HTTP_PORT:-8095}"
+    depends_on:
+      redis:
+        condition: service_healthy
     restart: unless-stopped
     networks:
       - microservices-network
@@ -261,7 +276,6 @@ services:
       - "${MIGRATION_DB_PORT:-5436}:5432"
     volumes:
       - migration_db_data:/var/lib/postgresql/data
-      - ./migration-service/migrations-init:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s

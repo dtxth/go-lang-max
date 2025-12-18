@@ -8,20 +8,63 @@ import (
 )
 
 type StructurePostgres struct {
-	db *sql.DB
+	db  *sql.DB
+	dsn string
 }
 
 func NewStructurePostgres(db *sql.DB) domain.StructureRepository {
 	return &StructurePostgres{db: db}
 }
 
+func NewStructurePostgresWithDSN(db *sql.DB, dsn string) domain.StructureRepository {
+	return &StructurePostgres{db: db, dsn: dsn}
+}
+
+// getDB returns a working database connection, reconnecting if necessary
+func (r *StructurePostgres) getDB() (*sql.DB, error) {
+	// Try to ping the existing connection
+	if r.db != nil {
+		if err := r.db.Ping(); err == nil {
+			return r.db, nil
+		}
+	}
+
+	// If we have a DSN, try to reconnect
+	if r.dsn != "" {
+		db, err := sql.Open("postgres", r.dsn)
+		if err != nil {
+			return nil, fmt.Errorf("failed to reconnect to database: %w", err)
+		}
+		
+		// Configure connection pool
+		db.SetMaxOpenConns(25)
+		db.SetMaxIdleConns(5)
+		db.SetConnMaxLifetime(0)
+		
+		if err := db.Ping(); err != nil {
+			db.Close()
+			return nil, fmt.Errorf("failed to ping reconnected database: %w", err)
+		}
+		
+		r.db = db
+		return db, nil
+	}
+
+	return r.db, nil
+}
+
 // University methods
 func (r *StructurePostgres) CreateUniversity(u *domain.University) error {
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	query := `INSERT INTO universities (name, inn, kpp, foiv, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	err := r.db.QueryRow(query, u.Name, u.INN, u.KPP, u.FOIV, time.Now(), time.Now()).Scan(&u.ID)
+	err = db.QueryRow(query, u.Name, u.INN, u.KPP, u.FOIV, time.Now(), time.Now()).Scan(&u.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create university: %w", err)
 	}
 	// Устанавливаем chats_count в 0 для новых университетов
 	u.ChatsCount = 0
@@ -29,6 +72,11 @@ func (r *StructurePostgres) CreateUniversity(u *domain.University) error {
 }
 
 func (r *StructurePostgres) GetUniversityByID(id int64) (*domain.University, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	u := &domain.University{}
 	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
 		         (SELECT COUNT(DISTINCT g.chat_id) 
@@ -38,14 +86,22 @@ func (r *StructurePostgres) GetUniversityByID(id int64) (*domain.University, err
 		          WHERE b.university_id = u.id) as chats_count
 		 FROM universities u
 		 WHERE u.id = $1`
-	err := r.db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
+	err = db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrUniversityNotFound
 	}
-	return u, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to get university by ID: %w", err)
+	}
+	return u, nil
 }
 
 func (r *StructurePostgres) GetUniversityByINN(inn string) (*domain.University, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	u := &domain.University{}
 	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
 		         (SELECT COUNT(DISTINCT g.chat_id) 
@@ -55,11 +111,14 @@ func (r *StructurePostgres) GetUniversityByINN(inn string) (*domain.University, 
 		          WHERE b.university_id = u.id) as chats_count
 		 FROM universities u
 		 WHERE u.inn = $1 LIMIT 1`
-	err := r.db.QueryRow(query, inn).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
+	err = db.QueryRow(query, inn).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrUniversityNotFound
 	}
-	return u, err
+	if err != nil {
+		return nil, fmt.Errorf("failed to get university by INN: %w", err)
+	}
+	return u, nil
 }
 
 func (r *StructurePostgres) GetUniversityByINNAndKPP(inn, kpp string) (*domain.University, error) {
@@ -199,10 +258,18 @@ func (r *StructurePostgres) GetAllUniversitiesWithSortingAndSearch(limit, offset
 
 // Branch methods
 func (r *StructurePostgres) CreateBranch(b *domain.Branch) error {
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	query := `INSERT INTO branches (university_id, name, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4) RETURNING id`
-	err := r.db.QueryRow(query, b.UniversityID, b.Name, time.Now(), time.Now()).Scan(&b.ID)
-	return err
+	err = db.QueryRow(query, b.UniversityID, b.Name, time.Now(), time.Now()).Scan(&b.ID)
+	if err != nil {
+		return fmt.Errorf("failed to create branch: %w", err)
+	}
+	return nil
 }
 
 func (r *StructurePostgres) GetBranchByID(id int64) (*domain.Branch, error) {
@@ -259,10 +326,18 @@ func (r *StructurePostgres) DeleteBranch(id int64) error {
 
 // Faculty methods
 func (r *StructurePostgres) CreateFaculty(f *domain.Faculty) error {
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	query := `INSERT INTO faculties (branch_id, name, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4) RETURNING id`
-	err := r.db.QueryRow(query, f.BranchID, f.Name, time.Now(), time.Now()).Scan(&f.ID)
-	return err
+	err = db.QueryRow(query, f.BranchID, f.Name, time.Now(), time.Now()).Scan(&f.ID)
+	if err != nil {
+		return fmt.Errorf("failed to create faculty: %w", err)
+	}
+	return nil
 }
 
 func (r *StructurePostgres) GetFacultyByID(id int64) (*domain.Faculty, error) {
@@ -368,10 +443,18 @@ func (r *StructurePostgres) DeleteFaculty(id int64) error {
 
 // Group methods
 func (r *StructurePostgres) CreateGroup(g *domain.Group) error {
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	query := `INSERT INTO groups (faculty_id, course, number, chat_id, chat_url, chat_name, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
-	err := r.db.QueryRow(query, g.FacultyID, g.Course, g.Number, g.ChatID, g.ChatURL, g.ChatName, time.Now(), time.Now()).Scan(&g.ID)
-	return err
+	err = db.QueryRow(query, g.FacultyID, g.Course, g.Number, g.ChatID, g.ChatURL, g.ChatName, time.Now(), time.Now()).Scan(&g.ID)
+	if err != nil {
+		return fmt.Errorf("failed to create group: %w", err)
+	}
+	return nil
 }
 
 func (r *StructurePostgres) GetGroupByID(id int64) (*domain.Group, error) {
