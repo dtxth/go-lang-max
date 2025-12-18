@@ -39,6 +39,10 @@ func (c *MaxClient) Close() error {
 	return c.conn.Close()
 }
 
+func (c *MaxClient) GetConnection() *grpc.ClientConn {
+	return c.conn
+}
+
 func (c *MaxClient) GetMaxIDByPhone(phone string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
 	defer cancel()
@@ -105,6 +109,26 @@ func (c *MaxClient) BatchGetMaxIDByPhone(phones []string) (map[string]string, er
 	}
 	
 	return result, nil
+}
+
+// GetUserProfileByPhone получает профиль пользователя по номеру телефона
+// Пока MAX API не предоставляет метод получения профиля, используем GetMaxIDByPhone
+// и возвращаем пустые имена
+func (c *MaxClient) GetUserProfileByPhone(phone string) (*domain.UserProfile, error) {
+	// Получаем MAX_id через существующий метод
+	maxID, err := c.GetMaxIDByPhone(phone)
+	if err != nil {
+		return nil, err
+	}
+
+	// Возвращаем профиль с MAX_id, но без имен
+	// TODO: Когда MAX API предоставит метод GetUserProfile, заменить на реальный вызов
+	return &domain.UserProfile{
+		MaxID:     maxID,
+		FirstName: "", // Пустое имя - MAX API пока не предоставляет эту информацию
+		LastName:  "", // Пустая фамилия - MAX API пока не предоставляет эту информацию
+		Phone:     phone,
+	}, nil
 }
 
 func mapError(code maxbotproto.ErrorCode, message string) error {

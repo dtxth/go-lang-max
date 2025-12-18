@@ -10,10 +10,25 @@ definitions:
   domain.User:
     properties:
       email:
+        description: Опциональный email
         type: string
       id:
         type: integer
+      phone:
+        description: Основной идентификатор (телефон)
+        type: string
       role:
+        type: string
+    type: object
+  http.BotInfoResponse:
+    properties:
+      add_link:
+        description: Link to add the bot
+        example: https://max.ru/add-bot
+        type: string
+      name:
+        description: Bot name
+        example: MAX Bot
         type: string
     type: object
 info:
@@ -22,6 +37,150 @@ info:
   title: Auth Service API
   version: "1.0"
 paths:
+  /auth/password-reset/confirm:
+    post:
+      consumes:
+      - application/json
+      description: Validates reset token and updates user password
+      parameters:
+      - description: Reset token and new password
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            new_password:
+              type: string
+            token:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              message:
+                type: string
+              success:
+                type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Reset password with token
+      tags:
+      - auth
+  /auth/password-reset/request:
+    post:
+      consumes:
+      - application/json
+      description: Generates a reset token and sends it to the user's phone via MAX
+        Messenger
+      parameters:
+      - description: User phone number
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            phone:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              message:
+                type: string
+              success:
+                type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+      summary: Request password reset
+      tags:
+      - auth
+  /auth/password/change:
+    post:
+      consumes:
+      - application/json
+      description: Allows authenticated user to change their password
+      parameters:
+      - description: Bearer token
+        in: header
+        name: Authorization
+        required: true
+        type: string
+      - description: Current and new password
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            current_password:
+              type: string
+            new_password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            properties:
+              message:
+                type: string
+              success:
+                type: boolean
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            type: string
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Change password
+      tags:
+      - auth
+  /bot/me:
+    get:
+      consumes:
+      - application/json
+      description: Get bot name and add bot link from MaxBot service
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Bot information
+          schema:
+            $ref: '#/definitions/http.BotInfoResponse'
+        "500":
+          description: Internal server error
+          schema:
+            properties:
+              error:
+                type: string
+              message:
+                type: string
+            type: object
+      summary: Get bot information
+      tags:
+      - bot
   /health:
     get:
       description: Returns service health status
@@ -42,9 +201,9 @@ paths:
     post:
       consumes:
       - application/json
-      description: Returns access and refresh tokens
+      description: Returns access and refresh tokens. Supports login by email or phone.
       parameters:
-      - description: User credentials
+      - description: User credentials (provide either email or phone)
         in: body
         name: input
         required: true
@@ -53,6 +212,8 @@ paths:
             email:
               type: string
             password:
+              type: string
+            phone:
               type: string
           type: object
       produces:
@@ -67,6 +228,37 @@ paths:
           schema:
             type: string
       summary: Login user
+      tags:
+      - auth
+  /login-phone:
+    post:
+      consumes:
+      - application/json
+      description: Returns access and refresh tokens for phone-based login
+      parameters:
+      - description: User credentials
+        in: body
+        name: input
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+            phone:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.TokenPair'
+        "401":
+          description: Unauthorized
+          schema:
+            type: string
+      summary: Login user by phone
       tags:
       - auth
   /logout:
@@ -105,6 +297,19 @@ paths:
       summary: Logout user
       tags:
       - auth
+  /metrics:
+    get:
+      description: Returns current metrics for password operations and notifications
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Metrics snapshot
+          schema:
+            type: object
+      summary: Get metrics
+      tags:
+      - monitoring
   /refresh:
     post:
       consumes:

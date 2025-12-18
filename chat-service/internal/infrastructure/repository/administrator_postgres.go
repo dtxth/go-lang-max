@@ -2,19 +2,27 @@ package repository
 
 import (
 	"chat-service/internal/domain"
+	"chat-service/internal/infrastructure/database"
 	"database/sql"
+	"fmt"
 )
 
 type AdministratorPostgres struct {
-	db *sql.DB
+	db  *database.DB
+	dsn string
 }
 
-func NewAdministratorPostgres(db *sql.DB) *AdministratorPostgres {
+func NewAdministratorPostgres(db *database.DB) *AdministratorPostgres {
 	return &AdministratorPostgres{db: db}
 }
 
+func NewAdministratorPostgresWithDSN(db *database.DB, dsn string) *AdministratorPostgres {
+	return &AdministratorPostgres{db: db, dsn: dsn}
+}
+
 func (r *AdministratorPostgres) Create(admin *domain.Administrator) error {
-	err := r.db.QueryRow(
+	db := r.db
+	err := db.QueryRow(
 		`INSERT INTO administrators (chat_id, phone, max_id, add_user, add_admin) 
 		 VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`,
 		admin.ChatID, admin.Phone, admin.MaxID, admin.AddUser, admin.AddAdmin,
@@ -23,21 +31,29 @@ func (r *AdministratorPostgres) Create(admin *domain.Administrator) error {
 }
 
 func (r *AdministratorPostgres) GetByID(id int64) (*domain.Administrator, error) {
+	db := r.db
 	admin := &domain.Administrator{}
-	err := r.db.QueryRow(
+	err := db.QueryRow(
 		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE id = $1`,
 		id,
 	).Scan(&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
-		&admin.AddUser, &admin.AddAdmin,
-		&admin.CreatedAt, &admin.UpdatedAt)
-	return admin, err
+		&admin.AddUser, &admin.AddAdmin, &admin.CreatedAt, &admin.UpdatedAt)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrAdministratorNotFound
+		}
+		return nil, err
+	}
+	return admin, nil
 }
 
 func (r *AdministratorPostgres) GetByChatID(chatID int64) ([]*domain.Administrator, error) {
-	rows, err := r.db.Query(
+	db := r.db
+	rows, err := db.Query(
 		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
-		 FROM administrators WHERE chat_id = $1 ORDER BY created_at`,
+		 FROM administrators WHERE chat_id = $1`,
 		chatID,
 	)
 	if err != nil {
@@ -48,11 +64,8 @@ func (r *AdministratorPostgres) GetByChatID(chatID int64) ([]*domain.Administrat
 	var administrators []*domain.Administrator
 	for rows.Next() {
 		admin := &domain.Administrator{}
-		err := rows.Scan(
-			&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
-			&admin.AddUser, &admin.AddAdmin,
-			&admin.CreatedAt, &admin.UpdatedAt,
-		)
+		err := rows.Scan(&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+			&admin.AddUser, &admin.AddAdmin, &admin.CreatedAt, &admin.UpdatedAt)
 		if err != nil {
 			return nil, err
 		}
@@ -61,79 +74,76 @@ func (r *AdministratorPostgres) GetByChatID(chatID int64) ([]*domain.Administrat
 	return administrators, rows.Err()
 }
 
-func (r *AdministratorPostgres) GetByPhoneAndChatID(phone string, chatID int64) (*domain.Administrator, error) {
-	admin := &domain.Administrator{}
-	err := r.db.QueryRow(
-		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
-		 FROM administrators WHERE phone = $1 AND chat_id = $2`,
-		phone, chatID,
-	).Scan(&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
-		&admin.AddUser, &admin.AddAdmin,
-		&admin.CreatedAt, &admin.UpdatedAt)
-	return admin, err
-}
-
-func (r *AdministratorPostgres) Delete(id int64) error {
-	_, err := r.db.Exec(`DELETE FROM administrators WHERE id = $1`, id)
+func (r *AdministratorPostgres) Update(admin *domain.Administrator) error {
+	db := r.db
+	_, err := db.Exec(
+		`UPDATE administrators SET phone = $1, max_id = $2, add_user = $3, add_admin = $4 
+		 WHERE id = $5`,
+		admin.Phone, admin.MaxID, admin.AddUser, admin.AddAdmin, admin.ID,
+	)
 	return err
 }
 
+func (r *AdministratorPostgres) Delete(id int64) error {
+	db := r.db
+	_, err := db.Exec(`DELETE FROM administrators WHERE id = $1`, id)
+	return err
+}
+
+func (r *AdministratorPostgres) GetByPhone(phone string) (*domain.Administrator, error) {
+	db := r.db
+	admin := &domain.Administrator{}
+	err := db.QueryRow(
+		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
+		 FROM administrators WHERE phone = $1`,
+		phone,
+	).Scan(&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+		&admin.AddUser, &admin.AddAdmin, &admin.CreatedAt, &admin.UpdatedAt)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrAdministratorNotFound
+		}
+		return nil, err
+	}
+	return admin, nil
+}
+
 func (r *AdministratorPostgres) CountByChatID(chatID int64) (int, error) {
+	db := r.db
 	var count int
-	err := r.db.QueryRow(
-		`SELECT COUNT(*) FROM administrators WHERE chat_id = $1`,
-		chatID,
-	).Scan(&count)
+	err := db.QueryRow(`SELECT COUNT(*) FROM administrators WHERE chat_id = $1`, chatID).Scan(&count)
 	return count, err
 }
 
-func (r *AdministratorPostgres) GetAll(query string, limit, offset int) ([]*domain.Administrator, int, error) {
-	// Устанавливаем значения по умолчанию
-	if limit <= 0 || limit > 100 {
-		limit = 50
-	}
-	if offset < 0 {
-		offset = 0
-	}
-
-	// Базовый SQL запрос
-	baseQuery := `FROM administrators a 
-		LEFT JOIN chats c ON a.chat_id = c.id`
+func (r *AdministratorPostgres) GetAll(search string, limit, offset int) ([]*domain.Administrator, int, error) {
+	db := r.db
 	
-	whereClause := ""
+	// Build query with search
+	query := `SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
+		      FROM administrators`
+	countQuery := `SELECT COUNT(*) FROM administrators`
 	args := []interface{}{}
-
-	// Добавляем поиск, если указан query
-	if query != "" {
-		whereClause = ` WHERE (a.phone ILIKE $1 OR a.max_id ILIKE $1 OR c.name ILIKE $1)`
-		args = append(args, "%"+query+"%")
+	
+	if search != "" {
+		query += ` WHERE phone ILIKE $1 OR max_id ILIKE $1`
+		countQuery += ` WHERE phone ILIKE $1 OR max_id ILIKE $1`
+		args = append(args, "%"+search+"%")
 	}
-
-	// Подсчитываем общее количество
-	var totalCount int
-	countQuery := `SELECT COUNT(*) ` + baseQuery + whereClause
-	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	
+	// Get total count
+	var total int
+	countArgs := args
+	err := db.QueryRow(countQuery, countArgs...).Scan(&total)
 	if err != nil {
 		return nil, 0, err
 	}
-
-	// Получаем данные с пагинацией
-	var selectQuery string
-	if query != "" {
-		selectQuery = `SELECT a.id, a.chat_id, a.phone, a.max_id, a.add_user, a.add_admin, a.created_at, a.updated_at 
-			` + baseQuery + whereClause + ` 
-			ORDER BY a.created_at DESC 
-			LIMIT $2 OFFSET $3`
-		args = append(args, limit, offset)
-	} else {
-		selectQuery = `SELECT a.id, a.chat_id, a.phone, a.max_id, a.add_user, a.add_admin, a.created_at, a.updated_at 
-			` + baseQuery + ` 
-			ORDER BY a.created_at DESC 
-			LIMIT $1 OFFSET $2`
-		args = []interface{}{limit, offset}
-	}
-
-	rows, err := r.db.Query(selectQuery, args...)
+	
+	// Get records
+	query += ` ORDER BY id LIMIT $` + fmt.Sprintf("%d", len(args)+1) + ` OFFSET $` + fmt.Sprintf("%d", len(args)+2)
+	args = append(args, limit, offset)
+	
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -142,17 +152,31 @@ func (r *AdministratorPostgres) GetAll(query string, limit, offset int) ([]*doma
 	var administrators []*domain.Administrator
 	for rows.Next() {
 		admin := &domain.Administrator{}
-		err := rows.Scan(
-			&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
-			&admin.AddUser, &admin.AddAdmin,
-			&admin.CreatedAt, &admin.UpdatedAt,
-		)
+		err := rows.Scan(&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+			&admin.AddUser, &admin.AddAdmin, &admin.CreatedAt, &admin.UpdatedAt)
 		if err != nil {
 			return nil, 0, err
 		}
 		administrators = append(administrators, admin)
 	}
-
-	return administrators, totalCount, rows.Err()
+	return administrators, total, rows.Err()
 }
 
+func (r *AdministratorPostgres) GetByPhoneAndChatID(phone string, chatID int64) (*domain.Administrator, error) {
+	db := r.db
+	admin := &domain.Administrator{}
+	err := db.QueryRow(
+		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
+		 FROM administrators WHERE phone = $1 AND chat_id = $2`,
+		phone, chatID,
+	).Scan(&admin.ID, &admin.ChatID, &admin.Phone, &admin.MaxID,
+		&admin.AddUser, &admin.AddAdmin, &admin.CreatedAt, &admin.UpdatedAt)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrAdministratorNotFound
+		}
+		return nil, err
+	}
+	return admin, nil
+}

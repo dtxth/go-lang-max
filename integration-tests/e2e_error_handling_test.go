@@ -1,7 +1,10 @@
-package main
+package integration_tests
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"testing"
 )
@@ -226,7 +229,7 @@ func TestE2E_DataConsistency(t *testing.T) {
 	universityID := createUniversity(t, token, "Consistency Test Uni", "5555555555", "555555555")
 	employeeID := createEmployee(t, token, "+79555555555", "Консистент", "Тестов", "Consistency Test Uni")
 	chatID := createChat(t, token, "Consistency Test Chat", "https://max.ru/chat/consistency", universityID)
-	adminID := addChatAdministrator(t, token, chatID, "+79555555555")
+	_ = addChatAdministrator(t, token, chatID, "+79555555555")
 
 	// Verify data consistency
 	t.Log("Verifying data consistency...")

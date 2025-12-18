@@ -6,6 +6,7 @@ Authentication and authorization microservice for the Digital University system.
 
 - **User Authentication**: JWT-based authentication with access and refresh tokens
 - **Role-Based Access Control**: Support for multiple roles (superadmin, curator, operator)
+- **Bot Information**: `/bot/me` endpoint to retrieve MaxBot name and add bot link
 - **Secure Password Management**:
   - Cryptographically secure random password generation
   - Password delivery via MAX Messenger

@@ -4,6 +4,7 @@ import (
 	"chat-service/internal/domain"
 	"chat-service/internal/infrastructure/logger"
 	"context"
+	"fmt"
 	"sync"
 	"time"
 )
@@ -114,26 +115,53 @@ func (w *ParticipantsWorker) updateStaleData() {
 	ctx, cancel := context.WithTimeout(w.ctx, 5*time.Minute)
 	defer cancel()
 	
+	w.logger.Debug(ctx, "Starting stale data update", map[string]interface{}{
+		"stale_threshold": w.config.StaleThreshold.String(),
+		"batch_size": w.config.BatchSize,
+	})
+	
 	start := time.Now()
 	updated, err := w.updater.UpdateStale(ctx, w.config.StaleThreshold, w.config.BatchSize)
 	duration := time.Since(start)
 	
+	logData := map[string]interface{}{
+		"duration": duration.String(),
+		"stale_threshold": w.config.StaleThreshold.String(),
+		"batch_size": w.config.BatchSize,
+	}
+	
 	if err != nil {
-		w.logger.Error(ctx, "Failed to update stale participants data", map[string]interface{}{
-			"error": err.Error(), 
-			"duration": duration.String(),
-		})
+		logData["error"] = err.Error()
+		w.logger.Error(ctx, "Failed to update stale participants data", logData)
+		
+		// Проверяем производительность даже при ошибке
+		if duration > 2*time.Minute {
+			w.logger.Warn(ctx, "Stale data update took longer than expected", map[string]interface{}{
+				"duration": duration.String(),
+				"expected_max": "2m",
+			})
+		}
 		return
 	}
 	
-	if updated > 0 {
-		w.logger.Info(ctx, "Updated stale participants data", map[string]interface{}{
-			"updated_count": updated, 
-			"duration": duration.String(),
-		})
+	logData["updated_count"] = updated
+	
+	// Проверяем производительность
+	if duration > 2*time.Minute {
+		logData["performance_warning"] = "slow_execution"
+		w.logger.Warn(ctx, "Stale data update completed but was slow", logData)
+	} else if updated > 0 {
+		w.logger.Info(ctx, "Updated stale participants data", logData)
 	} else {
-		w.logger.Debug(ctx, "No stale participants data to update", map[string]interface{}{
-			"duration": duration.String(),
+		w.logger.Debug(ctx, "No stale participants data to update", logData)
+	}
+	
+	// Дополнительная метрика производительности
+	if updated > 0 {
+		itemsPerSecond := float64(updated) / duration.Seconds()
+		w.logger.Debug(ctx, "Stale update performance metrics", map[string]interface{}{
+			"items_per_second": fmt.Sprintf("%.2f", itemsPerSecond),
+			"total_items": updated,
 		})
 	}
 }
@@ -143,22 +171,61 @@ func (w *ParticipantsWorker) performFullUpdate() {
 	ctx, cancel := context.WithTimeout(w.ctx, 2*time.Hour)
 	defer cancel()
 	
-	w.logger.Info(ctx, "Starting full participants update", nil)
-	start := time.Now()
+	w.logger.Info(ctx, "Starting full participants update", map[string]interface{}{
+		"batch_size": w.config.BatchSize,
+		"timeout": "2h",
+		"scheduled_hour": w.config.FullUpdateHour,
+	})
 	
+	start := time.Now()
 	updated, err := w.updater.UpdateAll(ctx, w.config.BatchSize)
 	duration := time.Since(start)
 	
+	logData := map[string]interface{}{
+		"duration": duration.String(),
+		"batch_size": w.config.BatchSize,
+	}
+	
 	if err != nil {
-		w.logger.Error(ctx, "Failed to perform full participants update", map[string]interface{}{
-			"error": err.Error(), 
-			"duration": duration.String(),
-		})
+		logData["error"] = err.Error()
+		w.logger.Error(ctx, "Failed to perform full participants update", logData)
+		
+		// Проверяем, не превысили ли мы таймаут
+		if duration > 90*time.Minute {
+			w.logger.Error(ctx, "Full update approaching timeout limit", map[string]interface{}{
+				"duration": duration.String(),
+				"timeout_limit": "2h",
+			})
+		}
 		return
 	}
 	
-	w.logger.Info(ctx, "Completed full participants update", map[string]interface{}{
-		"updated_count": updated, 
-		"duration": duration.String(),
-	})
+	logData["updated_count"] = updated
+	
+	// Анализ производительности
+	if updated > 0 {
+		itemsPerSecond := float64(updated) / duration.Seconds()
+		itemsPerMinute := itemsPerSecond * 60
+		
+		logData["items_per_second"] = fmt.Sprintf("%.2f", itemsPerSecond)
+		logData["items_per_minute"] = fmt.Sprintf("%.0f", itemsPerMinute)
+		
+		// Предупреждения о производительности
+		if duration > 1*time.Hour {
+			logData["performance_warning"] = "slow_execution"
+			w.logger.Warn(ctx, "Full update completed but took longer than expected", logData)
+		} else {
+			w.logger.Info(ctx, "Completed full participants update", logData)
+		}
+		
+		// Дополнительные метрики
+		w.logger.Info(ctx, "Full update performance summary", map[string]interface{}{
+			"total_processed": updated,
+			"processing_rate": fmt.Sprintf("%.0f items/min", itemsPerMinute),
+			"total_duration": duration.String(),
+			"average_time_per_item": fmt.Sprintf("%.2fms", duration.Seconds()*1000/float64(updated)),
+		})
+	} else {
+		w.logger.Warn(ctx, "Full update completed but no items were updated", logData)
+	}
 }

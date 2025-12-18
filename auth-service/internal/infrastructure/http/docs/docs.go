@@ -15,6 +15,227 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/password-reset/confirm": {
+            "post": {
+                "description": "Validates reset token and updates user password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Reset password with token",
+                "parameters": [
+                    {
+                        "description": "Reset token and new password",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "new_password": {
+                                    "type": "string"
+                                },
+                                "token": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "success": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password-reset/request": {
+            "post": {
+                "description": "Generates a reset token and sends it to the user's phone via MAX Messenger",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Request password reset",
+                "parameters": [
+                    {
+                        "description": "User phone number",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "phone": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "success": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/password/change": {
+            "post": {
+                "description": "Allows authenticated user to change their password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Change password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Bearer token",
+                        "name": "Authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "description": "Current and new password",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "current_password": {
+                                    "type": "string"
+                                },
+                                "new_password": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "success": {
+                                    "type": "boolean"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/bot/me": {
+            "get": {
+                "description": "Get bot name and add bot link from MaxBot service",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "bot"
+                ],
+                "summary": "Get bot information",
+                "responses": {
+                    "200": {
+                        "description": "Bot information",
+                        "schema": {
+                            "$ref": "#/definitions/http.BotInfoResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "error": {
+                                    "type": "string"
+                                },
+                                "message": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "Returns service health status",
@@ -42,7 +263,7 @@ const docTemplate = `{
         },
         "/login": {
             "post": {
-                "description": "Returns access and refresh tokens",
+                "description": "Returns access and refresh tokens. Supports login by email or phone.",
                 "consumes": [
                     "application/json"
                 ],
@@ -55,7 +276,7 @@ const docTemplate = `{
                 "summary": "Login user",
                 "parameters": [
                     {
-                        "description": "User credentials",
+                        "description": "User credentials (provide either email or phone)",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -66,6 +287,57 @@ const docTemplate = `{
                                     "type": "string"
                                 },
                                 "password": {
+                                    "type": "string"
+                                },
+                                "phone": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/domain.TokenPair"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/login-phone": {
+            "post": {
+                "description": "Returns access and refresh tokens for phone-based login",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Login user by phone",
+                "parameters": [
+                    {
+                        "description": "User credentials",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "password": {
+                                    "type": "string"
+                                },
+                                "phone": {
                                     "type": "string"
                                 }
                             }
@@ -139,6 +411,26 @@ const docTemplate = `{
                         "description": "Invalid refresh token",
                         "schema": {
                             "type": "string"
+                        }
+                    }
+                }
+            }
+        },
+        "/metrics": {
+            "get": {
+                "description": "Returns current metrics for password operations and notifications",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "monitoring"
+                ],
+                "summary": "Get metrics",
+                "responses": {
+                    "200": {
+                        "description": "Metrics snapshot",
+                        "schema": {
+                            "type": "object"
                         }
                     }
                 }
@@ -263,13 +555,33 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "email": {
+                    "description": "Опциональный email",
                     "type": "string"
                 },
                 "id": {
                     "type": "integer"
                 },
+                "phone": {
+                    "description": "Основной идентификатор (телефон)",
+                    "type": "string"
+                },
                 "role": {
                     "type": "string"
+                }
+            }
+        },
+        "http.BotInfoResponse": {
+            "type": "object",
+            "properties": {
+                "add_link": {
+                    "description": "Link to add the bot",
+                    "type": "string",
+                    "example": "https://max.ru/add-bot"
+                },
+                "name": {
+                    "description": "Bot name",
+                    "type": "string",
+                    "example": "MAX Bot"
                 }
             }
         }

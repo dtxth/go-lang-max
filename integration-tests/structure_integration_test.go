@@ -22,7 +22,7 @@ func TestExcelImportWithFullStructure(t *testing.T) {
 	client.SetToken(token)
 	
 	// Create a test Excel file
-	excelContent := createTestExcelFile(t)
+	excelContent := createTestExcelFileBytes(t)
 	
 	// Upload Excel file
 	body := &bytes.Buffer{}
@@ -311,9 +311,9 @@ func TestStructureAlphabeticalOrdering(t *testing.T) {
 	CleanupDB(t, structureDB, []string{"branches", "universities"})
 }
 
-// createTestExcelFile creates a minimal Excel file for testing
+// createTestExcelFileBytes creates a minimal Excel file for testing
 // In a real implementation, this would use a library like excelize
-func createTestExcelFile(t *testing.T) []byte {
+func createTestExcelFileBytes(t *testing.T) []byte {
 	// For this integration test, we'll create a simple CSV-like content
 	// In production, you'd use github.com/xuri/excelize/v2
 	content := `phone,inn,foiv,org_name,branch_name,kpp,faculty,course,group_number,chat_name,chat_url

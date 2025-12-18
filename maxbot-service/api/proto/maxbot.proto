@@ -39,6 +39,11 @@ service MaxBotService {
   
   // BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
   rpc BatchGetUsersByPhone(BatchGetUsersByPhoneRequest) returns (BatchGetUsersByPhoneResponse);
+  
+  // GetMe получает информацию о боте (имя и ссылку для добавления)
+  rpc GetMe(GetMeRequest) returns (GetMeResponse);
+  
+
 }
 
 message GetMaxIDByPhoneRequest {
@@ -177,4 +182,38 @@ message UserPhoneMapping {
   string phone = 1;
   string max_id = 2;
   bool found = 3;
+}
+
+// GetMe
+message GetMeRequest {
+  // Пустой запрос
+}
+
+message GetMeResponse {
+  BotInfo bot = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+message BotInfo {
+  string name = 1;
+  string add_link = 2;
+}
+
+// GetUserProfileByPhone
+message GetUserProfileByPhoneRequest {
+  string phone = 1;
+}
+
+message GetUserProfileByPhoneResponse {
+  UserProfile profile = 1;
+  ErrorCode error_code = 2;
+  string error = 3;
+}
+
+message UserProfile {
+  string max_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  string phone = 4;
 }

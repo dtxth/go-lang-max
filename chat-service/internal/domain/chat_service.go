@@ -1,5 +1,7 @@
 package domain
 
+import "context"
+
 // ChatServiceInterface определяет интерфейс для сервиса чатов
 type ChatServiceInterface interface {
 	// SearchChats выполняет поиск чатов по названию с фильтрацией по роли
@@ -28,4 +30,7 @@ type ChatServiceInterface interface {
 	
 	// CreateChat creates a new chat
 	CreateChat(name, url, maxChatID, source string, participantsCount int, universityID *int64, department string) (*Chat, error)
+	
+	// RefreshParticipantsCount принудительно обновляет количество участников для чата
+	RefreshParticipantsCount(ctx context.Context, chatID int64) (*ParticipantsInfo, error)
 }

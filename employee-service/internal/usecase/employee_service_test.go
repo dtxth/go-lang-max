@@ -1,7 +1,9 @@
 package usecase
 
 import (
+	"employee-service/internal/domain"
 	"errors"
+	"strings"
 	"testing"
 )
 
@@ -39,6 +41,36 @@ func (m *mockMaxServiceForEmployeeTest) BatchGetMaxIDByPhone(phones []string) (m
 	return result, nil
 }
 
+func (m *mockMaxServiceForEmployeeTest) GetUserProfileByPhone(phone string) (*domain.UserProfile, error) {
+	if m.shouldFail {
+		return nil, errors.New("MAX API unavailable")
+	}
+	
+	maxID := m.maxID
+	if maxID == "" {
+		maxID = "max_" + phone
+	}
+	
+	// Mock profile data
+	profile := &domain.UserProfile{
+		MaxID:     maxID,
+		Phone:     phone,
+		FirstName: "Иван",
+		LastName:  "Иванов",
+	}
+	
+	// Vary mock data based on phone number for testing
+	if strings.Contains(phone, "1234") {
+		profile.FirstName = "Петр"
+		profile.LastName = "Петров"
+	} else if strings.Contains(phone, "5678") {
+		profile.FirstName = "Анна"
+		profile.LastName = "Сидорова"
+	}
+	
+	return profile, nil
+}
+
 // Test: Employee creation triggers MAX_id lookup (Requirements 3.1)
 func TestAddEmployeeByPhone_TriggersMaxIDLookup(t *testing.T) {
 	employeeRepo := newMockEmployeeRepo()
@@ -47,8 +79,9 @@ func TestAddEmployeeByPhone_TriggersMaxIDLookup(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+	profileCache := newMockProfileCacheService()
 
-	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService)
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService, profileCache)
 
 	employee, err := service.AddEmployeeByPhone(
 		"+79001234567",
@@ -77,8 +110,9 @@ func TestAddEmployeeByPhone_StoresMaxIDWhenReceived(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+	profileCache := newMockProfileCacheService()
 
-	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService)
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService, profileCache)
 
 	employee, err := service.AddEmployeeByPhone(
 		"+79001234567",
@@ -111,8 +145,9 @@ func TestAddEmployeeByPhone_SucceedsWithoutMaxID(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+	profileCache := newMockProfileCacheService()
 
-	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService)
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService, profileCache)
 
 	employee, err := service.AddEmployeeByPhone(
 		"+79001234567",
@@ -149,8 +184,9 @@ func TestAddEmployeeByPhone_CreatesNewUniversity(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+	profileCache := newMockProfileCacheService()
 
-	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService)
+	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService, profileCache)
 
 	// Create employee with new university INN
 	employee, err := service.AddEmployeeByPhone(
@@ -205,7 +241,8 @@ func TestAddEmployeeByPhone_ReusesExistingUniversity(t *testing.T) {
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
 
-	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService)
+	profileCache := newMockProfileCacheService()
+service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService, profileCache)
 
 	// Create first employee (this will create the university)
 	employee1, err := service.AddEmployeeByPhone(
@@ -266,7 +303,8 @@ func TestAddEmployeeByPhone_StoresUniversityData(t *testing.T) {
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
 
-	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService)
+	profileCache := newMockProfileCacheService()
+service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService, profileCache)
 
 	employee, err := service.AddEmployeeByPhone(
 		"+79003333333",
@@ -320,7 +358,8 @@ func TestAddEmployeeByPhone_ReusesUniversityByINNAndKPP(t *testing.T) {
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
 
-	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService)
+	profileCache := newMockProfileCacheService()
+service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService, profileCache)
 
 	// Create first employee with INN and KPP
 	employee1, err := service.AddEmployeeByPhone(
@@ -373,7 +412,8 @@ func TestAddEmployeeByPhone_ReturnsCompleteRecord(t *testing.T) {
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
 
-	service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService)
+	profileCache := newMockProfileCacheService()
+service := NewEmployeeService(employeeRepo, universityRepo, maxService, authService, passwordGenerator, notificationService, profileCache)
 
 	employee, err := service.AddEmployeeByPhone(
 		"+79006666666",

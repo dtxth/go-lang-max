@@ -1,57 +1,71 @@
-# Дополнительная конфигурация для интеграции с Redis для кэширования участников
-# Используется вместе с основным docker-compose.yml
+# Additional configuration for Redis integration for participants caching
+# Used together with main docker-compose.yml for participants background sync
 
 version: '3.8'
 
 services:
-  # Redis для кэширования количества участников
+  # Redis for participants count caching
   chat-redis:
     image: redis:7-alpine
     container_name: chat-redis
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     ports:
-      - "6379:6379"
+      - "${REDIS_PORT:-6379}:6379"
     volumes:
       - chat_redis_data:/data
-    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 5
+      start_period: 30s
+    restart: unless-stopped
     networks:
-      - chat_network
+      - microservices-network
 
-  # Обновленный chat-service с поддержкой Redis
+  # Updated chat-service with Redis support
   chat-service:
     environment:
-      # Основные настройки (из основного docker-compose.yml)
-      - DATABASE_URL=postgres://chat_user:chat_password@chat-db:5432/chat_db?sslmode=disable
-      - PORT=8082
-      - GRPC_PORT=9092
-      - AUTH_GRPC_ADDR=auth-service:9090
-      - MAXBOT_GRPC_ADDR=maxbot-service:9095
-      - LOG_LEVEL=info
+      # Core settings (from main docker-compose.yml)
+      DATABASE_URL: postgres://${CHAT_DB_USER:-chat_user}:${CHAT_DB_PASSWORD:-chat_pass}@chat-db:5432/${CHAT_DB_NAME:-chat_db}?sslmode=${DB_SSLMODE:-disable}
+      PORT: "${CHAT_SERVICE_PORT:-8082}"
+      GRPC_PORT: "${CHAT_GRPC_PORT:-9092}"
+      AUTH_GRPC_ADDR: ${AUTH_GRPC_ADDR:-auth-service:9090}
+      MAXBOT_GRPC_ADDR: ${MAXBOT_GRPC_ADDR:-maxbot-service:9095}
+      AUTH_TIMEOUT: ${AUTH_TIMEOUT:-5s}
+      MAXBOT_TIMEOUT: ${MAXBOT_TIMEOUT:-5s}
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
       
-      # Настройки Redis для участников
-      - REDIS_URL=redis://chat-redis:6379/0
-      - PARTICIPANTS_CACHE_TTL=1h
-      - PARTICIPANTS_UPDATE_INTERVAL=15m
-      - PARTICIPANTS_FULL_UPDATE_HOUR=3
-      - PARTICIPANTS_BATCH_SIZE=50
-      - PARTICIPANTS_MAX_API_TIMEOUT=30s
-      - PARTICIPANTS_STALE_THRESHOLD=1h
-      - PARTICIPANTS_ENABLE_BACKGROUND_SYNC=true
-      - PARTICIPANTS_ENABLE_LAZY_UPDATE=true
+      # Redis Configuration for Participants Background Sync
+      REDIS_URL: ${REDIS_URL:-redis://chat-redis:6379/0}
+      PARTICIPANTS_CACHE_TTL: ${PARTICIPANTS_CACHE_TTL:-1h}
+      PARTICIPANTS_UPDATE_INTERVAL: ${PARTICIPANTS_UPDATE_INTERVAL:-15m}
+      PARTICIPANTS_FULL_UPDATE_HOUR: ${PARTICIPANTS_FULL_UPDATE_HOUR:-3}
+      PARTICIPANTS_BATCH_SIZE: ${PARTICIPANTS_BATCH_SIZE:-50}
+      PARTICIPANTS_MAX_API_TIMEOUT: ${PARTICIPANTS_MAX_API_TIMEOUT:-30s}
+      PARTICIPANTS_STALE_THRESHOLD: ${PARTICIPANTS_STALE_THRESHOLD:-1h}
+      PARTICIPANTS_ENABLE_BACKGROUND_SYNC: ${PARTICIPANTS_ENABLE_BACKGROUND_SYNC:-true}
+      PARTICIPANTS_ENABLE_LAZY_UPDATE: ${PARTICIPANTS_ENABLE_LAZY_UPDATE:-true}
+      PARTICIPANTS_INTEGRATION_DISABLED: ${PARTICIPANTS_INTEGRATION_DISABLED:-false}
     depends_on:
+      chat-db:
+        condition: service_healthy
       chat-redis:
         condition: service_healthy
+      auth-service:
+        condition: service_started
+      maxbot-service:
+        condition: service_started
+    restart: unless-stopped
     networks:
-      - chat_network
+      - microservices-network
 
 volumes:
   chat_redis_data:
     driver: local
 
 networks:
-  chat_network:
+  microservices-network:
     external: true

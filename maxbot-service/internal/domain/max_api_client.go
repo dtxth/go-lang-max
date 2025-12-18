@@ -26,6 +26,12 @@ type MaxAPIClient interface {
 	
 	// BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
 	BatchGetUsersByPhone(ctx context.Context, phones []string) ([]*UserPhoneMapping, error)
+	
+	// GetMe получает информацию о боте (имя и ссылку для добавления)
+	GetMe(ctx context.Context) (*BotInfo, error)
+	
+	// GetUserProfileByPhone получает профиль пользователя по номеру телефона
+	GetUserProfileByPhone(ctx context.Context, phone string) (*UserProfile, error)
 }
 
 // ChatInfo содержит информацию о чате
@@ -56,4 +62,18 @@ type UserPhoneMapping struct {
 	Phone string
 	MaxID string
 	Found bool
+}
+
+// BotInfo содержит информацию о боте
+type BotInfo struct {
+	Name    string
+	AddLink string
+}
+
+// UserProfile содержит профиль пользователя MAX Messenger
+type UserProfile struct {
+	MaxID     string
+	FirstName string
+	LastName  string
+	Phone     string
 }

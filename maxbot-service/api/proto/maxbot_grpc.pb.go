@@ -29,6 +29,7 @@ const (
 	MaxBotService_CheckPhoneNumbers_FullMethodName    = "/maxbot.MaxBotService/CheckPhoneNumbers"
 	MaxBotService_NormalizePhone_FullMethodName       = "/maxbot.MaxBotService/NormalizePhone"
 	MaxBotService_BatchGetUsersByPhone_FullMethodName = "/maxbot.MaxBotService/BatchGetUsersByPhone"
+	MaxBotService_GetMe_FullMethodName                = "/maxbot.MaxBotService/GetMe"
 )
 
 // MaxBotServiceClient is the client API for MaxBotService service.
@@ -57,6 +58,8 @@ type MaxBotServiceClient interface {
 	NormalizePhone(ctx context.Context, in *NormalizePhoneRequest, opts ...grpc.CallOption) (*NormalizePhoneResponse, error)
 	// BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
 	BatchGetUsersByPhone(ctx context.Context, in *BatchGetUsersByPhoneRequest, opts ...grpc.CallOption) (*BatchGetUsersByPhoneResponse, error)
+	// GetMe получает информацию о боте (имя и ссылку для добавления)
+	GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*GetMeResponse, error)
 }
 
 type maxBotServiceClient struct {
@@ -167,6 +170,16 @@ func (c *maxBotServiceClient) BatchGetUsersByPhone(ctx context.Context, in *Batc
 	return out, nil
 }
 
+func (c *maxBotServiceClient) GetMe(ctx context.Context, in *GetMeRequest, opts ...grpc.CallOption) (*GetMeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetMeResponse)
+	err := c.cc.Invoke(ctx, MaxBotService_GetMe_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MaxBotServiceServer is the server API for MaxBotService service.
 // All implementations must embed UnimplementedMaxBotServiceServer
 // for forward compatibility.
@@ -193,6 +206,8 @@ type MaxBotServiceServer interface {
 	NormalizePhone(context.Context, *NormalizePhoneRequest) (*NormalizePhoneResponse, error)
 	// BatchGetUsersByPhone получает MAX ID для списка номеров телефонов (до 100)
 	BatchGetUsersByPhone(context.Context, *BatchGetUsersByPhoneRequest) (*BatchGetUsersByPhoneResponse, error)
+	// GetMe получает информацию о боте (имя и ссылку для добавления)
+	GetMe(context.Context, *GetMeRequest) (*GetMeResponse, error)
 	mustEmbedUnimplementedMaxBotServiceServer()
 }
 
@@ -232,6 +247,9 @@ func (UnimplementedMaxBotServiceServer) NormalizePhone(context.Context, *Normali
 }
 func (UnimplementedMaxBotServiceServer) BatchGetUsersByPhone(context.Context, *BatchGetUsersByPhoneRequest) (*BatchGetUsersByPhoneResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method BatchGetUsersByPhone not implemented")
+}
+func (UnimplementedMaxBotServiceServer) GetMe(context.Context, *GetMeRequest) (*GetMeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetMe not implemented")
 }
 func (UnimplementedMaxBotServiceServer) mustEmbedUnimplementedMaxBotServiceServer() {}
 func (UnimplementedMaxBotServiceServer) testEmbeddedByValue()                       {}
@@ -434,6 +452,24 @@ func _MaxBotService_BatchGetUsersByPhone_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MaxBotService_GetMe_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetMeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MaxBotServiceServer).GetMe(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MaxBotService_GetMe_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MaxBotServiceServer).GetMe(ctx, req.(*GetMeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // MaxBotService_ServiceDesc is the grpc.ServiceDesc for MaxBotService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -480,6 +516,10 @@ var MaxBotService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "BatchGetUsersByPhone",
 			Handler:    _MaxBotService_BatchGetUsersByPhone_Handler,
+		},
+		{
+			MethodName: "GetMe",
+			Handler:    _MaxBotService_GetMe_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

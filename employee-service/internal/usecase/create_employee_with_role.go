@@ -17,6 +17,7 @@ type CreateEmployeeWithRoleUseCase struct {
 	authService         domain.AuthService
 	passwordGenerator   domain.PasswordGenerator
 	notificationService domain.NotificationService
+	profileCache        domain.ProfileCacheService
 }
 
 // NewCreateEmployeeWithRoleUseCase создает новый use case
@@ -27,6 +28,7 @@ func NewCreateEmployeeWithRoleUseCase(
 	authService domain.AuthService,
 	passwordGenerator domain.PasswordGenerator,
 	notificationService domain.NotificationService,
+	profileCache domain.ProfileCacheService,
 ) *CreateEmployeeWithRoleUseCase {
 	return &CreateEmployeeWithRoleUseCase{
 		employeeRepo:        employeeRepo,
@@ -35,6 +37,7 @@ func NewCreateEmployeeWithRoleUseCase(
 		authService:         authService,
 		passwordGenerator:   passwordGenerator,
 		notificationService: notificationService,
+		profileCache:        profileCache,
 	}
 }
 
@@ -69,17 +72,44 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 		return nil, domain.ErrEmployeeExists
 	}
 
-	// Получаем MAX_id по телефону
-	maxID, err := uc.maxService.GetMaxIDByPhone(phone)
+	// Получаем профиль пользователя по телефону
+	// Это включает MAX_id, first_name и last_name
+	var maxID string
+	var profileFirstName, profileLastName string
+	
+	profile, err := uc.maxService.GetUserProfileByPhone(phone)
 	if err != nil {
-		// Логируем ошибку, но продолжаем без MAX_id
+		// Логируем ошибку, но продолжаем без MAX_id и имен
 		maxID = ""
+		profileFirstName = ""
+		profileLastName = ""
+	} else {
+		maxID = profile.MaxID
+		profileFirstName = profile.FirstName
+		profileLastName = profile.LastName
 	}
 
 	// Находим или создаем вуз
 	university, err := uc.findOrCreateUniversity(inn, kpp, universityName)
 	if err != nil {
 		return nil, err
+	}
+
+	// Используем данные из MAX профиля, если они доступны
+	// Если переданы пустые значения, используем данные из профиля
+	if strings.TrimSpace(firstName) == "" && profileFirstName != "" {
+		firstName = profileFirstName
+	}
+	if strings.TrimSpace(lastName) == "" && profileLastName != "" {
+		lastName = profileLastName
+	}
+	
+	// Устанавливаем значения по умолчанию для обязательных полей
+	if strings.TrimSpace(firstName) == "" {
+		firstName = "Неизвестно"
+	}
+	if strings.TrimSpace(lastName) == "" {
+		lastName = "Неизвестно"
 	}
 
 	// Создаем сотрудника
@@ -115,7 +145,7 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 			return nil, errors.New("failed to generate password: " + err.Error())
 		}
 		
-		log.Printf("DEBUG: Generated password for phone ending in %s", sanitizePhone(phone))
+
 		
 		// Создаем пользователя в Auth Service (используем телефон как идентификатор)
 		userID, err := uc.authService.CreateUser(ctx, phone, password)

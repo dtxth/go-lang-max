@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"auth-service/internal/infrastructure/database"
 	"auth-service/internal/infrastructure/hash"
 	"auth-service/internal/infrastructure/jwt"
 	"auth-service/internal/infrastructure/logger"
@@ -20,19 +21,19 @@ import (
 )
 
 // setupTestDB creates a test database connection
-func setupTestDB(t *testing.T) *sql.DB {
+func setupTestDB(t *testing.T) *database.DB {
 	// Use test database connection
 	connStr := "host=localhost port=5432 user=postgres password=postgres dbname=auth_test sslmode=disable"
-	db, err := sql.Open("postgres", connStr)
+	sqlDB, err := sql.Open("postgres", connStr)
 	if err != nil {
 		t.Skipf("Skipping test: cannot connect to test database: %v", err)
 	}
 	
-	if err := db.Ping(); err != nil {
+	if err := sqlDB.Ping(); err != nil {
 		t.Skipf("Skipping test: cannot ping test database: %v", err)
 	}
 	
-	return db
+	return database.NewDBFromConnection(sqlDB, nil)
 }
 
 // cleanupTestData removes test data from database
@@ -62,7 +63,7 @@ func createTestUser(t *testing.T, db *sql.DB, phone string) int64 {
 }
 
 // setupAuthService creates a configured AuthService for testing
-func setupAuthService(db *sql.DB) *usecase.AuthService {
+func setupAuthService(db *database.DB) *usecase.AuthService {
 	userRepo := repository.NewUserPostgres(db)
 	refreshRepo := repository.NewRefreshPostgres(db)
 	resetTokenRepo := repository.NewPasswordResetPostgres(db)
@@ -84,7 +85,7 @@ func setupAuthService(db *sql.DB) *usecase.AuthService {
 func TestProperty9_ResetTokenUniquenessAndExpiration(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService := setupAuthService(db)
 	
@@ -95,13 +96,13 @@ func TestProperty9_ResetTokenUniquenessAndExpiration(t *testing.T) {
 	properties.Property("reset tokens are unique with 15min expiration", prop.ForAll(
 		func(phoneNum int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number
 			phone := "+7" + padNumber(phoneNum, 10)
 			
 			// Create test user
-			createTestUser(t, db, phone)
+			createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Request password reset twice
 			err1 := authService.RequestPasswordReset(phone)
@@ -245,7 +246,7 @@ func (s *TrackingNotificationService) Reset() {
 }
 
 // setupAuthServiceWithTracking creates a configured AuthService with tracking notification service
-func setupAuthServiceWithTracking(db *sql.DB) (*usecase.AuthService, *TrackingNotificationService) {
+func setupAuthServiceWithTracking(db *database.DB) (*usecase.AuthService, *TrackingNotificationService) {
 	userRepo := repository.NewUserPostgres(db)
 	refreshRepo := repository.NewRefreshPostgres(db)
 	resetTokenRepo := repository.NewPasswordResetPostgres(db)
@@ -267,7 +268,7 @@ func setupAuthServiceWithTracking(db *sql.DB) (*usecase.AuthService, *TrackingNo
 func TestProperty10_ResetTokenDelivery(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService, trackingService := setupAuthServiceWithTracking(db)
 	
@@ -278,14 +279,14 @@ func TestProperty10_ResetTokenDelivery(t *testing.T) {
 	properties.Property("reset tokens are delivered to user's phone via notification service", prop.ForAll(
 		func(phoneNum int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			trackingService.Reset()
 			
 			// Generate phone number
 			phone := "+7" + padNumber(phoneNum, 10)
 			
 			// Create test user
-			createTestUser(t, db, phone)
+			createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Request password reset
 			err := authService.RequestPasswordReset(phone)
@@ -340,7 +341,7 @@ func TestProperty10_ResetTokenDelivery(t *testing.T) {
 func TestProperty11_ValidResetTokenUpdatesPassword(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService := setupAuthService(db)
 	hasher := hash.NewBcryptHasher()
@@ -352,14 +353,14 @@ func TestProperty11_ValidResetTokenUpdatesPassword(t *testing.T) {
 	properties.Property("valid reset token updates password", prop.ForAll(
 		func(phoneNum int, newPasswordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and new password
 			phone := "+7" + padNumber(phoneNum, 10)
 			newPassword := "NewPass" + padNumber(newPasswordSeed, 6) + "!Aa"
 			
 			// Create test user
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Get original password hash
 			var originalHash string
@@ -426,7 +427,7 @@ func TestProperty11_ValidResetTokenUpdatesPassword(t *testing.T) {
 func TestProperty12_TokenInvalidationAfterUse(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService := setupAuthService(db)
 	
@@ -437,7 +438,7 @@ func TestProperty12_TokenInvalidationAfterUse(t *testing.T) {
 	properties.Property("tokens cannot be reused after use", prop.ForAll(
 		func(phoneNum int, password1Seed int, password2Seed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and passwords
 			phone := "+7" + padNumber(phoneNum, 10)
@@ -445,7 +446,7 @@ func TestProperty12_TokenInvalidationAfterUse(t *testing.T) {
 			newPassword2 := "NewPass" + padNumber(password2Seed, 6) + "!Bb"
 			
 			// Create test user
-			createTestUser(t, db, phone)
+			createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Request password reset
 			err := authService.RequestPasswordReset(phone)
@@ -533,7 +534,7 @@ func toLower(s string) string {
 func TestProperty13_InvalidTokenRejection(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService := setupAuthService(db)
 	
@@ -544,7 +545,7 @@ func TestProperty13_InvalidTokenRejection(t *testing.T) {
 	properties.Property("invalid or expired tokens are rejected", prop.ForAll(
 		func(phoneNum int, invalidTokenSeed int, passwordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number, invalid token, and password
 			phone := "+7" + padNumber(phoneNum, 10)
@@ -552,7 +553,7 @@ func TestProperty13_InvalidTokenRejection(t *testing.T) {
 			newPassword := "NewPass" + padNumber(passwordSeed, 6) + "!Aa"
 			
 			// Create test user
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Get original password hash
 			var originalHash string
@@ -598,7 +599,7 @@ func TestProperty13_InvalidTokenRejection(t *testing.T) {
 func TestProperty14_CurrentPasswordVerificationRequired(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService := setupAuthService(db)
 	
@@ -609,7 +610,7 @@ func TestProperty14_CurrentPasswordVerificationRequired(t *testing.T) {
 	properties.Property("password change fails with incorrect current password", prop.ForAll(
 		func(phoneNum int, wrongPasswordSeed int, newPasswordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and passwords
 			phone := "+7" + padNumber(phoneNum, 10)
@@ -617,7 +618,7 @@ func TestProperty14_CurrentPasswordVerificationRequired(t *testing.T) {
 			newPassword := "NewPass" + padNumber(newPasswordSeed, 6) + "!Bb"
 			
 			// Create test user with known password
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Get original password hash
 			var originalHash string
@@ -663,7 +664,7 @@ func TestProperty14_CurrentPasswordVerificationRequired(t *testing.T) {
 func TestProperty15_NewPasswordValidation(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService := setupAuthService(db)
 	
@@ -675,7 +676,7 @@ func TestProperty15_NewPasswordValidation(t *testing.T) {
 	properties.Property("password change rejects passwords shorter than 12 characters", prop.ForAll(
 		func(phoneNum int, shortPasswordLength int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and short password (less than 12 characters)
 			phone := "+7" + padNumber(phoneNum, 10)
@@ -683,7 +684,7 @@ func TestProperty15_NewPasswordValidation(t *testing.T) {
 			shortPassword := "Pass" + padNumber(shortPasswordLength, shortPasswordLength%8+1)
 			
 			// Create test user with known password
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			correctPassword := "TestPassword123!"
 			
 			// Get original password hash
@@ -731,14 +732,14 @@ func TestProperty15_NewPasswordValidation(t *testing.T) {
 	properties.Property("password change rejects passwords without uppercase letters", prop.ForAll(
 		func(phoneNum int, passwordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and password without uppercase
 			phone := "+7" + padNumber(phoneNum, 10)
 			noUppercasePassword := "newpassword" + padNumber(passwordSeed, 4) + "!1"
 			
 			// Create test user with known password
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			correctPassword := "TestPassword123!"
 			
 			// Get original password hash
@@ -779,14 +780,14 @@ func TestProperty15_NewPasswordValidation(t *testing.T) {
 	properties.Property("password change rejects passwords without lowercase letters", prop.ForAll(
 		func(phoneNum int, passwordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and password without lowercase
 			phone := "+7" + padNumber(phoneNum, 10)
 			noLowercasePassword := "NEWPASSWORD" + padNumber(passwordSeed, 4) + "!1"
 			
 			// Create test user with known password
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			correctPassword := "TestPassword123!"
 			
 			// Get original password hash
@@ -827,14 +828,14 @@ func TestProperty15_NewPasswordValidation(t *testing.T) {
 	properties.Property("password change rejects passwords without digits", prop.ForAll(
 		func(phoneNum int, passwordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and password without digits
 			phone := "+7" + padNumber(phoneNum, 10)
 			noDigitPassword := "NewPassword!@#$"
 			
 			// Create test user with known password
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			correctPassword := "TestPassword123!"
 			
 			// Get original password hash
@@ -875,14 +876,14 @@ func TestProperty15_NewPasswordValidation(t *testing.T) {
 	properties.Property("password change rejects passwords without special characters", prop.ForAll(
 		func(phoneNum int, passwordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and password without special characters
 			phone := "+7" + padNumber(phoneNum, 10)
 			noSpecialPassword := "NewPassword" + padNumber(passwordSeed, 4)
 			
 			// Create test user with known password
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			correctPassword := "TestPassword123!"
 			
 			// Get original password hash
@@ -928,7 +929,7 @@ func TestProperty15_NewPasswordValidation(t *testing.T) {
 func TestProperty4_BcryptHashing(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService := setupAuthService(db)
 	hasher := hash.NewBcryptHasher()
@@ -940,7 +941,7 @@ func TestProperty4_BcryptHashing(t *testing.T) {
 	properties.Property("passwords are hashed with bcrypt and verifiable", prop.ForAll(
 		func(phoneNum int, newPasswordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and new password
 			phone := "+7" + padNumber(phoneNum, 10)
@@ -948,7 +949,7 @@ func TestProperty4_BcryptHashing(t *testing.T) {
 			correctPassword := "TestPassword123!"
 			
 			// Create test user
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Change password
 			err := authService.ChangePassword(userID, correctPassword, newPassword)
@@ -1007,7 +1008,7 @@ func min(a, b int) int {
 func TestProperty16_RefreshTokenInvalidationOnPasswordChange(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService := setupAuthService(db)
 	
@@ -1018,7 +1019,7 @@ func TestProperty16_RefreshTokenInvalidationOnPasswordChange(t *testing.T) {
 	properties.Property("refresh tokens are invalidated on password change", prop.ForAll(
 		func(phoneNum int, newPasswordSeed int) bool {
 			// Clean up before each test
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			
 			// Generate phone number and new password
 			phone := "+7" + padNumber(phoneNum, 10)
@@ -1026,7 +1027,7 @@ func TestProperty16_RefreshTokenInvalidationOnPasswordChange(t *testing.T) {
 			correctPassword := "TestPassword123!"
 			
 			// Create test user
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Create some refresh tokens for the user
 			token1JTI := "jti-" + padNumber(phoneNum, 10) + "-1"

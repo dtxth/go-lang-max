@@ -38,27 +38,28 @@ func NewMigrateFromExcelUseCase(
 	}
 }
 
-// ExcelRow represents a row from Excel file with 18 columns
+// ExcelRow represents a row from Excel file "Чаты" sheet with 19 columns
 type ExcelRow struct {
 	RowNumber        int
-	AdminPhone1      string // Колонка 0 - Нормализованный номер телефона администратора
-	MaxID            string // Колонка 1 - max_id
-	INNReference     string // Колонка 2 - ИНН_Справочник
-	FOIVReference    string // Колонка 3 - ФОИВ_Справочник
-	OrgNameRef       string // Колонка 4 - Наименование организации_Справочник
-	BranchName       string // Колонка 5 - Наименование головного подразделения/филиала
-	INN              string // Колонка 6 - ИНН юридического лица
-	KPP              string // Колонка 7 - КПП головного подразделения/филиала
-	FacultyName      string // Колонка 8 - Факультет/институт/иная структурная классификация
-	Course           int    // Колонка 9 - Курс обучения
-	GroupNumber      string // Колонка 10 - Номер группы
-	ChatName         string // Колонка 11 - Название чата
-	AdminPhone2      string // Колонка 12 - Мобильный номер телефона администратора чата
-	FileName         string // Колонка 13 - Наименование файла
-	ChatID           string // Колонка 14 - chat_id
-	ChatURL          string // Колонка 15 - link
-	AddUser          string // Колонка 16 - add_user
-	AddAdmin         string // Колонка 17 - add_admin
+	RegionNumber     string // Колонка 0 - № Региона
+	Region           string // Колонка 1 - Регион
+	ChatID           string // Колонка 2 - ID чата
+	ChatName         string // Колонка 3 - Название чата
+	ChatURL          string // Колонка 4 - Ссылка на чат
+	ParticipantCount int    // Колонка 5 - Кол-во участников чата
+	OwnerID          string // Колонка 6 - ID владельца чата
+	OwnerPhone       string // Колонка 7 - Телефон владельца чата
+	CreatedDate      string // Колонка 8 - Дата создания чата
+	CreatorID        string // Колонка 9 - ID создателя чата
+	Organization     string // Колонка 10 - Организация
+	INN              string // Колонка 11 - ИНН
+	KPP              string // Колонка 12 - КПП
+	HeadOrganization string // Колонка 13 - Головная организация
+	Faculty          string // Колонка 14 - Факультет
+	Course           int    // Колонка 15 - Курс
+	GroupNumber      string // Колонка 16 - Группа
+	AddUser          string // Колонка 17 - Добавлени пользователь
+	AddAdmin         string // Колонка 18 - Добавлен администратор
 }
 
 // logInfo safely logs info message
@@ -199,7 +200,7 @@ func (uc *MigrateFromExcelUseCase) processExcelStreaming(ctx context.Context, jo
 		"job_id": jobID,
 	})
 
-	// Get the first sheet
+	// Get sheets and find the "Чаты" sheet
 	sheets := f.GetSheetList()
 	if len(sheets) == 0 {
 		uc.logError(ctx, "No sheets found in Excel file", map[string]interface{}{
@@ -208,7 +209,14 @@ func (uc *MigrateFromExcelUseCase) processExcelStreaming(ctx context.Context, jo
 		return fmt.Errorf("no sheets found in Excel file")
 	}
 
-	sheetName := sheets[0]
+	// Look for "Чаты" sheet, fallback to first sheet if not found
+	sheetName := sheets[0] // default
+	for _, sheet := range sheets {
+		if sheet == "Чаты" {
+			sheetName = sheet
+			break
+		}
+	}
 	uc.logInfo(ctx, "Starting streaming processing", map[string]interface{}{
 		"job_id":      jobID,
 		"sheet_name":  sheetName,
@@ -243,44 +251,50 @@ func (uc *MigrateFromExcelUseCase) processExcelStreaming(ctx context.Context, jo
 			continue
 		}
 
-		// Check minimum columns
-		if len(row) < 18 {
+		// Check minimum columns (19 columns for "Чаты" sheet)
+		if len(row) < 19 {
 			uc.logWarn(ctx, "Skipping row: insufficient columns", map[string]interface{}{
 				"row_number": rowNumber,
 				"columns":    len(row),
-				"expected":   18,
+				"expected":   19,
 			})
 			(*failed)++
 			continue
 		}
 
-		// Parse course
+		// Parse course and participant count
 		course := 0
-		if row[9] != "" {
-			course, _ = strconv.Atoi(row[9])
+		if row[15] != "" {
+			course, _ = strconv.Atoi(row[15])
+		}
+		
+		participantCount := 0
+		if row[5] != "" {
+			participantCount, _ = strconv.Atoi(row[5])
 		}
 
 		// Create ExcelRow
 		excelRow := ExcelRow{
-			RowNumber:     rowNumber,
-			AdminPhone1:   strings.TrimSpace(row[0]),
-			MaxID:         strings.TrimSpace(row[1]),
-			INNReference:  strings.TrimSpace(row[2]),
-			FOIVReference: strings.TrimSpace(row[3]),
-			OrgNameRef:    strings.TrimSpace(row[4]),
-			BranchName:    strings.TrimSpace(row[5]),
-			INN:           strings.TrimSpace(row[6]),
-			KPP:           strings.TrimSpace(row[7]),
-			FacultyName:   strings.TrimSpace(row[8]),
-			Course:        course,
-			GroupNumber:   strings.TrimSpace(row[10]),
-			ChatName:      cleanChatName(row[11]),
-			AdminPhone2:   strings.TrimSpace(row[12]),
-			FileName:      strings.TrimSpace(row[13]),
-			ChatID:        strings.TrimSpace(row[14]),
-			ChatURL:       strings.TrimSpace(row[15]),
-			AddUser:       strings.TrimSpace(row[16]),
-			AddAdmin:      strings.TrimSpace(row[17]),
+			RowNumber:        rowNumber,
+			RegionNumber:     strings.TrimSpace(row[0]),
+			Region:           strings.TrimSpace(row[1]),
+			ChatID:           strings.TrimSpace(row[2]),
+			ChatName:         cleanChatName(row[3]),
+			ChatURL:          strings.TrimSpace(row[4]),
+			ParticipantCount: participantCount,
+			OwnerID:          strings.TrimSpace(row[6]),
+			OwnerPhone:       strings.TrimSpace(row[7]),
+			CreatedDate:      strings.TrimSpace(row[8]),
+			CreatorID:        strings.TrimSpace(row[9]),
+			Organization:     strings.TrimSpace(row[10]),
+			INN:              strings.TrimSpace(row[11]),
+			KPP:              strings.TrimSpace(row[12]),
+			HeadOrganization: strings.TrimSpace(row[13]),
+			Faculty:          strings.TrimSpace(row[14]),
+			Course:           course,
+			GroupNumber:      strings.TrimSpace(row[16]),
+			AddUser:          strings.TrimSpace(row[17]),
+			AddAdmin:         strings.TrimSpace(row[18]),
 		}
 
 		// Validate required fields
@@ -365,7 +379,14 @@ func (uc *MigrateFromExcelUseCase) readFromExcel(filePath string) ([]ExcelRow, e
 		return nil, fmt.Errorf("no sheets found in Excel file")
 	}
 
-	sheetName := sheets[0]
+	// Look for "Чаты" sheet, fallback to first sheet if not found
+	sheetName := sheets[0] // default
+	for _, sheet := range sheets {
+		if sheet == "Чаты" {
+			sheetName = sheet
+			break
+		}
+	}
 	ctx := context.Background()
 	
 	uc.logInfo(ctx, "Starting streaming Excel read", map[string]interface{}{
@@ -401,42 +422,48 @@ func (uc *MigrateFromExcelUseCase) readFromExcel(filePath string) ([]ExcelRow, e
 			continue
 		}
 		
-		// Проверяем минимальное количество колонок (18)
-		if len(row) < 18 {
+		// Проверяем минимальное количество колонок (19 для листа "Чаты")
+		if len(row) < 19 {
 			uc.logWarn(ctx, "Skipping row: insufficient columns", map[string]interface{}{
 				"row_number": rowNumber,
 				"columns":    len(row),
-				"expected":   18,
+				"expected":   19,
 			})
 			continue
 		}
 
-		// Парсим курс обучения
+		// Парсим курс обучения и количество участников
 		course := 0
-		if row[9] != "" {
-			course, _ = strconv.Atoi(row[9])
+		if row[15] != "" {
+			course, _ = strconv.Atoi(row[15])
+		}
+		
+		participantCount := 0
+		if row[5] != "" {
+			participantCount, _ = strconv.Atoi(row[5])
 		}
 
 		excelRow := ExcelRow{
-			RowNumber:     rowNumber,
-			AdminPhone1:   strings.TrimSpace(row[0]),
-			MaxID:         strings.TrimSpace(row[1]),
-			INNReference:  strings.TrimSpace(row[2]),
-			FOIVReference: strings.TrimSpace(row[3]),
-			OrgNameRef:    strings.TrimSpace(row[4]),
-			BranchName:    strings.TrimSpace(row[5]),
-			INN:           strings.TrimSpace(row[6]),
-			KPP:           strings.TrimSpace(row[7]),
-			FacultyName:   strings.TrimSpace(row[8]),
-			Course:        course,
-			GroupNumber:   strings.TrimSpace(row[10]),
-			ChatName:      cleanChatName(row[11]),
-			AdminPhone2:   strings.TrimSpace(row[12]),
-			FileName:      strings.TrimSpace(row[13]),
-			ChatID:        strings.TrimSpace(row[14]),
-			ChatURL:       strings.TrimSpace(row[15]),
-			AddUser:       strings.TrimSpace(row[16]),
-			AddAdmin:      strings.TrimSpace(row[17]),
+			RowNumber:        rowNumber,
+			RegionNumber:     strings.TrimSpace(row[0]),
+			Region:           strings.TrimSpace(row[1]),
+			ChatID:           strings.TrimSpace(row[2]),
+			ChatName:         cleanChatName(row[3]),
+			ChatURL:          strings.TrimSpace(row[4]),
+			ParticipantCount: participantCount,
+			OwnerID:          strings.TrimSpace(row[6]),
+			OwnerPhone:       strings.TrimSpace(row[7]),
+			CreatedDate:      strings.TrimSpace(row[8]),
+			CreatorID:        strings.TrimSpace(row[9]),
+			Organization:     strings.TrimSpace(row[10]),
+			INN:              strings.TrimSpace(row[11]),
+			KPP:              strings.TrimSpace(row[12]),
+			HeadOrganization: strings.TrimSpace(row[13]),
+			Faculty:          strings.TrimSpace(row[14]),
+			Course:           course,
+			GroupNumber:      strings.TrimSpace(row[16]),
+			AddUser:          strings.TrimSpace(row[17]),
+			AddAdmin:         strings.TrimSpace(row[18]),
 		}
 
 		// Валидация обязательных полей
@@ -480,10 +507,10 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 	structureData := &domain.StructureData{
 		INN:         row.INN,
 		KPP:         row.KPP,
-		FOIV:        row.FOIVReference,
-		OrgName:     row.OrgNameRef,
-		BranchName:  row.BranchName,
-		FacultyName: row.FacultyName,
+		FOIV:        row.Region, // Используем регион как FOIV
+		OrgName:     row.Organization,
+		BranchName:  row.HeadOrganization,
+		FacultyName: row.Faculty,
 		Course:      row.Course,
 		GroupNumber: row.GroupNumber,
 		ChatName:    row.ChatName,
@@ -521,30 +548,19 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 	}
 
 	// 5. Добавить администратора
-	// Проверяем, есть ли телефон администратора
-	phone := row.AdminPhone1
-	if phone == "" {
-		phone = row.AdminPhone2
-	}
+	// Используем телефон владельца чата
+	phone := row.OwnerPhone
 	
-	// DEBUG: Логируем первые 5 строк
-	if row.RowNumber <= 5 {
-		fmt.Printf("[DEBUG] Row %d: phone1='%s', phone2='%s', normalized='%s', maxid='%s'\n",
-			row.RowNumber, row.AdminPhone1, row.AdminPhone2, normalizePhone(phone), row.MaxID)
-	}
+
 	
 	// Нормализуем телефон
 	phone = normalizePhone(phone)
 	
 	// Если есть телефон, создаем администратора
 	if phone != "" {
-		// Парсим флаги add_user и add_admin
-		addAdmin := strings.ToUpper(row.AddAdmin) == "ИСТИНА" || 
-		            strings.ToUpper(row.AddAdmin) == "TRUE" ||
-		            row.AddAdmin != "" // Если не пусто, считаем что нужно добавить
-		addUser := strings.ToUpper(row.AddUser) == "ИСТИНА" || 
-		           strings.ToUpper(row.AddUser) == "TRUE" ||
-		           row.AddUser != "" // Если не пусто, считаем что нужно добавить
+		// Парсим флаги add_user и add_admin (1 = true, 0 = false)
+		addAdmin := row.AddAdmin == "1" || strings.ToUpper(row.AddAdmin) == "TRUE"
+		addUser := row.AddUser == "1" || strings.ToUpper(row.AddUser) == "TRUE"
 		
 		// Если оба флага пустые, устанавливаем по умолчанию
 		if row.AddAdmin == "" && row.AddUser == "" {
@@ -555,15 +571,9 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 		adminData := &domain.AdministratorData{
 			ChatID:   chatID,
 			Phone:    phone,
-			MaxID:    row.MaxID,
+			MaxID:    row.OwnerID, // Используем ID владельца как MaxID
 			AddUser:  addUser,
 			AddAdmin: addAdmin,
-		}
-
-		// DEBUG: Log first 5 administrator creations
-		if row.RowNumber <= 5 {
-			fmt.Printf("[DEBUG] Adding administrator: chat_id=%d, phone=%s, max_id=%s, add_user=%v, add_admin=%v\n",
-				chatID, phone, row.MaxID, addUser, addAdmin)
 		}
 
 		if err := uc.chatService.AddAdministrator(ctx, adminData); err != nil {
@@ -573,12 +583,6 @@ func (uc *MigrateFromExcelUseCase) processRow(ctx context.Context, jobID int, ro
 				"phone":   phone,
 				"error":   err.Error(),
 			})
-			// DEBUG: Log first 5 errors
-			if row.RowNumber <= 5 {
-				fmt.Printf("[DEBUG] Error adding administrator: %v\n", err)
-			}
-		} else if row.RowNumber <= 5 {
-			fmt.Printf("[DEBUG] Administrator added successfully\n")
 		}
 	}
 

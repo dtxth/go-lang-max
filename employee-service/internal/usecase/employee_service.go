@@ -14,6 +14,7 @@ type EmployeeService struct {
 	authService         domain.AuthService
 	passwordGenerator   domain.PasswordGenerator
 	notificationService domain.NotificationService
+	profileCache        domain.ProfileCacheService
 }
 
 func NewEmployeeService(
@@ -23,6 +24,7 @@ func NewEmployeeService(
 	authService domain.AuthService,
 	passwordGenerator domain.PasswordGenerator,
 	notificationService domain.NotificationService,
+	profileCache domain.ProfileCacheService,
 ) *EmployeeService {
 	return &EmployeeService{
 		employeeRepo:        employeeRepo,
@@ -31,6 +33,7 @@ func NewEmployeeService(
 		authService:         authService,
 		passwordGenerator:   passwordGenerator,
 		notificationService: notificationService,
+		profileCache:        profileCache,
 	}
 }
 
@@ -54,11 +57,42 @@ func (s *EmployeeService) AddEmployeeByPhone(
 		return nil, domain.ErrEmployeeExists
 	}
 	
-	// Получаем MAX_id по телефону (Requirements 3.1)
-	maxID, err := s.maxService.GetMaxIDByPhone(phone)
+	// Получаем профиль пользователя по телефону (Requirements 3.1)
+	// Это включает MAX_id, first_name и last_name
+	var maxID string
+	var profileFirstName, profileLastName string
+	var profileSource domain.ProfileSource = domain.SourceDefault
+	
+	// Сначала пытаемся получить MAX_id через MAX API
+	profile, err := s.maxService.GetUserProfileByPhone(phone)
 	if err != nil {
-		// Логируем ошибку, но продолжаем без MAX_id (Requirements 3.5)
+		// Логируем ошибку, но продолжаем без MAX_id (Requirements 3.5, 7.5)
 		maxID = ""
+	} else {
+		maxID = profile.MaxID
+	}
+	
+	// Если у нас есть MAX_id, пытаемся получить кэшированный профиль (Requirements 3.4, 7.2)
+	if maxID != "" {
+		cachedProfile, _ := s.safeGetProfileFromCache(context.Background(), maxID)
+		if cachedProfile != nil {
+			// Используем данные из кэша с приоритетом (Requirements 2.3, 5.3)
+			displayFirstName, displayLastName := cachedProfile.GetDisplayName()
+			if displayFirstName != "" || displayLastName != "" {
+				profileFirstName = displayFirstName
+				profileLastName = displayLastName
+				profileSource = cachedProfile.GetPrioritySource()
+			}
+		}
+	}
+	
+	// Fallback: если кэш недоступен или пуст, используем данные из MAX API
+	if profileFirstName == "" && profileLastName == "" && profile != nil {
+		profileFirstName = profile.FirstName
+		profileLastName = profile.LastName
+		if profileFirstName != "" || profileLastName != "" {
+			profileSource = domain.SourceWebhook
+		}
 	}
 	
 	// Находим или создаем вуз
@@ -67,30 +101,62 @@ func (s *EmployeeService) AddEmployeeByPhone(
 		return nil, err
 	}
 	
-	// Устанавливаем значения по умолчанию для обязательных полей
-	if strings.TrimSpace(firstName) == "" {
-		firstName = "Неизвестно"
+	// Реализуем приоритетную логику имен (Requirements 2.3, 5.3, 7.1, 7.2)
+	// Приоритет: user_provided (переданные параметры) > cached profile > max profile > default
+	finalFirstName := strings.TrimSpace(firstName)
+	finalLastName := strings.TrimSpace(lastName)
+	finalSource := profileSource
+	
+	// Проверяем, были ли имена предоставлены явно (Requirements 7.1)
+	userProvidedFirstName := finalFirstName != ""
+	userProvidedLastName := finalLastName != ""
+	
+	// Если имена не переданы явно, используем данные из профиля (Requirements 7.2, 7.3)
+	if !userProvidedFirstName && profileFirstName != "" {
+		finalFirstName = profileFirstName
 	}
-	if strings.TrimSpace(lastName) == "" {
-		lastName = "Неизвестно"
+	if !userProvidedLastName && profileLastName != "" {
+		finalLastName = profileLastName
+	}
+	
+	// Если имена переданы явно, это user_provided источник (Requirements 7.1)
+	if userProvidedFirstName || userProvidedLastName {
+		finalSource = domain.SourceUserInput
+	}
+	
+	// Устанавливаем значения по умолчанию для обязательных полей (Requirements 7.3, 7.5)
+	if finalFirstName == "" {
+		finalFirstName = "Неизвестно"
+		finalSource = domain.SourceDefault
+	}
+	if finalLastName == "" {
+		finalLastName = "Неизвестно"
+		finalSource = domain.SourceDefault
 	}
 	
 	// Создаем сотрудника
 	employee := &domain.Employee{
-		FirstName:    strings.TrimSpace(firstName),
-		LastName:      strings.TrimSpace(lastName),
-		MiddleName:    strings.TrimSpace(middleName),
-		Phone:         phone,
-		MaxID:         maxID,
-		INN:           strings.TrimSpace(inn),
-		KPP:           strings.TrimSpace(kpp),
-		UniversityID:  university.ID,
+		FirstName:        finalFirstName,
+		LastName:         finalLastName,
+		MiddleName:       strings.TrimSpace(middleName),
+		Phone:            phone,
+		MaxID:            maxID,
+		INN:              strings.TrimSpace(inn),
+		KPP:              strings.TrimSpace(kpp),
+		ProfileSource:    string(finalSource),
+		UniversityID:     university.ID,
 	}
 	
 	// Если MAX_id получен, сохраняем время обновления (Requirements 3.4)
 	if maxID != "" {
 		now := time.Now()
 		employee.MaxIDUpdatedAt = &now
+	}
+	
+	// Сохраняем время обновления профиля (Requirements 5.5)
+	if finalSource != domain.SourceDefault {
+		now := time.Now()
+		employee.ProfileLastUpdated = &now
 	}
 	
 	if err := s.employeeRepo.Create(employee); err != nil {
@@ -262,6 +328,39 @@ func (s *EmployeeService) findOrCreateUniversity(inn, kpp, name string) (*domain
 	return university, nil
 }
 
+// safeGetProfileFromCache безопасно получает профиль из кэша с обработкой ошибок
+func (s *EmployeeService) safeGetProfileFromCache(ctx context.Context, userID string) (*domain.CachedUserProfile, error) {
+	if s.profileCache == nil {
+		return nil, nil
+	}
+	
+	// Устанавливаем короткий таймаут для кэша (Requirements 3.4)
+	ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
+	defer cancel()
+	
+	profile, err := s.profileCache.GetProfile(ctx, userID)
+	if err != nil {
+		// Логируем ошибку, но не возвращаем её для graceful degradation (Requirements 7.5)
+		return nil, nil
+	}
+	
+	return profile, nil
+}
+
+// isProfileCacheHealthy проверяет доступность кэша профилей
+func (s *EmployeeService) isProfileCacheHealthy(ctx context.Context) bool {
+	if s.profileCache == nil {
+		return false
+	}
+	
+	// Простая проверка через попытку получения несуществующего профиля
+	ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
+	defer cancel()
+	
+	_, err := s.profileCache.GetProfile(ctx, "health-check")
+	return err == nil
+}
+
 // GetUniversityByID получает вуз по ID
 func (s *EmployeeService) GetUniversityByID(id int64) (*domain.University, error) {
 	return s.universityRepo.GetByID(id)
@@ -295,6 +394,7 @@ func (s *EmployeeService) CreateEmployeeWithRole(
 		s.authService,
 		s.passwordGenerator,
 		s.notificationService,
+		s.profileCache,
 	)
 	
 	return uc.Execute(

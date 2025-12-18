@@ -5,12 +5,15 @@ import (
 	"auth-service/internal/config"
 	"auth-service/internal/domain"
 	"auth-service/internal/infrastructure/cleanup"
+	"auth-service/internal/infrastructure/database"
 	"auth-service/internal/infrastructure/grpc"
 	"auth-service/internal/infrastructure/hash"
 	"auth-service/internal/infrastructure/http"
 	"auth-service/internal/infrastructure/jwt"
 	"auth-service/internal/infrastructure/logger"
+	"auth-service/internal/infrastructure/maxbot"
 	"auth-service/internal/infrastructure/metrics"
+	"auth-service/internal/infrastructure/migration"
 	"auth-service/internal/infrastructure/notification"
 	"auth-service/internal/infrastructure/repository"
 	"auth-service/internal/usecase"
@@ -36,10 +39,34 @@ func main() {
 		panic(err)
 	}
 
-	db, err := sql.Open("postgres", cfg.DBUrl)
+	// Initialize database connection with automatic reconnection
+	dbLogger := log.New(os.Stdout, "[DB] ", log.LstdFlags)
+	db := database.NewDB(cfg.DBUrl, dbLogger)
+	
+	if err := db.Connect(); err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Initialize and run migrations with separate connection
+	migrationDB, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
 		panic(err)
 	}
+	
+	migrator := migration.NewMigrator(migrationDB, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	
+	// Wait for database to be ready
+	if err := migrator.WaitForDatabase(); err != nil {
+		log.Fatalf("Database connection failed: %v", err)
+	}
+	
+	// Run migrations
+	if err := migrator.RunMigrations(); err != nil {
+		log.Fatalf("Migration failed: %v", err)
+	}
+	
+	// Close migration connection
+	migrationDB.Close()
 
 	repo := repository.NewUserPostgres(db)
 	refreshRepo := repository.NewRefreshPostgres(db)
@@ -82,6 +109,24 @@ func main() {
 	authUC.SetNotificationService(notificationSvc)
 	authUC.SetLogger(appLogger)
 	authUC.SetMetrics(metricsCollector)
+	
+	// Initialize MaxBot client if configured
+	if cfg.MaxBotServiceAddr != "" {
+		maxBotClient, err := maxbot.NewClient(cfg.MaxBotServiceAddr)
+		if err != nil {
+			log.Printf("Warning: Failed to initialize MaxBot client: %v", err)
+			// Use mock client as fallback
+			authUC.SetMaxBotClient(maxbot.NewMockClient())
+			log.Printf("Using mock MaxBot client as fallback")
+		} else {
+			authUC.SetMaxBotClient(maxBotClient)
+			log.Printf("Initialized MaxBot client (addr: %s)", cfg.MaxBotServiceAddr)
+		}
+	} else {
+		// Use mock client when no address is configured
+		authUC.SetMaxBotClient(maxbot.NewMockClient())
+		log.Printf("Using mock MaxBot client (no address configured)")
+	}
 	
 	handler := http.NewHandler(authUC)
 

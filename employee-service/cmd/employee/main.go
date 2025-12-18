@@ -9,8 +9,10 @@ import (
 	"employee-service/internal/infrastructure/http"
 	"employee-service/internal/infrastructure/logger"
 	"employee-service/internal/infrastructure/max"
+	"employee-service/internal/infrastructure/migration"
 	"employee-service/internal/infrastructure/notification"
 	"employee-service/internal/infrastructure/password"
+	"employee-service/internal/infrastructure/profile"
 	"employee-service/internal/infrastructure/repository"
 	"employee-service/internal/usecase"
 	"log"
@@ -41,9 +43,17 @@ func main() {
 	}
 	defer db.Close()
 
-	// Проверяем подключение к БД
-	if err := db.Ping(); err != nil {
-		panic(err)
+	// Initialize and run migrations
+	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	
+	// Wait for database to be ready
+	if err := migrator.WaitForDatabase(); err != nil {
+		log.Fatalf("Database connection failed: %v", err)
+	}
+	
+	// Run migrations
+	if err := migrator.RunMigrations(); err != nil {
+		log.Fatalf("Migration failed: %v", err)
 	}
 
 	// Инициализируем репозитории
@@ -57,6 +67,9 @@ func main() {
 		panic(err)
 	}
 	defer maxClient.Close()
+
+	// Инициализируем Profile Cache gRPC клиент (используем тот же адрес что и MaxBot)
+	profileCacheClient := profile.NewProfileCacheClient(maxClient.GetConnection())
 
 	// Инициализируем Auth gRPC клиент
 	log.Printf("Connecting to Auth Service at %s", cfg.AuthServiceAddress)
@@ -82,7 +95,7 @@ func main() {
 	}
 
 	// Инициализируем usecase
-	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient, authClient, passwordGenerator, notificationService)
+	employeeService := usecase.NewEmployeeService(employeeRepo, universityRepo, maxClient, authClient, passwordGenerator, notificationService, profileCacheClient)
 	batchUpdateMaxIdUseCase := usecase.NewBatchUpdateMaxIdUseCase(employeeRepo, batchUpdateJobRepo, maxClient)
 	
 	// Инициализируем use case для поиска с ролевой фильтрацией

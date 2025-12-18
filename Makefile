@@ -134,6 +134,73 @@ health: ## Проверить здоровье всех сервисов
 	@echo ""
 	@make swagger
 
+# =============================================================================
+# Profile Integration Monitoring
+# =============================================================================
+
+profile-health: ## Проверить состояние профильной интеграции
+	@echo "$(BLUE)Проверка профильной интеграции:$(NC)"
+	@echo -n "  MaxBot Service: "
+	@curl -s -f "http://localhost:8095/health" > /dev/null 2>&1 && \
+		echo "$(GREEN)✓ Работает$(NC)" || \
+		echo "$(RED)✗ Недоступен$(NC)"
+	@echo -n "  Redis Cache: "
+	@docker exec redis redis-cli ping > /dev/null 2>&1 && \
+		echo "$(GREEN)✓ Подключен$(NC)" || \
+		echo "$(RED)✗ Недоступен$(NC)"
+	@echo -n "  Webhook Endpoint: "
+	@curl -s -f "http://localhost:8095/webhook/max" -X POST -H "Content-Type: application/json" -d '{}' > /dev/null 2>&1 && \
+		echo "$(GREEN)✓ Доступен$(NC)" || \
+		echo "$(RED)✗ Недоступен$(NC)"
+
+profile-stats: ## Показать статистику профилей
+	@echo "$(BLUE)Статистика профилей:$(NC)"
+	@curl -s "http://localhost:8095/monitoring/profile-stats" 2>/dev/null | jq '.' || \
+		echo "$(RED)Не удается получить статистику профилей$(NC)"
+
+webhook-stats: ## Показать статистику webhook событий
+	@echo "$(BLUE)Статистика webhook событий:$(NC)"
+	@curl -s "http://localhost:8095/monitoring/webhook-stats" 2>/dev/null | jq '.' || \
+		echo "$(RED)Не удается получить статистику webhook$(NC)"
+
+cache-health: ## Проверить состояние кэша профилей
+	@echo "$(BLUE)Состояние кэша профилей:$(NC)"
+	@curl -s "http://localhost:8095/monitoring/cache-health" 2>/dev/null | jq '.' || \
+		echo "$(RED)Не удается получить состояние кэша$(NC)"
+
+test-webhook: ## Тестировать webhook endpoint
+	@echo "$(BLUE)Тестирование webhook endpoint...$(NC)"
+	@curl -X POST "http://localhost:8095/webhook/max" \
+		-H "Content-Type: application/json" \
+		-d '{"type":"message_new","message":{"from":{"user_id":"test123","first_name":"Тест","last_name":"Пользователь"},"text":"Hello"}}' \
+		-w "\nHTTP Status: %{http_code}\n" || \
+		echo "$(RED)Ошибка при тестировании webhook$(NC)"
+
+profile-monitor: ## Мониторинг профильной интеграции в реальном времени
+	@echo "$(BLUE)Мониторинг профильной интеграции (Ctrl+C для выхода):$(NC)"
+	@while true; do \
+		clear; \
+		echo "$(BLUE)=== Profile Integration Monitor ===$(NC)"; \
+		echo "$(YELLOW)Время: $$(date)$(NC)"; \
+		echo ""; \
+		make profile-health; \
+		echo ""; \
+		make profile-stats; \
+		echo ""; \
+		echo "$(BLUE)Обновление через 10 секунд...$(NC)"; \
+		sleep 10; \
+	done
+
+deploy-profile: ## Развернуть только компоненты профильной интеграции
+	@echo "$(BLUE)Развертывание профильной интеграции...$(NC)"
+	@docker-compose up -d redis maxbot-service employee-service
+	@echo "$(GREEN)Профильная интеграция развернута!$(NC)"
+	@make profile-health
+
+validate-profile-config: ## Проверить конфигурацию профильной интеграции
+	@echo "$(BLUE)Проверка конфигурации профильной интеграции...$(NC)"
+	@./bin/validate_profile_config.sh
+
 # Тесты для отдельных сервисов
 test-auth: ## Тесты auth-service
 	@echo "$(BLUE)Тестирование auth-service...$(NC)"
@@ -192,3 +259,43 @@ mod-tidy: ## Обновить go.mod для всех сервисов
 		cd $$dir && go mod tidy && cd ..; \
 	done
 	@echo "$(GREEN)go.mod обновлены!$(NC)"
+
+# =============================================================================
+# Безопасные операции с данными
+# =============================================================================
+
+backup-auth: ## Создать резервную копию базы auth-service
+	@echo "$(BLUE)Создание резервной копии auth-db...$(NC)"
+	@mkdir -p backups
+	@docker exec auth-db pg_dump -U postgres postgres > backups/auth_backup_$$(date +%Y%m%d_%H%M%S).sql
+	@echo "$(GREEN)Резервная копия создана в backups/$(NC)"
+
+restore-auth: ## Восстановить базу auth-service из резервной копии
+	@echo "$(BLUE)Доступные резервные копии:$(NC)"
+	@ls -la backups/auth_backup_*.sql 2>/dev/null || echo "$(YELLOW)Резервные копии не найдены$(NC)"
+	@echo -n "$(YELLOW)Введите имя файла для восстановления: $(NC)" && read backup_file && \
+	docker exec -i auth-db psql -U postgres postgres < "$$backup_file"
+
+check-volumes: ## Проверить состояние volumes и данных
+	@echo "$(BLUE)Docker volumes:$(NC)"
+	@docker volume ls | grep -E "(auth|chat|employee|structure|migration)" || echo "$(YELLOW)Volumes не найдены$(NC)"
+	@echo ""
+	@echo "$(BLUE)Таблицы в auth-db:$(NC)"
+	@docker exec auth-db psql -U postgres -d postgres -c "\dt" 2>/dev/null || echo "$(RED)Не удается подключиться к auth-db$(NC)"
+	@echo ""
+	@echo "$(BLUE)Количество пользователей:$(NC)"
+	@docker exec auth-db psql -U postgres -d postgres -c "SELECT COUNT(*) as users_count FROM users;" 2>/dev/null || echo "$(RED)Таблица users не найдена$(NC)"
+
+safe-restart: ## Безопасный перезапуск сервисов (без удаления данных)
+	@echo "$(BLUE)Безопасный перезапуск сервисов...$(NC)"
+	@docker-compose restart
+	@echo "$(GREEN)Сервисы перезапущены без потери данных!$(NC)"
+
+# Переопределяем опасную команду с предупреждением
+clean-volumes-dangerous: ## ⚠️  ОПАСНО: Удалить все volumes (ЗАТИРАЕТ ВСЕ ДАННЫЕ!)
+	@echo "$(RED)⚠️  ВНИМАНИЕ: Эта команда УДАЛИТ ВСЕ ДАННЫЕ из баз данных!$(NC)"
+	@echo -n "$(YELLOW)Введите 'DELETE_ALL_DATA' для подтверждения: $(NC)" && read confirmation && [ "$$confirmation" = "DELETE_ALL_DATA" ]
+	@echo "$(RED)Удаление всех volumes...$(NC)"
+	@docker-compose down -v
+	@docker volume prune -f
+	@echo "$(GREEN)Все данные удалены!$(NC)"

@@ -13,6 +13,7 @@ func TestCreateEmployeeWithRole_CreatesNewUniversity(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+profileCache := newMockProfileCacheService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
@@ -20,7 +21,7 @@ func TestCreateEmployeeWithRole_CreatesNewUniversity(t *testing.T) {
 		maxService,
 		authService,
 		passwordGenerator,
-		notificationService,
+		notificationService, profileCache,
 	)
 
 	ctx := context.Background()
@@ -85,6 +86,7 @@ func TestCreateEmployeeWithRole_ReusesExistingUniversity(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+profileCache := newMockProfileCacheService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
@@ -92,7 +94,7 @@ func TestCreateEmployeeWithRole_ReusesExistingUniversity(t *testing.T) {
 		maxService,
 		authService,
 		passwordGenerator,
-		notificationService,
+		notificationService, profileCache,
 	)
 
 	ctx := context.Background()
@@ -161,6 +163,7 @@ func TestCreateEmployeeWithRole_StoresUniversityData(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+profileCache := newMockProfileCacheService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
@@ -168,7 +171,7 @@ func TestCreateEmployeeWithRole_StoresUniversityData(t *testing.T) {
 		maxService,
 		authService,
 		passwordGenerator,
-		notificationService,
+		notificationService, profileCache,
 	)
 
 	ctx := context.Background()
@@ -227,6 +230,7 @@ func TestCreateEmployeeWithRole_ReturnsCompleteRecord(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+profileCache := newMockProfileCacheService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
@@ -234,7 +238,7 @@ func TestCreateEmployeeWithRole_ReturnsCompleteRecord(t *testing.T) {
 		maxService,
 		authService,
 		passwordGenerator,
-		notificationService,
+		notificationService, profileCache,
 	)
 
 	ctx := context.Background()
@@ -318,6 +322,7 @@ func TestCreateEmployeeWithRole_HandlesINNWithoutKPP(t *testing.T) {
 	authService := newMockAuthService()
 	passwordGenerator := newMockPasswordGenerator()
 	notificationService := newMockNotificationService()
+profileCache := newMockProfileCacheService()
 
 	useCase := NewCreateEmployeeWithRoleUseCase(
 		employeeRepo,
@@ -325,7 +330,7 @@ func TestCreateEmployeeWithRole_HandlesINNWithoutKPP(t *testing.T) {
 		maxService,
 		authService,
 		passwordGenerator,
-		notificationService,
+		notificationService, profileCache,
 	)
 
 	ctx := context.Background()

@@ -22,6 +22,7 @@ type AuthService struct {
     userRoleRepo           domain.UserRoleRepository
     resetTokenRepo         domain.PasswordResetRepository
     notificationService    domain.NotificationService
+    maxBotClient           domain.MaxBotClient
     logger                 Logger
     metrics                *metrics.Metrics
     minPasswordLength      int
@@ -44,6 +45,11 @@ func NewAuthService(repo domain.UserRepository, refreshRepo domain.RefreshTokenR
         minPasswordLength:    12, // Default value
         resetTokenExpiration: 15 * time.Minute, // Default value
     }
+}
+
+// SetMaxBotClient sets the MaxBot client
+func (s *AuthService) SetMaxBotClient(client domain.MaxBotClient) {
+    s.maxBotClient = client
 }
 
 // SetPasswordConfig sets the password configuration
@@ -97,13 +103,12 @@ func (s *AuthService) Register(email, password, role string) (*domain.User, erro
 
 // CreateUser создает нового пользователя без роли (роль назначается отдельно через AssignRole)
 func (s *AuthService) CreateUser(phone, password string) (int64, error) {
-    log.Printf("DEBUG: CreateUser called for phone ending in %s", sanitizePhone(phone))
+
     
     // Проверяем, не существует ли уже пользователь с таким телефоном
     existingUser, err := s.repo.GetByPhone(phone)
     if err == nil && existingUser != nil && existingUser.ID > 0 {
-        log.Printf("DEBUG: User already exists for phone ending in %s, returning existing user ID: %d", 
-            sanitizePhone(phone), existingUser.ID)
+
         return existingUser.ID, nil // Возвращаем существующего пользователя
     }
 
@@ -180,8 +185,12 @@ func (s *AuthService) LoginByIdentifier(identifier, password string) (*TokensWit
     // Определяем, является ли идентификатор телефоном (начинается с +)
     if len(identifier) > 0 && identifier[0] == '+' {
         user, err = s.repo.GetByPhone(identifier)
+        if err != nil {
+        }
     } else {
         user, err = s.repo.GetByEmail(identifier)
+        if err != nil {
+        }
     }
     
     if err != nil {
@@ -689,4 +698,30 @@ func sanitizePhone(phone string) string {
 		return "****"
 	}
 	return "****" + phone[len(phone)-4:]
+}
+// GetBotInfo retrieves bot information from MaxBot service
+func (s *AuthService) GetBotInfo(ctx context.Context) (*domain.BotInfo, error) {
+	if s.maxBotClient == nil {
+		return nil, fmt.Errorf("MaxBot client not configured")
+	}
+
+	botInfo, err := s.maxBotClient.GetBotInfo(ctx)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.Error(ctx, "failed_to_get_bot_info", map[string]interface{}{
+				"error":     err.Error(),
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+			})
+		}
+		return nil, fmt.Errorf("failed to get bot info: %w", err)
+	}
+
+	if s.logger != nil {
+		s.logger.Info(ctx, "bot_info_retrieved", map[string]interface{}{
+			"bot_name":  botInfo.Name,
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		})
+	}
+
+	return botInfo, nil
 }

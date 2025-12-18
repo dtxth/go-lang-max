@@ -13,5 +13,7 @@ var (
 	ErrMaxIDNotFound      = errors.NotFoundError("MAX_id")
 	ErrInvalidRole        = errors.ValidationError("invalid role")
 	ErrForbidden          = errors.ForbiddenError("insufficient permissions")
+	ErrCacheUnavailable   = errors.ExternalServiceError("Profile Cache", nil)
+	ErrMaxAPIError        = errors.ExternalServiceError("MAX API", nil)
 )
 

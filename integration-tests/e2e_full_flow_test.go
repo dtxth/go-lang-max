@@ -1,4 +1,4 @@
-package main
+package integration_tests
 
 import (
 	"bytes"
@@ -115,7 +115,7 @@ func TestE2E_RoleBasedAccessControl(t *testing.T) {
 
 	// Create test data
 	universityID := createUniversity(t, superadminToken, "RBAC Test University", "9876543210", "987654321")
-	chatID := createChat(t, superadminToken, "RBAC Test Chat", "https://max.ru/chat/rbac", universityID)
+	_ = createChat(t, superadminToken, "RBAC Test Chat", "https://max.ru/chat/rbac", universityID)
 
 	// Test 1: Superadmin can see all chats
 	t.Log("Test 1: Superadmin access...")
@@ -166,9 +166,9 @@ func TestE2E_ChatAdministratorManagement(t *testing.T) {
 
 	// Create employees
 	t.Log("Creating employees...")
-	emp1ID := createEmployee(t, token, "+79111111111", "Админ", "Первый", "Admin Test University")
-	emp2ID := createEmployee(t, token, "+79222222222", "Админ", "Второй", "Admin Test University")
-	emp3ID := createEmployee(t, token, "+79333333333", "Админ", "Третий", "Admin Test University")
+	_ = createEmployee(t, token, "+79111111111", "Админ", "Первый", "Admin Test University")
+	_ = createEmployee(t, token, "+79222222222", "Админ", "Второй", "Admin Test University")
+	_ = createEmployee(t, token, "+79333333333", "Админ", "Третий", "Admin Test University")
 
 	// Add first administrator
 	t.Log("Adding first administrator...")

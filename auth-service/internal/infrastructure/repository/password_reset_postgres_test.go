@@ -7,34 +7,38 @@ import (
 	"time"
 
 	"auth-service/internal/domain"
+	"auth-service/internal/infrastructure/database"
 	_ "github.com/lib/pq"
 )
 
 // setupTestDB creates a test database connection
-func setupTestDB(t *testing.T) *sql.DB {
+func setupTestDB(t *testing.T) *database.DB {
 	// Use test database connection string from environment or default
 	connStr := os.Getenv("TEST_DATABASE_URL")
 	if connStr == "" {
 		connStr = "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable"
 	}
 
-	db, err := sql.Open("postgres", connStr)
+	sqlDB, err := sql.Open("postgres", connStr)
 	if err != nil {
 		t.Skipf("Skipping database tests - cannot connect to test database: %v", err)
 		return nil
 	}
 
 	// Test connection
-	if err := db.Ping(); err != nil {
+	if err := sqlDB.Ping(); err != nil {
 		t.Skipf("Skipping database tests - database not available: %v", err)
 		return nil
 	}
 
+	// Wrap with database wrapper
+	db := database.NewDBFromConnection(sqlDB, nil)
+
 	// Ensure the password_reset_tokens table exists
-	ensureTableExists(t, db)
+	ensureTableExists(t, sqlDB)
 
 	// Clean up any existing test data
-	cleanupTestData(t, db)
+	cleanupTestData(t, sqlDB)
 
 	return db
 }
@@ -113,7 +117,7 @@ func TestPasswordResetPostgres_Create(t *testing.T) {
 		}
 
 		// Cleanup
-		cleanupTestData(t, db)
+		cleanupTestData(t, db.GetUnderlyingDB())
 	})
 
 	t.Run("duplicate token should fail", func(t *testing.T) {
@@ -141,7 +145,7 @@ func TestPasswordResetPostgres_Create(t *testing.T) {
 		}
 
 		// Cleanup
-		cleanupTestData(t, db)
+		cleanupTestData(t, db.GetUnderlyingDB())
 	})
 }
 
@@ -185,7 +189,7 @@ func TestPasswordResetPostgres_GetByToken(t *testing.T) {
 		}
 
 		// Cleanup
-		cleanupTestData(t, db)
+		cleanupTestData(t, db.GetUnderlyingDB())
 	})
 
 	t.Run("non-existent token", func(t *testing.T) {
@@ -251,7 +255,7 @@ func TestPasswordResetPostgres_Invalidate(t *testing.T) {
 		}
 
 		// Cleanup
-		cleanupTestData(t, db)
+		cleanupTestData(t, db.GetUnderlyingDB())
 	})
 
 	t.Run("invalidate non-existent token should not error", func(t *testing.T) {
@@ -348,7 +352,7 @@ func TestPasswordResetPostgres_DeleteExpired(t *testing.T) {
 	}
 
 	// Cleanup
-	cleanupTestData(t, db)
+	cleanupTestData(t, db.GetUnderlyingDB())
 }
 
 func TestPasswordResetToken_IsValid(t *testing.T) {

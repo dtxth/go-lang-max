@@ -5,7 +5,8 @@ import (
 )
 
 var (
-	ErrInvalidPhone  = errors.InvalidPhoneError("")
-	ErrMaxIDNotFound = errors.NotFoundError("MAX_id")
-	ErrMaxAPIError   = errors.ExternalServiceError("MAX API", nil)
+	ErrInvalidPhone     = errors.InvalidPhoneError("")
+	ErrMaxIDNotFound    = errors.NotFoundError("MAX_id")
+	ErrMaxAPIError      = errors.ExternalServiceError("MAX API", nil)
+	ErrCacheUnavailable = errors.ExternalServiceError("Profile Cache", nil)
 )

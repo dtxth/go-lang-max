@@ -29,6 +29,9 @@ func (h *Handler) Router() http.Handler {
 	mux.HandleFunc("/health", h.Health)
 	mux.HandleFunc("/metrics", h.GetMetrics)
 	
+	// Bot endpoints
+	mux.HandleFunc("/bot/me", h.GetBotMe)
+	
 	// Swagger UI
     mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
