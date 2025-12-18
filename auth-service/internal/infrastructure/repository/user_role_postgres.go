@@ -2,14 +2,14 @@ package repository
 
 import (
 	"auth-service/internal/domain"
-	"database/sql"
+	"auth-service/internal/infrastructure/database"
 )
 
 type UserRolePostgres struct {
-	db *sql.DB
+	db *database.DB
 }
 
-func NewUserRolePostgres(db *sql.DB) *UserRolePostgres {
+func NewUserRolePostgres(db *database.DB) *UserRolePostgres {
 	return &UserRolePostgres{db: db}
 }
 

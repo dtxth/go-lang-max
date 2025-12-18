@@ -1,15 +1,16 @@
 package repository
 
 import (
+	"auth-service/internal/infrastructure/database"
 	"database/sql"
 	"time"
 )
 
 type RefreshPostgres struct {
-	db *sql.DB
+	db *database.DB
 }
 
-func NewRefreshPostgres(db *sql.DB) *RefreshPostgres {
+func NewRefreshPostgres(db *database.DB) *RefreshPostgres {
 	return &RefreshPostgres{db: db}
 }
 

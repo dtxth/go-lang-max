@@ -1,17 +1,17 @@
 package repository
 
 import (
-	"database/sql"
 	"time"
 
 	"auth-service/internal/domain"
+	"auth-service/internal/infrastructure/database"
 )
 
 type PasswordResetPostgres struct {
-	db *sql.DB
+	db *database.DB
 }
 
-func NewPasswordResetPostgres(db *sql.DB) *PasswordResetPostgres {
+func NewPasswordResetPostgres(db *database.DB) *PasswordResetPostgres {
 	return &PasswordResetPostgres{db: db}
 }
 
@@ -49,9 +49,6 @@ func (r *PasswordResetPostgres) GetByToken(token string) (*domain.PasswordResetT
 	)
 
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, domain.ErrNotFound
-		}
 		return nil, err
 	}
 

@@ -4,6 +4,7 @@ import (
 	"chat-service/internal/app"
 	"chat-service/internal/config"
 	"chat-service/internal/infrastructure/auth"
+	"chat-service/internal/infrastructure/database"
 	"chat-service/internal/infrastructure/grpc"
 	"chat-service/internal/infrastructure/http"
 	"chat-service/internal/infrastructure/logger"
@@ -38,18 +39,21 @@ func main() {
 	log.Println("Starting chat-service server on port", cfg.Port)
 	log.Println("Starting gRPC server on port", cfg.GRPCPort)
 
-	db, err := sql.Open("postgres", cfg.DBUrl)
+	// Initialize database connection with automatic reconnection
+	dbLogger := log.New(os.Stdout, "[DB] ", log.LstdFlags)
+	db := database.NewDB(cfg.DBUrl, dbLogger)
+	
+	if err := db.Connect(); err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Initialize and run migrations with separate connection
+	migrationDB, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
 		panic(err)
 	}
 	
-	// Configure connection pool
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(0)
-
-	// Initialize and run migrations
-	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	migrator := migration.NewMigrator(migrationDB, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
 	
 	// Wait for database to be ready
 	if err := migrator.WaitForDatabase(); err != nil {
@@ -60,6 +64,9 @@ func main() {
 	if err := migrator.RunMigrations(); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
+	
+	// Close migration connection
+	migrationDB.Close()
 
 	// Инициализируем репозитории
 	chatRepo := repository.NewChatPostgresWithDSN(db, cfg.DBUrl)

@@ -229,6 +229,20 @@ func (h *Handler) StartExcelMigration(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, map[string]string{"message": "Excel migration started"}, http.StatusAccepted)
 }
 
+// HandleJobsRoute routes between job details and errors endpoints
+func (h *Handler) HandleJobsRoute(w http.ResponseWriter, r *http.Request) {
+	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	
+	// Check if this is an errors endpoint: /migration/jobs/{id}/errors
+	if len(pathParts) >= 4 && pathParts[3] == "errors" {
+		h.GetMigrationJobErrors(w, r)
+		return
+	}
+	
+	// Otherwise, handle as job details: /migration/jobs/{id}
+	h.GetMigrationJob(w, r)
+}
+
 // GetMigrationJob handles GET /migration/jobs/{id}
 // @Summary      Get migration job status
 // @Description  Get detailed status of a specific migration job including progress and errors
@@ -304,6 +318,94 @@ func (h *Handler) ListMigrationJobs(w http.ResponseWriter, r *http.Request) {
 	var responses []MigrationJobResponse
 	for _, job := range jobs {
 		responses = append(responses, jobToResponse(job))
+	}
+
+	respondJSON(w, responses, http.StatusOK)
+}
+
+// MigrationErrorResponse represents a migration error
+type MigrationErrorResponse struct {
+	ID               int    `json:"id"`
+	JobID            int    `json:"job_id"`
+	RecordIdentifier string `json:"record_identifier"`
+	ErrorMessage     string `json:"error_message"`
+	CreatedAt        string `json:"created_at"`
+}
+
+// GetMigrationJobErrors handles GET /migration/jobs/{id}/errors
+// @Summary      Get migration job errors
+// @Description  Get list of errors for a specific migration job
+// @Tags         migration
+// @Accept       json
+// @Produce      json
+// @Param        id path int true "Migration Job ID"
+// @Param        limit query int false "Limit number of errors returned (default: 50)"
+// @Success      200 {array} MigrationErrorResponse "List of migration errors"
+// @Failure      400 {object} ErrorResponse "Invalid job ID"
+// @Failure      404 {object} ErrorResponse "Migration job not found"
+// @Failure      500 {object} ErrorResponse "Internal server error"
+// @Security     Bearer
+// @Router       /migration/jobs/{id}/errors [get]
+func (h *Handler) GetMigrationJobErrors(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract job ID from URL path
+	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(pathParts) < 4 || pathParts[3] != "errors" {
+		respondError(w, "Invalid URL", http.StatusBadRequest)
+		return
+	}
+
+	jobID, err := strconv.Atoi(pathParts[2])
+	if err != nil {
+		respondError(w, "Invalid job ID", http.StatusBadRequest)
+		return
+	}
+
+	// Check if job exists
+	_, err = h.jobRepo.GetByID(r.Context(), jobID)
+	if err != nil {
+		if err == domain.ErrMigrationJobNotFound {
+			respondError(w, "Migration job not found", http.StatusNotFound)
+			return
+		}
+		respondError(w, "Failed to get migration job", http.StatusInternalServerError)
+		return
+	}
+
+	// Get errors from repository
+	errors, err := h.errorRepo.ListByJobID(r.Context(), jobID)
+	if err != nil {
+		respondError(w, "Failed to get migration errors", http.StatusInternalServerError)
+		return
+	}
+
+	// Parse limit parameter
+	limit := 50 // default
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
+	}
+
+	// Apply limit
+	if len(errors) > limit {
+		errors = errors[:limit]
+	}
+
+	// Convert to response
+	var responses []MigrationErrorResponse
+	for _, migrationErr := range errors {
+		responses = append(responses, MigrationErrorResponse{
+			ID:               migrationErr.ID,
+			JobID:            migrationErr.JobID,
+			RecordIdentifier: migrationErr.RecordIdentifier,
+			ErrorMessage:     migrationErr.ErrorMessage,
+			CreatedAt:        migrationErr.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
 	}
 
 	respondJSON(w, responses, http.StatusOK)

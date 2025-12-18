@@ -15,7 +15,7 @@ func SetupRoutes(handler *Handler) *http.ServeMux {
 	mux.HandleFunc("/migration/database", handler.StartDatabaseMigration)
 	mux.HandleFunc("/migration/google-sheets", handler.StartGoogleSheetsMigration)
 	mux.HandleFunc("/migration/excel", handler.StartExcelMigration)
-	mux.HandleFunc("/migration/jobs/", handler.GetMigrationJob)
+	mux.HandleFunc("/migration/jobs/", handler.HandleJobsRoute)
 	mux.HandleFunc("/migration/jobs", handler.ListMigrationJobs)
 
 	// Health check

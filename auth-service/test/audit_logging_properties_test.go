@@ -1,9 +1,9 @@
 package test
 
 import (
+	"auth-service/internal/infrastructure/database"
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"testing"
 	"time"
@@ -20,6 +20,7 @@ import (
 	"github.com/leanovate/gopter/prop"
 	_ "github.com/lib/pq"
 )
+
 
 // CaptureLogger captures log output for testing
 type CaptureLogger struct {
@@ -89,7 +90,7 @@ func (l *CaptureLogger) GetLogByMessage(message string) (LogEntry, bool) {
 }
 
 // setupAuthServiceWithLogger creates a configured AuthService with capture logger
-func setupAuthServiceWithLogger(db *sql.DB) (*usecase.AuthService, *CaptureLogger) {
+func setupAuthServiceWithLogger(db *database.DB) (*usecase.AuthService, *CaptureLogger) {
 	userRepo := repository.NewUserPostgres(db)
 	refreshRepo := repository.NewRefreshPostgres(db)
 	resetTokenRepo := repository.NewPasswordResetPostgres(db)
@@ -115,7 +116,7 @@ func setupAuthServiceWithLogger(db *sql.DB) (*usecase.AuthService, *CaptureLogge
 func TestProperty17_ComprehensiveAuditLogging(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService, captureLogger := setupAuthServiceWithLogger(db)
 	
@@ -126,7 +127,7 @@ func TestProperty17_ComprehensiveAuditLogging(t *testing.T) {
 	// Test 1: User creation is logged
 	properties.Property("user creation is logged with user_id and timestamp", prop.ForAll(
 		func(phoneNum int) bool {
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			captureLogger.Reset()
 			
 			phone := "+7" + padNumber(phoneNum, 10)
@@ -188,11 +189,11 @@ func TestProperty17_ComprehensiveAuditLogging(t *testing.T) {
 	// Test 2: Password reset request is logged
 	properties.Property("password reset request is logged with user_id and timestamp", prop.ForAll(
 		func(phoneNum int) bool {
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			captureLogger.Reset()
 			
 			phone := "+7" + padNumber(phoneNum, 10)
-			createTestUser(t, db, phone)
+			createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			err := authService.RequestPasswordReset(phone)
 			if err != nil {
@@ -225,12 +226,12 @@ func TestProperty17_ComprehensiveAuditLogging(t *testing.T) {
 	// Test 3: Password reset completion is logged
 	properties.Property("password reset completion is logged with user_id and timestamp", prop.ForAll(
 		func(phoneNum int, passwordSeed int) bool {
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			captureLogger.Reset()
 			
 			phone := "+7" + padNumber(phoneNum, 10)
 			newPassword := "NewPass" + padNumber(passwordSeed, 6) + "!Aa"
-			createTestUser(t, db, phone)
+			createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Request reset
 			err := authService.RequestPasswordReset(phone)
@@ -290,13 +291,13 @@ func TestProperty17_ComprehensiveAuditLogging(t *testing.T) {
 	// Test 4: Password change is logged
 	properties.Property("password change is logged with user_id and timestamp", prop.ForAll(
 		func(phoneNum int, passwordSeed int) bool {
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			captureLogger.Reset()
 			
 			phone := "+7" + padNumber(phoneNum, 10)
 			newPassword := "NewPass" + padNumber(passwordSeed, 6) + "!Aa"
 			currentPassword := "TestPassword123!"
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			err := authService.ChangePassword(userID, currentPassword, newPassword)
 			if err != nil {
@@ -338,12 +339,12 @@ func TestProperty17_ComprehensiveAuditLogging(t *testing.T) {
 	// Test 5: Token expiration is logged
 	properties.Property("token expiration is logged when expired token is used", prop.ForAll(
 		func(phoneNum int, passwordSeed int) bool {
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			captureLogger.Reset()
 			
 			phone := "+7" + padNumber(phoneNum, 10)
 			newPassword := "NewPass" + padNumber(passwordSeed, 6) + "!Aa"
-			userID := createTestUser(t, db, phone)
+			userID := createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Create an expired token directly in database
 			expiredToken := "expired-token-" + padNumber(phoneNum, 10)
@@ -378,13 +379,13 @@ func TestProperty17_ComprehensiveAuditLogging(t *testing.T) {
 	// Test 6: Token use is logged
 	properties.Property("token use is logged when already-used token is attempted", prop.ForAll(
 		func(phoneNum int, password1Seed int, password2Seed int) bool {
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			captureLogger.Reset()
 			
 			phone := "+7" + padNumber(phoneNum, 10)
 			newPassword1 := "NewPass" + padNumber(password1Seed, 6) + "!Aa"
 			newPassword2 := "NewPass" + padNumber(password2Seed, 6) + "!Bb"
-			createTestUser(t, db, phone)
+			createTestUser(t, db.GetUnderlyingDB(), phone)
 			
 			// Request reset
 			err := authService.RequestPasswordReset(phone)
@@ -449,7 +450,7 @@ func containsSubstring(s, substr string) bool {
 func TestProperty5_NoPlaintextPasswordLeakage(t *testing.T) {
 	db := setupTestDB(t)
 	defer db.Close()
-	defer cleanupTestData(db)
+	defer cleanupTestData(db.GetUnderlyingDB())
 	
 	authService, captureLogger := setupAuthServiceWithLogger(db)
 	
@@ -459,7 +460,7 @@ func TestProperty5_NoPlaintextPasswordLeakage(t *testing.T) {
 	
 	properties.Property("passwords never appear in logs during any operation", prop.ForAll(
 		func(phoneNum int, passwordSeed1 int, passwordSeed2 int) bool {
-			cleanupTestData(db)
+			cleanupTestData(db.GetUnderlyingDB())
 			captureLogger.Reset()
 			
 			phone := "+7" + padNumber(phoneNum, 10)

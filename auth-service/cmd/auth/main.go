@@ -5,6 +5,7 @@ import (
 	"auth-service/internal/config"
 	"auth-service/internal/domain"
 	"auth-service/internal/infrastructure/cleanup"
+	"auth-service/internal/infrastructure/database"
 	"auth-service/internal/infrastructure/grpc"
 	"auth-service/internal/infrastructure/hash"
 	"auth-service/internal/infrastructure/http"
@@ -38,21 +39,13 @@ func main() {
 		panic(err)
 	}
 
-	db, err := sql.Open("postgres", cfg.DBUrl)
-	if err != nil {
-		panic(err)
-	}
+	// Initialize database connection with automatic reconnection
+	dbLogger := log.New(os.Stdout, "[DB] ", log.LstdFlags)
+	db := database.NewDB(cfg.DBUrl, dbLogger)
 	
-	// Configure connection pool
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	// Don't set ConnMaxLifetime to avoid premature connection closure
-	
-	// Test the connection
-	if err := db.Ping(); err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
+	if err := db.Connect(); err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
 	}
-	log.Printf("Main database connection established successfully")
 
 	// Initialize and run migrations with separate connection
 	migrationDB, err := sql.Open("postgres", cfg.DBUrl)
