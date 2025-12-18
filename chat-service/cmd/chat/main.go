@@ -42,7 +42,11 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
+	
+	// Configure connection pool
+	db.SetMaxOpenConns(25)
+	db.SetMaxIdleConns(5)
+	db.SetConnMaxLifetime(0)
 
 	// Initialize and run migrations
 	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
@@ -59,7 +63,7 @@ func main() {
 
 	// Инициализируем репозитории
 	chatRepo := repository.NewChatPostgresWithDSN(db, cfg.DBUrl)
-	administratorRepo := repository.NewAdministratorPostgres(db)
+	administratorRepo := repository.NewAdministratorPostgresWithDSN(db, cfg.DBUrl)
 
 	// Инициализируем MAX gRPC клиент
 	maxClient, err := max.NewMaxClient(cfg.MaxBotAddress, cfg.MaxBotTimeout)
@@ -75,11 +79,10 @@ func main() {
 	}
 	defer authClient.Close()
 
-	// Инициализируем usecase
-	chatService := usecase.NewChatService(chatRepo, administratorRepo, maxClient)
-
 	// Инициализируем participants integration если Redis доступен
 	var participantsIntegration *app.ParticipantsIntegration
+	var chatService *usecase.ChatService
+	
 	if app.IsParticipantsIntegrationEnabled() {
 		participantsIntegration, err = app.NewParticipantsIntegration(chatRepo, maxClient, appLogger)
 		if err != nil {
@@ -87,11 +90,24 @@ func main() {
 				"error": err.Error(),
 			})
 			log.Printf("Warning: Participants integration disabled due to error: %v", err)
+			// Создаем chat service без participants integration
+			chatService = usecase.NewChatService(chatRepo, administratorRepo, maxClient)
 		} else {
 			appLogger.Info(context.Background(), "Participants integration initialized successfully", nil)
+			// Создаем chat service с participants integration
+			chatService = usecase.NewChatServiceWithParticipants(
+				chatRepo, 
+				administratorRepo, 
+				maxClient,
+				participantsIntegration.Cache,
+				participantsIntegration.Updater,
+				participantsIntegration.Config,
+			)
 		}
 	} else {
 		appLogger.Info(context.Background(), "Participants integration disabled (Redis not available or explicitly disabled)", nil)
+		// Создаем chat service без participants integration
+		chatService = usecase.NewChatService(chatRepo, administratorRepo, maxClient)
 	}
 
 	// Инициализируем middleware
@@ -159,6 +175,13 @@ func main() {
 	// Останавливаем сервер
 	if err := httpServer.Stop(shutdownCtx); err != nil {
 		appLogger.Error(shutdownCtx, "Error during server shutdown", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+
+	// Закрываем соединения
+	if err := db.Close(); err != nil {
+		appLogger.Error(shutdownCtx, "Error closing database connection", map[string]interface{}{
 			"error": err.Error(),
 		})
 	}

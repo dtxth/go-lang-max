@@ -21,36 +21,11 @@ func NewChatPostgresWithDSN(db *sql.DB, dsn string) *ChatPostgres {
 	return &ChatPostgres{db: db, dsn: dsn}
 }
 
-// getDB returns a working database connection, reconnecting if necessary
+// getDB returns a working database connection
 func (r *ChatPostgres) getDB() (*sql.DB, error) {
-	// Try to ping the existing connection
-	if r.db != nil {
-		if err := r.db.Ping(); err == nil {
-			return r.db, nil
-		}
+	if r.db == nil {
+		return nil, fmt.Errorf("no database connection available")
 	}
-
-	// If we have a DSN, try to reconnect
-	if r.dsn != "" {
-		db, err := sql.Open("postgres", r.dsn)
-		if err != nil {
-			return nil, fmt.Errorf("failed to reconnect to database: %w", err)
-		}
-		
-		// Configure connection pool
-		db.SetMaxOpenConns(25)
-		db.SetMaxIdleConns(5)
-		db.SetConnMaxLifetime(0)
-		
-		if err := db.Ping(); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("failed to ping reconnected database: %w", err)
-		}
-		
-		r.db = db
-		return db, nil
-	}
-
 	return r.db, nil
 }
 
@@ -87,11 +62,17 @@ func (r *ChatPostgres) Create(chat *domain.Chat) error {
 }
 
 func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	// Don't close connection immediately - let connection pool handle it
+	
 	chat := &domain.Chat{}
 	var universityID sql.NullInt64
 	var externalChatID sql.NullString
 
-	err := r.db.QueryRow(
+	err = db.QueryRow(
 		`SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
 		        university_id, department, source, created_at, updated_at
 		 FROM chats WHERE id = $1`,
@@ -102,6 +83,9 @@ func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {
 	)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrChatNotFound
+		}
 		return nil, err
 	}
 
@@ -126,11 +110,16 @@ func (r *ChatPostgres) GetByID(id int64) (*domain.Chat, error) {
 }
 
 func (r *ChatPostgres) GetByMaxChatID(maxChatID string) (*domain.Chat, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
 	chat := &domain.Chat{}
 	var universityID sql.NullInt64
 	var externalChatID sql.NullString
 
-	err := r.db.QueryRow(
+	err = db.QueryRow(
 		`SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
 		        university_id, department, source, created_at, updated_at
 		 FROM chats WHERE max_chat_id = $1`,
@@ -222,17 +211,22 @@ func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.Ch
 		}
 	}
 
+	db, err := r.getDB()
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	// Подсчет общего количества
 	var totalCount int
 	countQuery := `SELECT COUNT(*) FROM chats ` + whereClause
-	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	err = db.QueryRow(countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	// Получение данных с сортировкой по имени
 	args = append(args, limit, offset)
-	rows, err := r.db.Query(
+	rows, err := db.Query(
 		`SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
 		        university_id, department, source, created_at, updated_at
 		 FROM chats
@@ -291,6 +285,11 @@ func (r *ChatPostgres) Search(query string, limit, offset int, filter *domain.Ch
 }
 
 func (r *ChatPostgres) GetAll(limit, offset int, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
 	// Строим WHERE условие в зависимости от роли
 	whereClause := ""
 	args := []interface{}{}
@@ -314,14 +313,14 @@ func (r *ChatPostgres) GetAll(limit, offset int, filter *domain.ChatFilter) ([]*
 	// Подсчет общего количества
 	var totalCount int
 	countQuery := `SELECT COUNT(*) FROM chats ` + whereClause
-	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	err = db.QueryRow(countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
 
 	// Получение данных
 	args = append(args, limit, offset)
-	rows, err := r.db.Query(
+	rows, err := db.Query(
 		`SELECT id, name, url, max_chat_id, external_chat_id, participants_count, 
 		        university_id, department, source, created_at, updated_at
 		 FROM chats
@@ -380,6 +379,11 @@ func (r *ChatPostgres) GetAll(limit, offset int, filter *domain.ChatFilter) ([]*
 }
 
 func (r *ChatPostgres) Update(chat *domain.Chat) error {
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
 	var universityID interface{}
 	if chat.UniversityID != nil {
 		universityID = *chat.UniversityID
@@ -387,7 +391,7 @@ func (r *ChatPostgres) Update(chat *domain.Chat) error {
 		universityID = nil
 	}
 
-	_, err := r.db.Exec(
+	_, err = db.Exec(
 		`UPDATE chats 
 		 SET name = $1, url = $2, max_chat_id = $3, participants_count = $4, 
 		     university_id = $5, department = $6, source = $7, updated_at = now()
@@ -399,13 +403,23 @@ func (r *ChatPostgres) Update(chat *domain.Chat) error {
 }
 
 func (r *ChatPostgres) Delete(id int64) error {
-	_, err := r.db.Exec(`DELETE FROM chats WHERE id = $1`, id)
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
+	_, err = db.Exec(`DELETE FROM chats WHERE id = $1`, id)
 	return err
 }
 
 // loadAdministrators загружает администраторов для одного чата
 func (r *ChatPostgres) loadAdministrators(chatID int64) ([]domain.Administrator, error) {
-	rows, err := r.db.Query(
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
+	rows, err := db.Query(
 		`SELECT id, chat_id, phone, COALESCE(max_id, ''), add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE chat_id = $1 ORDER BY created_at`,
 		chatID,
@@ -437,6 +451,11 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 		return make(map[int64][]domain.Administrator), nil
 	}
 
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+
 	// Создаем плейсхолдеры для IN запроса
 	placeholders := make([]string, len(chatIDs))
 	args := make([]interface{}, len(chatIDs))
@@ -445,7 +464,7 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 		args[i] = id
 	}
 
-	rows, err := r.db.Query(
+	rows, err := db.Query(
 		`SELECT id, chat_id, phone, COALESCE(max_id, ''), add_user, add_admin, created_at, updated_at 
 		 FROM administrators 
 		 WHERE chat_id IN (`+strings.Join(placeholders, ",")+`)
@@ -474,6 +493,11 @@ func (r *ChatPostgres) loadAdministratorsBatch(chatIDs []int64) (map[int64][]dom
 }
 
 func (r *ChatPostgres) GetAllWithSortingAndSearch(limit, offset int, sortBy, sortOrder, search string, filter *domain.ChatFilter) ([]*domain.Chat, int, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
 	// Валидация параметров сортировки
 	validSortFields := map[string]string{
 		"id":                 "id",
@@ -557,7 +581,7 @@ func (r *ChatPostgres) GetAllWithSortingAndSearch(limit, offset int, sortBy, sor
 	// Подсчет общего количества
 	var totalCount int
 	countQuery := `SELECT COUNT(*) FROM chats ` + whereClause
-	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	err = db.QueryRow(countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -574,7 +598,7 @@ func (r *ChatPostgres) GetAllWithSortingAndSearch(limit, offset int, sortBy, sor
 		 ORDER BY ` + sortField + ` ` + sortOrder + `
 		 LIMIT ` + limitArg + ` OFFSET ` + offsetArg
 	
-	rows, err := r.db.Query(query, args...)
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, 0, err
 	}

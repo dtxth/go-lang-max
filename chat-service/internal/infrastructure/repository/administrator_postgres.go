@@ -3,18 +3,37 @@ package repository
 import (
 	"chat-service/internal/domain"
 	"database/sql"
+	"fmt"
 )
 
 type AdministratorPostgres struct {
-	db *sql.DB
+	db  *sql.DB
+	dsn string
 }
 
 func NewAdministratorPostgres(db *sql.DB) *AdministratorPostgres {
 	return &AdministratorPostgres{db: db}
 }
 
+func NewAdministratorPostgresWithDSN(db *sql.DB, dsn string) *AdministratorPostgres {
+	return &AdministratorPostgres{db: db, dsn: dsn}
+}
+
+// getDB returns a working database connection
+func (r *AdministratorPostgres) getDB() (*sql.DB, error) {
+	if r.db == nil {
+		return nil, fmt.Errorf("no database connection available")
+	}
+	return r.db, nil
+}
+
 func (r *AdministratorPostgres) Create(admin *domain.Administrator) error {
-	err := r.db.QueryRow(
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
+	err = db.QueryRow(
 		`INSERT INTO administrators (chat_id, phone, max_id, add_user, add_admin) 
 		 VALUES ($1, $2, $3, $4, $5) RETURNING id, created_at, updated_at`,
 		admin.ChatID, admin.Phone, admin.MaxID, admin.AddUser, admin.AddAdmin,
@@ -23,8 +42,13 @@ func (r *AdministratorPostgres) Create(admin *domain.Administrator) error {
 }
 
 func (r *AdministratorPostgres) GetByID(id int64) (*domain.Administrator, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
 	admin := &domain.Administrator{}
-	err := r.db.QueryRow(
+	err = db.QueryRow(
 		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE id = $1`,
 		id,
@@ -35,7 +59,12 @@ func (r *AdministratorPostgres) GetByID(id int64) (*domain.Administrator, error)
 }
 
 func (r *AdministratorPostgres) GetByChatID(chatID int64) ([]*domain.Administrator, error) {
-	rows, err := r.db.Query(
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
+	rows, err := db.Query(
 		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE chat_id = $1 ORDER BY created_at`,
 		chatID,
@@ -62,8 +91,13 @@ func (r *AdministratorPostgres) GetByChatID(chatID int64) ([]*domain.Administrat
 }
 
 func (r *AdministratorPostgres) GetByPhoneAndChatID(phone string, chatID int64) (*domain.Administrator, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
 	admin := &domain.Administrator{}
-	err := r.db.QueryRow(
+	err = db.QueryRow(
 		`SELECT id, chat_id, phone, max_id, add_user, add_admin, created_at, updated_at 
 		 FROM administrators WHERE phone = $1 AND chat_id = $2`,
 		phone, chatID,
@@ -74,13 +108,23 @@ func (r *AdministratorPostgres) GetByPhoneAndChatID(phone string, chatID int64) 
 }
 
 func (r *AdministratorPostgres) Delete(id int64) error {
-	_, err := r.db.Exec(`DELETE FROM administrators WHERE id = $1`, id)
+	db, err := r.getDB()
+	if err != nil {
+		return fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
+	_, err = db.Exec(`DELETE FROM administrators WHERE id = $1`, id)
 	return err
 }
 
 func (r *AdministratorPostgres) CountByChatID(chatID int64) (int, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
 	var count int
-	err := r.db.QueryRow(
+	err = db.QueryRow(
 		`SELECT COUNT(*) FROM administrators WHERE chat_id = $1`,
 		chatID,
 	).Scan(&count)
@@ -88,6 +132,11 @@ func (r *AdministratorPostgres) CountByChatID(chatID int64) (int, error) {
 }
 
 func (r *AdministratorPostgres) GetAll(query string, limit, offset int) ([]*domain.Administrator, int, error) {
+	db, err := r.getDB()
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to get database connection: %w", err)
+	}
+	
 	// Устанавливаем значения по умолчанию
 	if limit <= 0 || limit > 100 {
 		limit = 50
@@ -112,7 +161,7 @@ func (r *AdministratorPostgres) GetAll(query string, limit, offset int) ([]*doma
 	// Подсчитываем общее количество
 	var totalCount int
 	countQuery := `SELECT COUNT(*) ` + baseQuery + whereClause
-	err := r.db.QueryRow(countQuery, args...).Scan(&totalCount)
+	err = db.QueryRow(countQuery, args...).Scan(&totalCount)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -133,7 +182,7 @@ func (r *AdministratorPostgres) GetAll(query string, limit, offset int) ([]*doma
 		args = []interface{}{limit, offset}
 	}
 
-	rows, err := r.db.Query(selectQuery, args...)
+	rows, err := db.Query(selectQuery, args...)
 	if err != nil {
 		return nil, 0, err
 	}
