@@ -1,6 +1,6 @@
 # Digital University MVP - Makefile
 
-.PHONY: help build up down logs test test-e2e clean restart setup health urls monitor
+.PHONY: help build up down logs test test-e2e clean clean-volumes restart setup health urls monitor deploy-rebuild
 
 # Default target
 help:
@@ -34,8 +34,10 @@ help:
 	@echo "  quick-test           - Quick health check tests"
 	@echo ""
 	@echo "🧹 Maintenance:"
-	@echo "  clean      - Clean up containers and volumes"
-	@echo "  db-reset   - Reset all databases"
+	@echo "  clean         - Clean up containers and volumes"
+	@echo "  clean-volumes - Clean up all Docker volumes"
+	@echo "  db-reset      - Reset all databases"
+	@echo "  deploy-rebuild - Full rebuild and deploy"
 	@echo ""
 	@echo "👨‍💻 Development:"
 	@echo "  dev-up     - Start only databases for development"
@@ -122,6 +124,36 @@ clean:
 	@echo "Cleaning up containers and volumes..."
 	docker-compose down -v
 	docker system prune -f
+
+# Clean up all Docker volumes
+clean-volumes:
+	@echo "Cleaning up all Docker volumes..."
+	docker-compose down -v
+	docker volume rm auth-service_pgdata || true
+	docker volume rm go-microservices_chat_db_data || true
+	docker volume rm go-microservices_employee_db_data || true
+	docker volume rm go-microservices_structure_pgdata || true
+	docker volume rm go-microservices_migration_db_data || true
+	docker volume rm go-microservices_redis_data || true
+	docker system prune -f --volumes
+	@echo "All volumes cleaned up!"
+
+# Full rebuild and deploy
+deploy-rebuild:
+	@echo "Starting full rebuild and deploy..."
+	@echo "Step 1: Cleaning up..."
+	make clean-volumes
+	@echo "Step 2: Building services..."
+	docker-compose build --no-cache
+	@echo "Step 3: Setting up environment..."
+	make setup
+	@echo "Step 4: Starting services..."
+	make up
+	@echo "Step 5: Waiting for services to be ready..."
+	@sleep 30
+	@echo "Step 6: Running health checks..."
+	make health
+	@echo "Deploy rebuild complete!"
 
 # Restart all services
 restart: down up
