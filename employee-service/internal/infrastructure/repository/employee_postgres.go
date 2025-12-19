@@ -2,17 +2,27 @@ package repository
 
 import (
 	"employee-service/internal/domain"
-	"database/sql"
+	"employee-service/internal/infrastructure/database"
 	"strconv"
 	"strings"
 )
 
 type EmployeePostgres struct {
-	db *sql.DB
+	db  *database.DB
+	dsn string
 }
 
-func NewEmployeePostgres(db *sql.DB) *EmployeePostgres {
+func NewEmployeePostgres(db *database.DB) *EmployeePostgres {
 	return &EmployeePostgres{db: db}
+}
+
+func NewEmployeePostgresWithDSN(db *database.DB, dsn string) *EmployeePostgres {
+	return &EmployeePostgres{db: db, dsn: dsn}
+}
+
+// getDB returns a working database connection
+func (r *EmployeePostgres) getDB() *database.DB {
+	return r.db
 }
 
 // scanEmployeeWithUniversity сканирует строку результата в Employee с University
@@ -50,7 +60,8 @@ func (r *EmployeePostgres) employeeSelectQuery() string {
 }
 
 func (r *EmployeePostgres) Create(employee *domain.Employee) error {
-	err := r.db.QueryRow(
+	db := r.getDB()
+	err := db.QueryRow(
 		`INSERT INTO employees (first_name, last_name, middle_name, phone, max_id, inn, kpp, university_id, role, user_id, max_id_updated_at, profile_source, profile_last_updated) 
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING id, created_at, updated_at`,
 		employee.FirstName, employee.LastName, employee.MiddleName, employee.Phone,
@@ -63,19 +74,22 @@ func (r *EmployeePostgres) Create(employee *domain.Employee) error {
 
 func (r *EmployeePostgres) GetByID(id int64) (*domain.Employee, error) {
 	query := r.employeeSelectQuery() + " WHERE e.id = $1"
-	row := r.db.QueryRow(query, id)
+	db := r.getDB()
+	row := db.QueryRow(query, id)
 	return r.scanEmployeeWithUniversity(row)
 }
 
 func (r *EmployeePostgres) GetByPhone(phone string) (*domain.Employee, error) {
 	query := r.employeeSelectQuery() + " WHERE e.phone = $1"
-	row := r.db.QueryRow(query, phone)
+	db := r.getDB()
+	row := db.QueryRow(query, phone)
 	return r.scanEmployeeWithUniversity(row)
 }
 
 func (r *EmployeePostgres) GetByMaxID(maxID string) (*domain.Employee, error) {
 	query := r.employeeSelectQuery() + " WHERE e.max_id = $1"
-	row := r.db.QueryRow(query, maxID)
+	db := r.getDB()
+	row := db.QueryRow(query, maxID)
 	return r.scanEmployeeWithUniversity(row)
 }
 
@@ -95,7 +109,8 @@ func (r *EmployeePostgres) Search(query string, limit, offset int) ([]*domain.Em
 		 ORDER BY e.last_name, e.first_name
 		 LIMIT $2 OFFSET $3`
 	
-	rows, err := r.db.Query(sqlQuery, searchPattern, limit, offset)
+	db := r.getDB()
+	rows, err := db.Query(sqlQuery, searchPattern, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +133,8 @@ func (r *EmployeePostgres) GetAll(limit, offset int) ([]*domain.Employee, error)
 		 ORDER BY e.last_name, e.first_name
 		 LIMIT $1 OFFSET $2`
 	
-	rows, err := r.db.Query(sqlQuery, limit, offset)
+	db := r.getDB()
+	rows, err := db.Query(sqlQuery, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +153,8 @@ func (r *EmployeePostgres) GetAll(limit, offset int) ([]*domain.Employee, error)
 }
 
 func (r *EmployeePostgres) Update(employee *domain.Employee) error {
-	_, err := r.db.Exec(
+	db := r.getDB()
+	_, err := db.Exec(
 		`UPDATE employees 
 		 SET first_name = $1, last_name = $2, middle_name = $3, phone = $4, max_id = $5, 
 		     inn = $6, kpp = $7, university_id = $8, role = $9, user_id = $10, max_id_updated_at = $11,
@@ -152,7 +169,8 @@ func (r *EmployeePostgres) Update(employee *domain.Employee) error {
 }
 
 func (r *EmployeePostgres) Delete(id int64) error {
-	_, err := r.db.Exec(`DELETE FROM employees WHERE id = $1`, id)
+	db := r.getDB()
+	_, err := db.Exec(`DELETE FROM employees WHERE id = $1`, id)
 	return err
 }
 
@@ -162,7 +180,8 @@ func (r *EmployeePostgres) GetEmployeesWithoutMaxID(limit, offset int) ([]*domai
 		 ORDER BY e.last_name, e.first_name
 		 LIMIT $1 OFFSET $2`
 	
-	rows, err := r.db.Query(sqlQuery, limit, offset)
+	db := r.getDB()
+	rows, err := db.Query(sqlQuery, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +201,8 @@ func (r *EmployeePostgres) GetEmployeesWithoutMaxID(limit, offset int) ([]*domai
 
 func (r *EmployeePostgres) CountEmployeesWithoutMaxID() (int, error) {
 	var count int
-	err := r.db.QueryRow(
+	db := r.getDB()
+	err := db.QueryRow(
 		`SELECT COUNT(*) FROM employees WHERE max_id IS NULL OR max_id = ''`,
 	).Scan(&count)
 	return count, err
@@ -236,7 +256,8 @@ func (r *EmployeePostgres) GetAllWithSortingAndSearch(limit, offset int, sortBy,
 	query += " ORDER BY " + sortField + " " + sortOrder + ", e.first_name ASC"
 	query += " LIMIT " + limitArg + " OFFSET " + offsetArg
 	
-	rows, err := r.db.Query(query, args...)
+	db := r.getDB()
+	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -257,12 +278,13 @@ func (r *EmployeePostgres) GetAllWithSortingAndSearch(limit, offset int, sortBy,
 func (r *EmployeePostgres) CountAllWithSearch(search string) (int, error) {
 	var count int
 	var err error
+	db := r.getDB()
 	
 	if search == "" {
-		err = r.db.QueryRow(`SELECT COUNT(*) FROM employees`).Scan(&count)
+		err = db.QueryRow(`SELECT COUNT(*) FROM employees`).Scan(&count)
 	} else {
 		searchPattern := "%" + strings.ToLower(search) + "%"
-		err = r.db.QueryRow(
+		err = db.QueryRow(
 			`SELECT COUNT(*) FROM employees e
 			 JOIN universities u ON e.university_id = u.id
 			 WHERE LOWER(e.first_name) LIKE $1 

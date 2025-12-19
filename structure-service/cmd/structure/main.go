@@ -6,6 +6,7 @@ import (
 	"os"
 	"structure-service/internal/app"
 	"structure-service/internal/config"
+	"structure-service/internal/infrastructure/database"
 	"structure-service/internal/infrastructure/employee"
 	"structure-service/internal/infrastructure/grpc"
 	"structure-service/internal/infrastructure/http"
@@ -32,13 +33,21 @@ func main() {
 	log.Println("Starting structure-service server on port", cfg.Port)
 	log.Println("Starting gRPC server on port", cfg.GRPCPort)
 
-	db, err := sql.Open("postgres", cfg.DBUrl)
+	// Initialize database connection with automatic reconnection
+	dbLogger := log.New(os.Stdout, "[DB] ", log.LstdFlags)
+	db := database.NewDB(cfg.DBUrl, dbLogger)
+	
+	if err := db.Connect(); err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Initialize and run migrations with separate connection
+	migrationDB, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
 		panic(err)
 	}
-
-	// Initialize and run migrations
-	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	
+	migrator := migration.NewMigrator(migrationDB, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
 	
 	// Wait for database to be ready
 	if err := migrator.WaitForDatabase(); err != nil {
@@ -49,9 +58,12 @@ func main() {
 	if err := migrator.RunMigrations(); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
+	
+	// Close migration connection
+	migrationDB.Close()
 
 	repo := repository.NewStructurePostgresWithDSN(db, cfg.DBUrl)
-	dmRepo := repository.NewDepartmentManagerPostgres(db)
+	dmRepo := repository.NewDepartmentManagerPostgresWithDSN(db, cfg.DBUrl)
 	
 	// Инициализируем gRPC клиент для chat-service
 	chatClient, err := grpc.NewChatClient(cfg.ChatService)

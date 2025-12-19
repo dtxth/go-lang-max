@@ -2,20 +2,31 @@ package repository
 
 import (
 	"employee-service/internal/domain"
-	"database/sql"
+	"employee-service/internal/infrastructure/database"
 	"strings"
 )
 
 type UniversityPostgres struct {
-	db *sql.DB
+	db  *database.DB
+	dsn string
 }
 
-func NewUniversityPostgres(db *sql.DB) *UniversityPostgres {
+func NewUniversityPostgres(db *database.DB) *UniversityPostgres {
 	return &UniversityPostgres{db: db}
 }
 
+func NewUniversityPostgresWithDSN(db *database.DB, dsn string) *UniversityPostgres {
+	return &UniversityPostgres{db: db, dsn: dsn}
+}
+
+// getDB returns a working database connection
+func (r *UniversityPostgres) getDB() *database.DB {
+	return r.db
+}
+
 func (r *UniversityPostgres) Create(university *domain.University) error {
-	err := r.db.QueryRow(
+	db := r.getDB()
+	err := db.QueryRow(
 		`INSERT INTO universities (name, inn, kpp) 
 		 VALUES ($1, $2, $3) RETURNING id, created_at, updated_at`,
 		university.Name, university.INN, university.KPP,
@@ -25,7 +36,8 @@ func (r *UniversityPostgres) Create(university *domain.University) error {
 
 func (r *UniversityPostgres) GetByID(id int64) (*domain.University, error) {
 	university := &domain.University{}
-	err := r.db.QueryRow(
+	db := r.getDB()
+	err := db.QueryRow(
 		`SELECT id, name, inn, kpp, created_at, updated_at 
 		 FROM universities WHERE id = $1`,
 		id,
@@ -36,7 +48,8 @@ func (r *UniversityPostgres) GetByID(id int64) (*domain.University, error) {
 
 func (r *UniversityPostgres) GetByINN(inn string) (*domain.University, error) {
 	university := &domain.University{}
-	err := r.db.QueryRow(
+	db := r.getDB()
+	err := db.QueryRow(
 		`SELECT id, name, inn, kpp, created_at, updated_at 
 		 FROM universities WHERE inn = $1 LIMIT 1`,
 		inn,
@@ -47,7 +60,8 @@ func (r *UniversityPostgres) GetByINN(inn string) (*domain.University, error) {
 
 func (r *UniversityPostgres) GetByINNAndKPP(inn, kpp string) (*domain.University, error) {
 	university := &domain.University{}
-	err := r.db.QueryRow(
+	db := r.getDB()
+	err := db.QueryRow(
 		`SELECT id, name, inn, kpp, created_at, updated_at 
 		 FROM universities WHERE inn = $1 AND kpp = $2`,
 		inn, kpp,
@@ -64,7 +78,8 @@ func (r *UniversityPostgres) SearchByName(query string) ([]*domain.University, e
 	
 	searchPattern := "%" + strings.ToLower(query) + "%"
 	
-	rows, err := r.db.Query(
+	db := r.getDB()
+	rows, err := db.Query(
 		`SELECT id, name, inn, kpp, created_at, updated_at 
 		 FROM universities 
 		 WHERE LOWER(name) LIKE $1 
@@ -94,7 +109,8 @@ func (r *UniversityPostgres) SearchByName(query string) ([]*domain.University, e
 }
 
 func (r *UniversityPostgres) GetAll() ([]*domain.University, error) {
-	rows, err := r.db.Query(
+	db := r.getDB()
+	rows, err := db.Query(
 		`SELECT id, name, inn, kpp, created_at, updated_at 
 		 FROM universities 
 		 ORDER BY name`,

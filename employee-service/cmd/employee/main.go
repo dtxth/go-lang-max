@@ -5,6 +5,7 @@ import (
 	"employee-service/internal/app"
 	"employee-service/internal/config"
 	"employee-service/internal/infrastructure/auth"
+	"employee-service/internal/infrastructure/database"
 	"employee-service/internal/infrastructure/grpc"
 	"employee-service/internal/infrastructure/http"
 	"employee-service/internal/infrastructure/logger"
@@ -37,14 +38,21 @@ func main() {
 	log.Println("Starting employee-service server on port", cfg.Port)
 	log.Println("Starting gRPC server on port", cfg.GRPCPort)
 
-	db, err := sql.Open("postgres", cfg.DBUrl)
+	// Initialize database connection with automatic reconnection
+	dbLogger := log.New(os.Stdout, "[DB] ", log.LstdFlags)
+	db := database.NewDB(cfg.DBUrl, dbLogger)
+	
+	if err := db.Connect(); err != nil {
+		log.Fatalf("Failed to connect to database: %v", err)
+	}
+
+	// Initialize and run migrations with separate connection
+	migrationDB, err := sql.Open("postgres", cfg.DBUrl)
 	if err != nil {
 		panic(err)
 	}
-	defer db.Close()
-
-	// Initialize and run migrations
-	migrator := migration.NewMigrator(db, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
+	
+	migrator := migration.NewMigrator(migrationDB, log.New(os.Stdout, "[MIGRATION] ", log.LstdFlags))
 	
 	// Wait for database to be ready
 	if err := migrator.WaitForDatabase(); err != nil {
@@ -55,11 +63,14 @@ func main() {
 	if err := migrator.RunMigrations(); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
+	
+	// Close migration connection
+	migrationDB.Close()
 
 	// Инициализируем репозитории
-	employeeRepo := repository.NewEmployeePostgres(db)
-	universityRepo := repository.NewUniversityPostgres(db)
-	batchUpdateJobRepo := repository.NewBatchUpdateJobPostgres(db)
+	employeeRepo := repository.NewEmployeePostgresWithDSN(db, cfg.DBUrl)
+	universityRepo := repository.NewUniversityPostgresWithDSN(db, cfg.DBUrl)
+	batchUpdateJobRepo := repository.NewBatchUpdateJobPostgresWithDSN(db, cfg.DBUrl)
 
 	// Инициализируем MAX gRPC клиент
 	maxClient, err := max.NewMaxClient(cfg.MaxBotAddress, cfg.MaxBotTimeout)

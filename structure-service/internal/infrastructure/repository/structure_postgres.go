@@ -4,65 +4,35 @@ import (
 	"database/sql"
 	"fmt"
 	"structure-service/internal/domain"
+	"structure-service/internal/infrastructure/database"
 	"time"
 )
 
 type StructurePostgres struct {
-	db  *sql.DB
+	db  *database.DB
 	dsn string
 }
 
-func NewStructurePostgres(db *sql.DB) domain.StructureRepository {
+func NewStructurePostgres(db *database.DB) domain.StructureRepository {
 	return &StructurePostgres{db: db}
 }
 
-func NewStructurePostgresWithDSN(db *sql.DB, dsn string) domain.StructureRepository {
+func NewStructurePostgresWithDSN(db *database.DB, dsn string) domain.StructureRepository {
 	return &StructurePostgres{db: db, dsn: dsn}
 }
 
-// getDB returns a working database connection, reconnecting if necessary
-func (r *StructurePostgres) getDB() (*sql.DB, error) {
-	// Try to ping the existing connection
-	if r.db != nil {
-		if err := r.db.Ping(); err == nil {
-			return r.db, nil
-		}
-	}
-
-	// If we have a DSN, try to reconnect
-	if r.dsn != "" {
-		db, err := sql.Open("postgres", r.dsn)
-		if err != nil {
-			return nil, fmt.Errorf("failed to reconnect to database: %w", err)
-		}
-		
-		// Configure connection pool
-		db.SetMaxOpenConns(25)
-		db.SetMaxIdleConns(5)
-		db.SetConnMaxLifetime(0)
-		
-		if err := db.Ping(); err != nil {
-			db.Close()
-			return nil, fmt.Errorf("failed to ping reconnected database: %w", err)
-		}
-		
-		r.db = db
-		return db, nil
-	}
-
-	return r.db, nil
+// getDB returns a working database connection
+func (r *StructurePostgres) getDB() *database.DB {
+	return r.db
 }
 
 // University methods
 func (r *StructurePostgres) CreateUniversity(u *domain.University) error {
-	db, err := r.getDB()
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
-	}
+	db := r.getDB()
 
 	query := `INSERT INTO universities (name, inn, kpp, foiv, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`
-	err = db.QueryRow(query, u.Name, u.INN, u.KPP, u.FOIV, time.Now(), time.Now()).Scan(&u.ID)
+	err := db.QueryRow(query, u.Name, u.INN, u.KPP, u.FOIV, time.Now(), time.Now()).Scan(&u.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create university: %w", err)
 	}
@@ -72,21 +42,21 @@ func (r *StructurePostgres) CreateUniversity(u *domain.University) error {
 }
 
 func (r *StructurePostgres) GetUniversityByID(id int64) (*domain.University, error) {
-	db, err := r.getDB()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database connection: %w", err)
-	}
+	db := r.getDB()
 
 	u := &domain.University{}
 	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
 		         (SELECT COUNT(DISTINCT g.chat_id) 
-		          FROM branches b
-		          LEFT JOIN faculties f ON f.branch_id = b.id
-		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
-		          WHERE b.university_id = u.id) as chats_count
+		          FROM groups g
+		          JOIN faculties f ON g.faculty_id = f.id
+		          LEFT JOIN branches b ON f.branch_id = b.id
+		          WHERE g.chat_id IS NOT NULL 
+		            AND (b.university_id = u.id OR (f.branch_id IS NULL AND EXISTS(
+		                SELECT 1 FROM universities u2 WHERE u2.id = u.id
+		            )))) as chats_count
 		 FROM universities u
 		 WHERE u.id = $1`
-	err = db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
+	err := db.QueryRow(query, id).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrUniversityNotFound
 	}
@@ -97,21 +67,21 @@ func (r *StructurePostgres) GetUniversityByID(id int64) (*domain.University, err
 }
 
 func (r *StructurePostgres) GetUniversityByINN(inn string) (*domain.University, error) {
-	db, err := r.getDB()
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database connection: %w", err)
-	}
+	db := r.getDB()
 
 	u := &domain.University{}
 	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
 		         (SELECT COUNT(DISTINCT g.chat_id) 
-		          FROM branches b
-		          LEFT JOIN faculties f ON f.branch_id = b.id
-		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
-		          WHERE b.university_id = u.id) as chats_count
+		          FROM groups g
+		          JOIN faculties f ON g.faculty_id = f.id
+		          LEFT JOIN branches b ON f.branch_id = b.id
+		          WHERE g.chat_id IS NOT NULL 
+		            AND (b.university_id = u.id OR (f.branch_id IS NULL AND EXISTS(
+		                SELECT 1 FROM universities u2 WHERE u2.id = u.id
+		            )))) as chats_count
 		 FROM universities u
 		 WHERE u.inn = $1 LIMIT 1`
-	err = db.QueryRow(query, inn).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
+	err := db.QueryRow(query, inn).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrUniversityNotFound
 	}
@@ -125,10 +95,13 @@ func (r *StructurePostgres) GetUniversityByINNAndKPP(inn, kpp string) (*domain.U
 	u := &domain.University{}
 	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
 		         (SELECT COUNT(DISTINCT g.chat_id) 
-		          FROM branches b
-		          LEFT JOIN faculties f ON f.branch_id = b.id
-		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
-		          WHERE b.university_id = u.id) as chats_count
+		          FROM groups g
+		          JOIN faculties f ON g.faculty_id = f.id
+		          LEFT JOIN branches b ON f.branch_id = b.id
+		          WHERE g.chat_id IS NOT NULL 
+		            AND (b.university_id = u.id OR (f.branch_id IS NULL AND EXISTS(
+		                SELECT 1 FROM universities u2 WHERE u2.id = u.id
+		            )))) as chats_count
 		 FROM universities u
 		 WHERE u.inn = $1 AND u.kpp = $2`
 	err := r.db.QueryRow(query, inn, kpp).Scan(&u.ID, &u.Name, &u.INN, &u.KPP, &u.FOIV, &u.CreatedAt, &u.UpdatedAt, &u.ChatsCount)
@@ -153,10 +126,13 @@ func (r *StructurePostgres) DeleteUniversity(id int64) error {
 func (r *StructurePostgres) GetAllUniversities() ([]*domain.University, error) {
 	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
 		         (SELECT COUNT(DISTINCT g.chat_id) 
-		          FROM branches b
-		          LEFT JOIN faculties f ON f.branch_id = b.id
-		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
-		          WHERE b.university_id = u.id) as chats_count
+		          FROM groups g
+		          JOIN faculties f ON g.faculty_id = f.id
+		          LEFT JOIN branches b ON f.branch_id = b.id
+		          WHERE g.chat_id IS NOT NULL 
+		            AND (b.university_id = u.id OR (f.branch_id IS NULL AND EXISTS(
+		                SELECT 1 FROM universities u2 WHERE u2.id = u.id
+		            )))) as chats_count
 		 FROM universities u
 		 ORDER BY u.name`
 	rows, err := r.db.Query(query)
@@ -228,10 +204,13 @@ func (r *StructurePostgres) GetAllUniversitiesWithSortingAndSearch(limit, offset
 	// Запрос с подсчетом чатов
 	query := `SELECT u.id, u.name, u.inn, u.kpp, u.foiv, u.created_at, u.updated_at,
 		         (SELECT COUNT(DISTINCT g.chat_id) 
-		          FROM branches b
-		          LEFT JOIN faculties f ON f.branch_id = b.id
-		          LEFT JOIN groups g ON g.faculty_id = f.id AND g.chat_id IS NOT NULL
-		          WHERE b.university_id = u.id) as chats_count
+		          FROM groups g
+		          JOIN faculties f ON g.faculty_id = f.id
+		          LEFT JOIN branches b ON f.branch_id = b.id
+		          WHERE g.chat_id IS NOT NULL 
+		            AND (b.university_id = u.id OR (f.branch_id IS NULL AND EXISTS(
+		                SELECT 1 FROM universities u2 WHERE u2.id = u.id
+		            )))) as chats_count
 		 FROM universities u ` +
 		whereClause + `
 		 ORDER BY u.` + sortField + ` ` + sortOrder + `
@@ -258,14 +237,11 @@ func (r *StructurePostgres) GetAllUniversitiesWithSortingAndSearch(limit, offset
 
 // Branch methods
 func (r *StructurePostgres) CreateBranch(b *domain.Branch) error {
-	db, err := r.getDB()
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
-	}
+	db := r.getDB()
 
 	query := `INSERT INTO branches (university_id, name, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4) RETURNING id`
-	err = db.QueryRow(query, b.UniversityID, b.Name, time.Now(), time.Now()).Scan(&b.ID)
+	err := db.QueryRow(query, b.UniversityID, b.Name, time.Now(), time.Now()).Scan(&b.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create branch: %w", err)
 	}
@@ -326,14 +302,11 @@ func (r *StructurePostgres) DeleteBranch(id int64) error {
 
 // Faculty methods
 func (r *StructurePostgres) CreateFaculty(f *domain.Faculty) error {
-	db, err := r.getDB()
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
-	}
+	db := r.getDB()
 
 	query := `INSERT INTO faculties (branch_id, name, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4) RETURNING id`
-	err = db.QueryRow(query, f.BranchID, f.Name, time.Now(), time.Now()).Scan(&f.ID)
+	err := db.QueryRow(query, f.BranchID, f.Name, time.Now(), time.Now()).Scan(&f.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create faculty: %w", err)
 	}
@@ -443,14 +416,11 @@ func (r *StructurePostgres) DeleteFaculty(id int64) error {
 
 // Group methods
 func (r *StructurePostgres) CreateGroup(g *domain.Group) error {
-	db, err := r.getDB()
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
-	}
+	db := r.getDB()
 
 	query := `INSERT INTO groups (faculty_id, course, number, chat_id, chat_url, chat_name, created_at, updated_at) 
 			  VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`
-	err = db.QueryRow(query, g.FacultyID, g.Course, g.Number, g.ChatID, g.ChatURL, g.ChatName, time.Now(), time.Now()).Scan(&g.ID)
+	err := db.QueryRow(query, g.FacultyID, g.Course, g.Number, g.ChatID, g.ChatURL, g.ChatName, time.Now(), time.Now()).Scan(&g.ID)
 	if err != nil {
 		return fmt.Errorf("failed to create group: %w", err)
 	}
@@ -664,6 +634,8 @@ func (r *StructurePostgres) GetStructureByUniversityID(universityID int64) (*dom
 
 // GetChatCountForUniversity counts all chats in a university
 func (r *StructurePostgres) GetChatCountForUniversity(universityID int64) (int, error) {
+	db := r.getDB()
+
 	query := `SELECT COUNT(DISTINCT g.chat_id) 
 			  FROM groups g
 			  JOIN faculties f ON g.faculty_id = f.id
@@ -674,29 +646,33 @@ func (r *StructurePostgres) GetChatCountForUniversity(universityID int64) (int, 
 			  )))`
 	
 	var count int
-	err := r.db.QueryRow(query, universityID).Scan(&count)
+	err := db.QueryRow(query, universityID).Scan(&count)
 	return count, err
 }
 
 // GetChatCountForBranch counts all chats in a branch
 func (r *StructurePostgres) GetChatCountForBranch(branchID int64) (int, error) {
+	db := r.getDB()
+
 	query := `SELECT COUNT(DISTINCT g.chat_id) 
 			  FROM groups g
 			  JOIN faculties f ON g.faculty_id = f.id
 			  WHERE f.branch_id = $1 AND g.chat_id IS NOT NULL`
 	
 	var count int
-	err := r.db.QueryRow(query, branchID).Scan(&count)
+	err := db.QueryRow(query, branchID).Scan(&count)
 	return count, err
 }
 
 // GetChatCountForFaculty counts all chats in a faculty
 func (r *StructurePostgres) GetChatCountForFaculty(facultyID int64) (int, error) {
+	db := r.getDB()
+
 	query := `SELECT COUNT(DISTINCT g.chat_id) 
 			  FROM groups g
 			  WHERE g.faculty_id = $1 AND g.chat_id IS NOT NULL`
 	
 	var count int
-	err := r.db.QueryRow(query, facultyID).Scan(&count)
+	err := db.QueryRow(query, facultyID).Scan(&count)
 	return count, err
 }
