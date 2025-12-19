@@ -38,6 +38,7 @@ services:
       REFRESH_SECRET: "${REFRESH_SECRET:-super-secret-refresh}"
       ACCESS_MINUTES: "${ACCESS_MINUTES:-15}"
       REFRESH_HOURS: "${REFRESH_HOURS:-168}"
+      MAX_BOT_TOKEN: "${MAX_BOT_TOKEN:-}"
       LOG_LEVEL: "${LOG_LEVEL:-info}"
     ports:
       - "${AUTH_SERVICE_PORT:-8080}:${AUTH_SERVICE_PORT:-8080}"

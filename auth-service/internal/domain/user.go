@@ -13,4 +13,9 @@ type User struct {
     Email    string `json:"email,omitempty"` // Опциональный email
     Password string `json:"-"`
     Role     string `json:"role"`
+    
+    // MAX-specific fields
+    MaxID    *int64 `json:"max_id,omitempty"`    // MAX platform user ID
+    Username string `json:"username,omitempty"`   // MAX username
+    Name     string `json:"name,omitempty"`       // Display name from MAX
 }

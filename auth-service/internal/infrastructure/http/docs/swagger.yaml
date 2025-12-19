@@ -14,10 +14,19 @@ definitions:
         type: string
       id:
         type: integer
+      max_id:
+        description: MAX-specific fields
+        type: integer
+      name:
+        description: Display name from MAX
+        type: string
       phone:
         description: Основной идентификатор (телефон)
         type: string
       role:
+        type: string
+      username:
+        description: MAX username
         type: string
     type: object
   http.BotInfoResponse:
@@ -31,12 +40,60 @@ definitions:
         example: MAX Bot
         type: string
     type: object
+  http.MaxAuthRequest:
+    properties:
+      init_data:
+        type: string
+    required:
+    - init_data
+    type: object
+  http.MaxAuthResponse:
+    properties:
+      access_token:
+        type: string
+      refresh_token:
+        type: string
+    type: object
 info:
   contact: {}
   description: Authentication service with JWT access & refresh tokens
   title: Auth Service API
   version: "1.0"
 paths:
+  /auth/max:
+    post:
+      consumes:
+      - application/json
+      description: Validates MAX Mini App initData and returns JWT tokens
+      parameters:
+      - description: MAX initData
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/http.MaxAuthRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Authentication successful
+          schema:
+            $ref: '#/definitions/http.MaxAuthResponse'
+        "400":
+          description: Invalid request
+          schema:
+            type: string
+        "401":
+          description: Authentication failed
+          schema:
+            type: string
+        "500":
+          description: Internal server error
+          schema:
+            type: string
+      summary: Authenticate MAX Mini App user
+      tags:
+      - auth
   /auth/password-reset/confirm:
     post:
       consumes:
@@ -347,9 +404,11 @@ paths:
     post:
       consumes:
       - application/json
-      description: Creates user and stores hashed password
+      description: Creates user and stores hashed password. Provide either email or
+        phone.
       parameters:
-      - description: User credentials (role is optional, defaults to operator)
+      - description: User credentials (provide either email or phone, role is optional,
+          defaults to operator)
         in: body
         name: input
         required: true
@@ -358,6 +417,8 @@ paths:
             email:
               type: string
             password:
+              type: string
+            phone:
               type: string
             role:
               type: string

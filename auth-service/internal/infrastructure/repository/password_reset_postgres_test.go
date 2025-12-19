@@ -45,11 +45,31 @@ func setupTestDB(t *testing.T) *database.DB {
 
 // ensureTableExists creates the password_reset_tokens table if it doesn't exist
 func ensureTableExists(t *testing.T, db *sql.DB) {
-	// Create the table (using IF NOT EXISTS so it's safe to run multiple times)
+	// Create the users table first (needed for foreign key constraint)
+	createUsersTableSQL := `
+		CREATE TABLE IF NOT EXISTS users (
+			id SERIAL PRIMARY KEY,
+			email TEXT,
+			password_hash TEXT NOT NULL,
+			phone TEXT UNIQUE,
+			role TEXT NOT NULL DEFAULT 'operator',
+			max_id BIGINT UNIQUE,
+			username VARCHAR(255),
+			name VARCHAR(255),
+			created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+		);
+	`
+
+	_, err := db.Exec(createUsersTableSQL)
+	if err != nil {
+		t.Skipf("Skipping database tests - cannot create users table: %v", err)
+	}
+
+	// Create the password_reset_tokens table (using IF NOT EXISTS so it's safe to run multiple times)
 	createTableSQL := `
 		CREATE TABLE IF NOT EXISTS password_reset_tokens (
 			id SERIAL PRIMARY KEY,
-			user_id INTEGER NOT NULL,
+			user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 			token VARCHAR(64) NOT NULL UNIQUE,
 			expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
 			used_at TIMESTAMP WITH TIME ZONE,
@@ -60,15 +80,29 @@ func ensureTableExists(t *testing.T, db *sql.DB) {
 		CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_expires_at ON password_reset_tokens(expires_at);
 	`
 
-	_, err := db.Exec(createTableSQL)
+	_, err = db.Exec(createTableSQL)
 	if err != nil {
 		t.Skipf("Skipping database tests - cannot create table: %v", err)
+	}
+
+	// Insert test users
+	insertUsersSQL := `
+		INSERT INTO users (id, phone, email, password_hash) 
+		VALUES 
+			(1, '+1234567890', 'test1@example.com', 'password1'),
+			(2, '+1234567891', 'test2@example.com', 'password2')
+		ON CONFLICT (id) DO NOTHING;
+	`
+
+	_, err = db.Exec(insertUsersSQL)
+	if err != nil {
+		t.Skipf("Skipping database tests - cannot insert test users: %v", err)
 	}
 }
 
 // cleanupTestData removes test data from the database
 func cleanupTestData(t *testing.T, db *sql.DB) {
-	// Delete all password reset tokens
+	// Delete all password reset tokens (cascade will handle foreign key constraints)
 	_, err := db.Exec("DELETE FROM password_reset_tokens")
 	if err != nil {
 		t.Logf("Warning: failed to cleanup password_reset_tokens: %v", err)

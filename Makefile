@@ -1,301 +1,199 @@
-.PHONY: help test test-quick test-verbose test-coverage deploy deploy-fast deploy-rebuild up down logs ps clean build
+# Digital University MVP - Makefile
 
-# Цвета для вывода
-BLUE := \033[0;34m
-GREEN := \033[0;32m
-YELLOW := \033[1;33m
-NC := \033[0m
+.PHONY: help build up down logs test test-e2e clean restart setup health urls monitor
 
-help: ## Показать эту справку
-	@echo "$(BLUE)Доступные команды:$(NC)"
+# Default target
+help:
+	@echo "Available commands:"
 	@echo ""
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-20s$(NC) %s\n", $$1, $$2}'
+	@echo "🚀 Service Management:"
+	@echo "  build      - Build all services"
+	@echo "  up         - Start all services"
+	@echo "  down       - Stop all services"
+	@echo "  restart    - Restart all services"
+	@echo "  setup      - Setup development environment"
 	@echo ""
-	@echo "$(YELLOW)Примеры:$(NC)"
-	@echo "  make test           # Запустить все тесты"
-	@echo "  make deploy         # Полное развертывание (тесты + сборка + запуск)"
-	@echo "  make deploy-fast    # Быстрое развертывание (без тестов)"
-	@echo "  make logs           # Просмотр логов всех сервисов"
+	@echo "📊 Monitoring:"
+	@echo "  logs       - Show logs from all services"
+	@echo "  health     - Check health of all services"
+	@echo "  urls       - Show service URLs"
+	@echo "  monitor    - Show service status and resource usage"
+	@echo ""
+	@echo "🧪 Testing:"
+	@echo "  test       - Run unit tests for all services"
+	@echo "  test-e2e   - Run all end-to-end tests"
+	@echo "  test-e2e-auth        - Test Auth Service"
+	@echo "  test-e2e-structure   - Test Structure Service"
+	@echo "  test-e2e-employee    - Test Employee Service"
+	@echo "  test-e2e-chat        - Test Chat Service"
+	@echo "  test-e2e-maxbot      - Test MaxBot Service"
+	@echo "  test-e2e-migration   - Test Migration Service"
+	@echo "  test-e2e-integration - Test service integration"
+	@echo "  test-load            - Run load tests"
+	@echo "  benchmark            - Run benchmark tests"
+	@echo "  quick-test           - Quick health check tests"
+	@echo ""
+	@echo "🧹 Maintenance:"
+	@echo "  clean      - Clean up containers and volumes"
+	@echo "  db-reset   - Reset all databases"
+	@echo ""
+	@echo "👨‍💻 Development:"
+	@echo "  dev-up     - Start only databases for development"
+	@echo "  dev-down   - Stop development services"
 
-test: ## Запустить все тесты с race detector
-	@echo "$(BLUE)Запуск всех тестов...$(NC)"
-	@./tests/run_tests.sh
+# Build all services
+build:
+	@echo "Building all services..."
+	docker-compose build
 
-test-quick: ## Быстрая проверка тестов (без race detector)
-	@echo "$(BLUE)Быстрая проверка тестов...$(NC)"
-	@./tests/test_quick.sh
+# Start all services
+up:
+	@echo "Starting all services..."
+	docker-compose up -d
+	@echo "Waiting for services to be ready..."
+	@sleep 10
+	@echo "Services are starting up. Check logs with 'make logs'"
 
-test-verbose: ## Запустить тесты с подробным выводом
-	@echo "$(BLUE)Запуск тестов (подробный режим)...$(NC)"
-	@./tests/run_tests.sh --verbose
+# Stop all services
+down:
+	@echo "Stopping all services..."
+	docker-compose down
 
-test-coverage: ## Запустить тесты с отчетом о покрытии кода
-	@echo "$(BLUE)Запуск тестов с покрытием кода...$(NC)"
-	@./tests/run_tests.sh --coverage
+# Show logs
+logs:
+	docker-compose logs -f
 
-deploy: ## Полное развертывание: тесты → сборка → запуск
-	@echo "$(BLUE)Полное развертывание...$(NC)"
-	@./bin/deploy.sh
+# Run unit tests for all services
+test:
+	@echo "Running unit tests..."
+	@echo "Testing auth-service..."
+	cd auth-service && go test ./... -v
+	@echo "Testing employee-service..."
+	cd employee-service && go test ./... -v
+	@echo "Testing chat-service..."
+	cd chat-service && go test ./... -v
+	@echo "Testing structure-service..."
+	cd structure-service && go test ./... -v
+	@echo "Testing maxbot-service..."
+	cd maxbot-service && go test ./... -v
+	@echo "Testing migration-service..."
+	cd migration-service && go test ./... -v
 
-deploy-fast: ## Быстрое развертывание без тестов
-	@echo "$(YELLOW)Быстрое развертывание (без тестов)...$(NC)"
-	@./bin/deploy.sh --skip-tests
-
-deploy-rebuild: ## Полная пересборка с тестами (медленно, 5-10 минут)
-	@echo "$(BLUE)Полная пересборка...$(NC)"
-	@./bin/deploy.sh --no-cache
-
-deploy-rebuild-fast: ## Полная пересборка без тестов
-	@echo "$(YELLOW)Полная пересборка без тестов...$(NC)"
-	@./bin/deploy.sh --no-cache --skip-tests
-
-deploy-verbose: ## Развертывание с подробным выводом
-	@echo "$(BLUE)Развертывание (подробный режим)...$(NC)"
-	@./bin/deploy.sh --verbose
-
-build: ## Собрать Docker образы
-	@echo "$(BLUE)Сборка Docker образов...$(NC)"
-	@docker-compose build
-
-build-no-cache: ## Собрать Docker образы без кеша
-	@echo "$(BLUE)Пересборка Docker образов без кеша...$(NC)"
-	@docker-compose build --no-cache
-
-up: ## Запустить все сервисы
-	@echo "$(BLUE)Запуск сервисов...$(NC)"
-	@docker-compose up -d
-	@echo "$(GREEN)Сервисы запущены!$(NC)"
-	@make ps
-
-down: ## Остановить все сервисы
-	@echo "$(YELLOW)Остановка сервисов...$(NC)"
-	@docker-compose down
-	@echo "$(GREEN)Сервисы остановлены!$(NC)"
-
-restart: ## Перезапустить все сервисы
-	@echo "$(YELLOW)Перезапуск сервисов...$(NC)"
-	@docker-compose restart
-	@echo "$(GREEN)Сервисы перезапущены!$(NC)"
-
-logs: ## Просмотр логов всех сервисов
-	@docker-compose logs -f
-
-logs-auth: ## Просмотр логов auth-service
-	@docker-compose logs -f auth-service
-
-logs-chat: ## Просмотр логов chat-service
-	@docker-compose logs -f chat-service
-
-logs-employee: ## Просмотр логов employee-service
-	@docker-compose logs -f employee-service
-
-logs-structure: ## Просмотр логов structure-service
-	@docker-compose logs -f structure-service
-
-logs-maxbot: ## Просмотр логов maxbot-service
-	@docker-compose logs -f maxbot-service
-
-logs-migration: ## Просмотр логов migration-service
-	@docker-compose logs -f migration-service
-
-ps: ## Показать статус контейнеров
-	@echo "$(BLUE)Статус контейнеров:$(NC)"
+# Run end-to-end tests
+test-e2e:
+	@echo "Running end-to-end tests..."
+	@echo "Checking if services are running..."
 	@docker-compose ps
+	@echo "Starting E2E tests..."
+	cd e2e-tests && go mod tidy && go test -v ./... -timeout 10m
 
-images: ## Показать размеры Docker образов
-	@echo "$(BLUE)Docker образы:$(NC)"
-	@docker images | grep "go-lang-max" || echo "$(YELLOW)Образы не найдены$(NC)"
+# Run specific E2E test
+test-e2e-auth:
+	cd e2e-tests && go test -v -run TestAuthService -timeout 5m
 
-clean: ## Удалить все контейнеры и образы
-	@echo "$(YELLOW)Удаление контейнеров и образов...$(NC)"
-	@docker-compose down -v
-	@docker images | grep "go-lang-max" | awk '{print $$3}' | xargs -r docker rmi -f
-	@echo "$(GREEN)Очистка завершена!$(NC)"
+test-e2e-structure:
+	cd e2e-tests && go test -v -run TestStructureService -timeout 5m
 
-clean-volumes: ## Удалить все контейнеры, образы и volumes
-	@echo "$(RED)Удаление контейнеров, образов и volumes...$(NC)"
-	@docker-compose down -v
-	@docker images | grep "go-lang-max" | awk '{print $$3}' | xargs -r docker rmi -f
-	@docker volume prune -f
-	@echo "$(GREEN)Полная очистка завершена!$(NC)"
+test-e2e-employee:
+	cd e2e-tests && go test -v -run TestEmployeeService -timeout 5m
 
-swagger: ## Проверить Swagger endpoints
-	@echo "$(BLUE)Проверка Swagger endpoints:$(NC)"
-	@for port in 8080 8081 8082 8083 8084; do \
-		echo -n "  Port $$port: "; \
-		curl -s -f "http://localhost:$$port/swagger/doc.json" > /dev/null 2>&1 && \
-			echo "$(GREEN)✓ http://localhost:$$port/swagger/index.html$(NC)" || \
-			echo "$(RED)✗ Не доступен$(NC)"; \
-	done
+test-e2e-chat:
+	cd e2e-tests && go test -v -run TestChatService -timeout 5m
 
-health: ## Проверить здоровье всех сервисов
-	@echo "$(BLUE)Проверка здоровья сервисов:$(NC)"
-	@make ps
+test-e2e-maxbot:
+	cd e2e-tests && go test -v -run TestMaxBotService -timeout 5m
+
+test-e2e-migration:
+	cd e2e-tests && go test -v -run TestMigrationService -timeout 5m
+
+test-e2e-integration:
+	cd e2e-tests && go test -v -run TestIntegration -timeout 10m
+
+# Run load tests
+test-load:
+	cd e2e-tests && go test -v -run TestLoadTest -timeout 15m
+
+# Run benchmark tests
+benchmark:
+	cd e2e-tests && go test -bench=. -benchmem -timeout 10m
+
+# Clean up
+clean:
+	@echo "Cleaning up containers and volumes..."
+	docker-compose down -v
+	docker system prune -f
+
+# Restart all services
+restart: down up
+
+# Setup development environment
+setup:
+	@echo "Setting up development environment..."
+	@if [ ! -f .env ]; then \
+		echo "Creating .env file from .env.example..."; \
+		cp .env.example .env; \
+		echo "Please edit .env file with your configuration"; \
+	fi
+	@echo "Creating required volumes..."
+	docker volume create auth-service_pgdata || true
+	docker volume create go-microservices_chat_db_data || true
+	docker volume create go-microservices_employee_db_data || true
+	docker volume create go-microservices_structure_pgdata || true
+	@echo "Setup complete!"
+
+# Health check for all services
+health:
+	@echo "Checking service health..."
+	@curl -f http://localhost:8080/health && echo " ✓ Auth Service" || echo " ✗ Auth Service"
+	@curl -f http://localhost:8081/health && echo " ✓ Employee Service" || echo " ✗ Employee Service"
+	@curl -f http://localhost:8082/health && echo " ✓ Chat Service" || echo " ✗ Chat Service"
+	@curl -f http://localhost:8083/health && echo " ✓ Structure Service" || echo " ✗ Structure Service"
+	@curl -f http://localhost:8084/health && echo " ✓ Migration Service" || echo " ✗ Migration Service"
+	@curl -f http://localhost:8095/health && echo " ✓ MaxBot Service" || echo " ✗ MaxBot Service"
+
+# Show service URLs
+urls:
+	@echo "Service URLs:"
+	@echo "  Auth Service:      http://localhost:8080"
+	@echo "  Employee Service:  http://localhost:8081"
+	@echo "  Chat Service:      http://localhost:8082"
+	@echo "  Structure Service: http://localhost:8083"
+	@echo "  Migration Service: http://localhost:8084"
+	@echo "  MaxBot Service:    http://localhost:8095"
 	@echo ""
-	@make swagger
+	@echo "Swagger Documentation:"
+	@echo "  Auth Service:      http://localhost:8080/swagger/"
+	@echo "  Structure Service: http://localhost:8083/swagger/"
 
-# =============================================================================
-# Profile Integration Monitoring
-# =============================================================================
+# Development helpers
+dev-up:
+	@echo "Starting services for development..."
+	docker-compose up -d auth-db employee-db chat-db structure-db migration-db redis
+	@echo "Databases and Redis are running. Start individual services manually for development."
 
-profile-health: ## Проверить состояние профильной интеграции
-	@echo "$(BLUE)Проверка профильной интеграции:$(NC)"
-	@echo -n "  MaxBot Service: "
-	@curl -s -f "http://localhost:8095/health" > /dev/null 2>&1 && \
-		echo "$(GREEN)✓ Работает$(NC)" || \
-		echo "$(RED)✗ Недоступен$(NC)"
-	@echo -n "  Redis Cache: "
-	@docker exec redis redis-cli ping > /dev/null 2>&1 && \
-		echo "$(GREEN)✓ Подключен$(NC)" || \
-		echo "$(RED)✗ Недоступен$(NC)"
-	@echo -n "  Webhook Endpoint: "
-	@curl -s -f "http://localhost:8095/webhook/max" -X POST -H "Content-Type: application/json" -d '{}' > /dev/null 2>&1 && \
-		echo "$(GREEN)✓ Доступен$(NC)" || \
-		echo "$(RED)✗ Недоступен$(NC)"
+dev-down:
+	docker-compose down
 
-profile-stats: ## Показать статистику профилей
-	@echo "$(BLUE)Статистика профилей:$(NC)"
-	@curl -s "http://localhost:8095/monitoring/profile-stats" 2>/dev/null | jq '.' || \
-		echo "$(RED)Не удается получить статистику профилей$(NC)"
+# Database operations
+db-reset:
+	@echo "Resetting all databases..."
+	docker-compose down -v
+	docker volume rm auth-service_pgdata go-microservices_chat_db_data go-microservices_employee_db_data go-microservices_structure_pgdata || true
+	docker volume create auth-service_pgdata
+	docker volume create go-microservices_chat_db_data
+	docker volume create go-microservices_employee_db_data
+	docker volume create go-microservices_structure_pgdata
+	@echo "Databases reset complete"
 
-webhook-stats: ## Показать статистику webhook событий
-	@echo "$(BLUE)Статистика webhook событий:$(NC)"
-	@curl -s "http://localhost:8095/monitoring/webhook-stats" 2>/dev/null | jq '.' || \
-		echo "$(RED)Не удается получить статистику webhook$(NC)"
-
-cache-health: ## Проверить состояние кэша профилей
-	@echo "$(BLUE)Состояние кэша профилей:$(NC)"
-	@curl -s "http://localhost:8095/monitoring/cache-health" 2>/dev/null | jq '.' || \
-		echo "$(RED)Не удается получить состояние кэша$(NC)"
-
-test-webhook: ## Тестировать webhook endpoint
-	@echo "$(BLUE)Тестирование webhook endpoint...$(NC)"
-	@curl -X POST "http://localhost:8095/webhook/max" \
-		-H "Content-Type: application/json" \
-		-d '{"type":"message_new","message":{"from":{"user_id":"test123","first_name":"Тест","last_name":"Пользователь"},"text":"Hello"}}' \
-		-w "\nHTTP Status: %{http_code}\n" || \
-		echo "$(RED)Ошибка при тестировании webhook$(NC)"
-
-profile-monitor: ## Мониторинг профильной интеграции в реальном времени
-	@echo "$(BLUE)Мониторинг профильной интеграции (Ctrl+C для выхода):$(NC)"
-	@while true; do \
-		clear; \
-		echo "$(BLUE)=== Profile Integration Monitor ===$(NC)"; \
-		echo "$(YELLOW)Время: $$(date)$(NC)"; \
-		echo ""; \
-		make profile-health; \
-		echo ""; \
-		make profile-stats; \
-		echo ""; \
-		echo "$(BLUE)Обновление через 10 секунд...$(NC)"; \
-		sleep 10; \
-	done
-
-deploy-profile: ## Развернуть только компоненты профильной интеграции
-	@echo "$(BLUE)Развертывание профильной интеграции...$(NC)"
-	@docker-compose up -d redis maxbot-service employee-service
-	@echo "$(GREEN)Профильная интеграция развернута!$(NC)"
-	@make profile-health
-
-validate-profile-config: ## Проверить конфигурацию профильной интеграции
-	@echo "$(BLUE)Проверка конфигурации профильной интеграции...$(NC)"
-	@./bin/validate_profile_config.sh
-
-# Тесты для отдельных сервисов
-test-auth: ## Тесты auth-service
-	@echo "$(BLUE)Тестирование auth-service...$(NC)"
-	@cd auth-service && go test -v -race ./...
-
-test-chat: ## Тесты chat-service
-	@echo "$(BLUE)Тестирование chat-service...$(NC)"
-	@cd chat-service && go test -v -race ./...
-
-test-employee: ## Тесты employee-service
-	@echo "$(BLUE)Тестирование employee-service...$(NC)"
-	@cd employee-service && go test -v -race ./...
-
-test-structure: ## Тесты structure-service
-	@echo "$(BLUE)Тестирование structure-service...$(NC)"
-	@cd structure-service && go test -v -race ./...
-
-test-maxbot: ## Тесты maxbot-service
-	@echo "$(BLUE)Тестирование maxbot-service...$(NC)"
-	@cd maxbot-service && go test -v -race ./...
-
-test-migration: ## Тесты migration-service
-	@echo "$(BLUE)Тестирование migration-service...$(NC)"
-	@cd migration-service && go test -v -race ./...
-
-# Локальная разработка
-dev-auth: ## Запустить auth-service локально
-	@cd auth-service && go run cmd/auth/main.go
-
-dev-chat: ## Запустить chat-service локально
-	@cd chat-service && go run cmd/chat/main.go
-
-dev-employee: ## Запустить employee-service локально
-	@cd employee-service && go run cmd/employee/main.go
-
-dev-structure: ## Запустить structure-service локально
-	@cd structure-service && go run cmd/structure/main.go
-
-# Утилиты
-fmt: ## Форматировать код
-	@echo "$(BLUE)Форматирование кода...$(NC)"
-	@find . -name "*.go" -not -path "./vendor/*" -exec gofmt -w {} \;
-	@echo "$(GREEN)Форматирование завершено!$(NC)"
-
-lint: ## Запустить линтер (требует golangci-lint)
-	@echo "$(BLUE)Запуск линтера...$(NC)"
-	@for dir in auth-service chat-service employee-service structure-service maxbot-service migration-service; do \
-		echo "Linting $$dir..."; \
-		cd $$dir && golangci-lint run ./... && cd ..; \
-	done
-
-mod-tidy: ## Обновить go.mod для всех сервисов
-	@echo "$(BLUE)Обновление go.mod...$(NC)"
-	@for dir in auth-service chat-service employee-service structure-service maxbot-service migration-service; do \
-		echo "  $$dir"; \
-		cd $$dir && go mod tidy && cd ..; \
-	done
-	@echo "$(GREEN)go.mod обновлены!$(NC)"
-
-# =============================================================================
-# Безопасные операции с данными
-# =============================================================================
-
-backup-auth: ## Создать резервную копию базы auth-service
-	@echo "$(BLUE)Создание резервной копии auth-db...$(NC)"
-	@mkdir -p backups
-	@docker exec auth-db pg_dump -U postgres postgres > backups/auth_backup_$$(date +%Y%m%d_%H%M%S).sql
-	@echo "$(GREEN)Резервная копия создана в backups/$(NC)"
-
-restore-auth: ## Восстановить базу auth-service из резервной копии
-	@echo "$(BLUE)Доступные резервные копии:$(NC)"
-	@ls -la backups/auth_backup_*.sql 2>/dev/null || echo "$(YELLOW)Резервные копии не найдены$(NC)"
-	@echo -n "$(YELLOW)Введите имя файла для восстановления: $(NC)" && read backup_file && \
-	docker exec -i auth-db psql -U postgres postgres < "$$backup_file"
-
-check-volumes: ## Проверить состояние volumes и данных
-	@echo "$(BLUE)Docker volumes:$(NC)"
-	@docker volume ls | grep -E "(auth|chat|employee|structure|migration)" || echo "$(YELLOW)Volumes не найдены$(NC)"
+# Monitoring
+monitor:
+	@echo "Service status:"
+	@docker-compose ps
 	@echo ""
-	@echo "$(BLUE)Таблицы в auth-db:$(NC)"
-	@docker exec auth-db psql -U postgres -d postgres -c "\dt" 2>/dev/null || echo "$(RED)Не удается подключиться к auth-db$(NC)"
-	@echo ""
-	@echo "$(BLUE)Количество пользователей:$(NC)"
-	@docker exec auth-db psql -U postgres -d postgres -c "SELECT COUNT(*) as users_count FROM users;" 2>/dev/null || echo "$(RED)Таблица users не найдена$(NC)"
+	@echo "Resource usage:"
+	@docker stats --no-stream
 
-safe-restart: ## Безопасный перезапуск сервисов (без удаления данных)
-	@echo "$(BLUE)Безопасный перезапуск сервисов...$(NC)"
-	@docker-compose restart
-	@echo "$(GREEN)Сервисы перезапущены без потери данных!$(NC)"
-
-# Переопределяем опасную команду с предупреждением
-clean-volumes-dangerous: ## ⚠️  ОПАСНО: Удалить все volumes (ЗАТИРАЕТ ВСЕ ДАННЫЕ!)
-	@echo "$(RED)⚠️  ВНИМАНИЕ: Эта команда УДАЛИТ ВСЕ ДАННЫЕ из баз данных!$(NC)"
-	@echo -n "$(YELLOW)Введите 'DELETE_ALL_DATA' для подтверждения: $(NC)" && read confirmation && [ "$$confirmation" = "DELETE_ALL_DATA" ]
-	@echo "$(RED)Удаление всех volumes...$(NC)"
-	@docker-compose down -v
-	@docker volume prune -f
-	@echo "$(GREEN)Все данные удалены!$(NC)"
+# Quick test - just health checks
+quick-test:
+	@echo "Running quick health check tests..."
+	cd e2e-tests && go test -v -run "Health" -timeout 2m

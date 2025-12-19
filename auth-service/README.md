@@ -76,6 +76,7 @@ See [Configuration Guide](./PASSWORD_MANAGEMENT_CONFIG.md) for detailed configur
 | `DATABASE_URL` | PostgreSQL connection string | - | Yes |
 | `ACCESS_SECRET` | JWT access token secret | - | Yes |
 | `REFRESH_SECRET` | JWT refresh token secret | - | Yes |
+| `MAX_BOT_TOKEN` | MAX Mini App bot token for authentication | - | Yes |
 | `PORT` | HTTP server port | 8080 | No |
 | `GRPC_PORT` | gRPC server port | 9090 | No |
 | `MIN_PASSWORD_LENGTH` | Minimum password length | 12 | No |
@@ -93,6 +94,7 @@ See [Configuration Guide](./PASSWORD_MANAGEMENT_CONFIG.md) for detailed configur
 DATABASE_URL=postgres://auth:password@localhost:5432/auth_dev?sslmode=disable
 ACCESS_SECRET=dev_access_secret_change_in_production
 REFRESH_SECRET=dev_refresh_secret_change_in_production
+MAX_BOT_TOKEN=your-max-bot-token-here
 PORT=8080
 GRPC_PORT=9090
 NOTIFICATION_SERVICE_TYPE=mock
@@ -104,6 +106,7 @@ MIN_PASSWORD_LENGTH=8
 DATABASE_URL=postgres://auth:secure_password@db.example.com:5432/auth_prod?sslmode=require
 ACCESS_SECRET=<strong-random-secret>
 REFRESH_SECRET=<strong-random-secret>
+MAX_BOT_TOKEN=<your-production-max-bot-token>
 PORT=8080
 GRPC_PORT=9090
 NOTIFICATION_SERVICE_TYPE=max
@@ -124,6 +127,7 @@ TOKEN_CLEANUP_INTERVAL=60
 
 - `POST /register` - Register new user
 - `POST /login` - Login user
+- `POST /auth/max` - MAX Mini App authentication
 - `POST /refresh` - Refresh access token
 - `POST /logout` - Logout user
 

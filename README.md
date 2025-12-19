@@ -1134,6 +1134,59 @@ gunzip < /backups/auth_db_20240115.sql.gz | psql -U postgres auth_db
 
 ## Тестирование
 
+### Unit тесты
+
+Каждый сервис содержит unit тесты:
+
+```bash
+# Запуск всех unit тестов
+make test
+
+# Запуск тестов для конкретного сервиса
+cd auth-service && go test ./...
+cd employee-service && go test ./...
+cd chat-service && go test ./...
+cd structure-service && go test ./...
+cd maxbot-service && go test ./...
+cd migration-service && go test ./...
+```
+
+### End-to-End тесты
+
+Комплексные E2E тесты для всех сервисов и их взаимодействия:
+
+```bash
+# Запуск всех E2E тестов
+make test-e2e
+
+# Тесты отдельных сервисов
+make test-e2e-auth        # Auth Service
+make test-e2e-structure   # Structure Service
+make test-e2e-employee    # Employee Service
+make test-e2e-chat        # Chat Service
+make test-e2e-maxbot      # MaxBot Service
+make test-e2e-migration   # Migration Service
+
+# Интеграционные тесты
+make test-e2e-integration
+
+# Нагрузочные тесты
+make test-load
+make benchmark
+```
+
+### Быстрая проверка
+
+```bash
+# Проверка здоровья всех сервисов
+make health
+
+# Быстрые тесты (только health checks)
+make quick-test
+```
+
+Подробная документация по тестированию: [E2E Testing Guide](e2e-tests/TESTING_GUIDE.md)
+
 ### API Handler Tests
 
 Все API endpoints покрыты unit-тестами для проверки валидации входных данных и обработки ошибок.
@@ -1152,17 +1205,6 @@ cd migration-service && go test -v ./internal/infrastructure/http/
 
 **Покрытие:** 29 endpoints, 49 тестов  
 **Документация:** [API_TESTS_COVERAGE.md](./API_TESTS_COVERAGE.md)
-
-### Unit Tests
-
-```bash
-# Запуск тестов для конкретного сервиса
-cd auth-service
-go test ./...
-
-# Запуск всех unit тестов
-go test ./...
-```
 
 ### Integration Tests
 

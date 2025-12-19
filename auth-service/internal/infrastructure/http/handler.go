@@ -1,6 +1,7 @@
 package http
 
 import (
+	"auth-service/internal/domain"
 	"auth-service/internal/infrastructure/errors"
 	"auth-service/internal/infrastructure/middleware"
 	"auth-service/internal/infrastructure/phone"
@@ -57,11 +58,11 @@ func (h *Handler) GetMetrics(w http.ResponseWriter, r *http.Request) {
 
 // Register godoc
 // @Summary      Register new user
-// @Description  Creates user and stores hashed password
+// @Description  Creates user and stores hashed password. Provide either email or phone.
 // @Tags         auth
 // @Accept       json
 // @Produce      json
-// @Param        input  body      object{email=string,password=string,role=string}  true  "User credentials (role is optional, defaults to operator)"
+// @Param        input  body      object{email=string,phone=string,password=string,role=string}  true  "User credentials (provide either email or phone, role is optional, defaults to operator)"
 // @Success      200    {object}  domain.User
 // @Failure      400    {string}  string
 // @Router       /register [post]
@@ -70,6 +71,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
     
     var req struct {
         Email    string `json:"email"`
+        Phone    string `json:"phone"`
         Password string `json:"password"`
         Role     string `json:"role"`
     }
@@ -79,9 +81,9 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    // Validate required fields
-    if req.Email == "" {
-        errors.WriteError(w, errors.MissingFieldError("email"), requestID)
+    // Validate required fields - either email or phone must be provided
+    if req.Email == "" && req.Phone == "" {
+        errors.WriteError(w, errors.ValidationError("either email or phone must be provided"), requestID)
         return
     }
     if req.Password == "" {
@@ -89,7 +91,17 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
         return
     }
 
-    user, err := h.auth.Register(req.Email, req.Password, req.Role)
+    var user *domain.User
+    var err error
+
+    if req.Phone != "" {
+        // Normalize phone number
+        normalizedPhone := phone.NormalizePhone(req.Phone)
+        user, err = h.auth.RegisterByPhone(normalizedPhone, req.Password, req.Role)
+    } else {
+        user, err = h.auth.Register(req.Email, req.Password, req.Role)
+    }
+
     if err != nil {
         errors.WriteError(w, err, requestID)
         return
@@ -441,6 +453,63 @@ func (h *Handler) Health(w http.ResponseWriter, r *http.Request) {
 type BotInfoResponse struct {
     Name    string `json:"name" example:"MAX Bot"`                    // Bot name
     AddLink string `json:"add_link" example:"https://max.ru/add-bot"` // Link to add the bot
+}
+
+// MaxAuthRequest represents the request for MAX Mini App authentication
+type MaxAuthRequest struct {
+    InitData string `json:"init_data" binding:"required"`
+}
+
+// MaxAuthResponse represents the response for MAX Mini App authentication
+type MaxAuthResponse struct {
+    AccessToken  string `json:"access_token"`
+    RefreshToken string `json:"refresh_token"`
+}
+
+// AuthenticateMAX godoc
+// @Summary      Authenticate MAX Mini App user
+// @Description  Validates MAX Mini App initData and returns JWT tokens
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        input  body      MaxAuthRequest  true  "MAX initData"
+// @Success      200    {object}  MaxAuthResponse  "Authentication successful"
+// @Failure      400    {string}  string  "Invalid request"
+// @Failure      401    {string}  string  "Authentication failed"
+// @Failure      500    {string}  string  "Internal server error"
+// @Router       /auth/max [post]
+func (h *Handler) AuthenticateMAX(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
+    var req MaxAuthRequest
+    
+    if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+        errors.WriteError(w, errors.ValidationError("invalid request body").WithError(err), requestID)
+        return
+    }
+
+    // Validate required fields
+    if req.InitData == "" {
+        errors.WriteError(w, errors.MissingFieldError("init_data"), requestID)
+        return
+    }
+
+    // Authenticate using MAX initData
+    tokens, err := h.auth.AuthenticateMAX(req.InitData)
+    if err != nil {
+        errors.WriteError(w, err, requestID)
+        return
+    }
+
+    // Create response
+    response := MaxAuthResponse{
+        AccessToken:  tokens.AccessToken,
+        RefreshToken: tokens.RefreshToken,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(response)
 }
 
 // GetBotMe godoc

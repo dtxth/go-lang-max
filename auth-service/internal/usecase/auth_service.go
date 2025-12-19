@@ -8,9 +8,11 @@ import (
 	"log"
 	"math/big"
 	"strconv"
+	"strings"
 	"time"
 
 	"auth-service/internal/domain"
+	appErrors "auth-service/internal/infrastructure/errors"
 	"auth-service/internal/infrastructure/metrics"
 )
 
@@ -23,6 +25,8 @@ type AuthService struct {
     resetTokenRepo         domain.PasswordResetRepository
     notificationService    domain.NotificationService
     maxBotClient           domain.MaxBotClient
+    maxAuthValidator       domain.MaxAuthValidator
+    maxBotToken            string
     logger                 Logger
     metrics                *metrics.Metrics
     minPasswordLength      int
@@ -50,6 +54,16 @@ func NewAuthService(repo domain.UserRepository, refreshRepo domain.RefreshTokenR
 // SetMaxBotClient sets the MaxBot client
 func (s *AuthService) SetMaxBotClient(client domain.MaxBotClient) {
     s.maxBotClient = client
+}
+
+// SetMaxAuthValidator sets the MAX auth validator
+func (s *AuthService) SetMaxAuthValidator(validator domain.MaxAuthValidator) {
+    s.maxAuthValidator = validator
+}
+
+// SetMaxBotToken sets the MAX bot token
+func (s *AuthService) SetMaxBotToken(token string) {
+    s.maxBotToken = token
 }
 
 // SetPasswordConfig sets the password configuration
@@ -95,6 +109,24 @@ func (s *AuthService) Register(email, password, role string) (*domain.User, erro
     }
 
     user := &domain.User{Email: email, Password: hashed, Role: role}
+    if err := s.repo.Create(user); err != nil {
+        return nil, domain.ErrUserExists
+    }
+    return user, nil
+}
+
+func (s *AuthService) RegisterByPhone(phone, password, role string) (*domain.User, error) {
+    hashed, err := s.hasher.Hash(password)
+    if err != nil {
+        return nil, err
+    }
+
+    // Валидация роли
+    if role != "" && role != domain.RoleSuperAdmin && role != domain.RoleCurator && role != domain.RoleOperator {
+        return nil, errors.New("invalid role")
+    }
+
+    user := &domain.User{Phone: phone, Password: hashed, Role: role}
     if err := s.repo.Create(user); err != nil {
         return nil, domain.ErrUserExists
     }
@@ -699,6 +731,171 @@ func sanitizePhone(phone string) string {
 	}
 	return "****" + phone[len(phone)-4:]
 }
+// AuthenticateMAX authenticates a user using MAX Mini App initData
+func (s *AuthService) AuthenticateMAX(initData string) (*TokensWithJTIResult, error) {
+	if s.maxAuthValidator == nil {
+		return nil, errors.New("MAX auth validator not configured")
+	}
+	
+	if s.maxBotToken == "" {
+		return nil, errors.New("MAX bot token not configured")
+	}
+
+	// Validate initData and extract user information
+	maxUserData, err := s.maxAuthValidator.ValidateInitData(initData, s.maxBotToken)
+	if err != nil {
+		// Audit log: hash verification failure (without sensitive data)
+		if s.logger != nil {
+			s.logger.Error(nil, "max_auth_validation_failed", map[string]interface{}{
+				"error":     "initData validation failed",
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"operation": "authenticate_max",
+			})
+		}
+		
+		// Map validation errors to appropriate HTTP status codes
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "hash verification failed") {
+			return nil, appErrors.UnauthorizedError("Invalid authentication data")
+		} else if strings.Contains(errMsg, "hash parameter is missing") || 
+				  strings.Contains(errMsg, "failed to parse initData") ||
+				  strings.Contains(errMsg, "initData cannot be empty") {
+			return nil, appErrors.ValidationError("Invalid initData format")
+		} else {
+			return nil, appErrors.UnauthorizedError("Authentication failed")
+		}
+	}
+
+	// Try to find existing user by max_id
+	user, err := s.repo.GetByMaxID(maxUserData.MaxID)
+	if err != nil {
+		// User doesn't exist, create new user
+		user = &domain.User{
+			Phone:    fmt.Sprintf("max_%d", maxUserData.MaxID), // Generate unique phone identifier for MAX users
+			MaxID:    &maxUserData.MaxID,
+			Username: maxUserData.Username,
+			Name:     buildDisplayName(maxUserData.FirstName, maxUserData.LastName),
+			Role:     domain.RoleOperator, // Default role for MAX users
+		}
+		
+		if err := s.repo.Create(user); err != nil {
+			// Audit log: database error
+			if s.logger != nil {
+				s.logger.Error(nil, "max_user_creation_failed", map[string]interface{}{
+					"max_id":    maxUserData.MaxID,
+					"error":     err.Error(),
+					"timestamp": time.Now().UTC().Format(time.RFC3339),
+					"operation": "authenticate_max",
+				})
+			}
+			return nil, fmt.Errorf("failed to create user: %w", err)
+		}
+		
+		// Record metrics for user creation
+		if s.metrics != nil {
+			s.metrics.IncrementUserCreations()
+		}
+		
+		// Audit log: new user created
+		if s.logger != nil {
+			s.logger.Info(nil, "max_user_created", map[string]interface{}{
+				"user_id":   user.ID,
+				"max_id":    maxUserData.MaxID,
+				"username":  maxUserData.Username,
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"operation": "authenticate_max",
+			})
+		}
+	} else {
+		// User exists, update their information with current MAX data
+		user.Username = maxUserData.Username
+		user.Name = buildDisplayName(maxUserData.FirstName, maxUserData.LastName)
+		
+		if err := s.repo.Update(user); err != nil {
+			// Audit log: database error
+			if s.logger != nil {
+				s.logger.Error(nil, "max_user_update_failed", map[string]interface{}{
+					"user_id":   user.ID,
+					"max_id":    maxUserData.MaxID,
+					"error":     err.Error(),
+					"timestamp": time.Now().UTC().Format(time.RFC3339),
+					"operation": "authenticate_max",
+				})
+			}
+			return nil, fmt.Errorf("failed to update user: %w", err)
+		}
+		
+		// Audit log: existing user updated
+		if s.logger != nil {
+			s.logger.Info(nil, "max_user_updated", map[string]interface{}{
+				"user_id":   user.ID,
+				"max_id":    maxUserData.MaxID,
+				"username":  maxUserData.Username,
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"operation": "authenticate_max",
+			})
+		}
+	}
+
+	// Generate JWT tokens using max_id as identifier
+	identifier := fmt.Sprintf("max_%d", maxUserData.MaxID)
+	tokens, err := s.jwtManager.GenerateTokens(user.ID, identifier, user.Role)
+	if err != nil {
+		// Audit log: JWT generation failure
+		if s.logger != nil {
+			s.logger.Error(nil, "max_jwt_generation_failed", map[string]interface{}{
+				"user_id":   user.ID,
+				"max_id":    maxUserData.MaxID,
+				"error":     err.Error(),
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"operation": "authenticate_max",
+			})
+		}
+		return nil, fmt.Errorf("failed to generate tokens: %w", err)
+	}
+
+	// Save refresh token JTI
+	expiresAt := time.Now().Add(s.jwtManager.RefreshTTL())
+	if err := s.refreshRepo.Save(tokens.RefreshJTI, user.ID, expiresAt); err != nil {
+		// Audit log: refresh token save failure
+		if s.logger != nil {
+			s.logger.Error(nil, "max_refresh_token_save_failed", map[string]interface{}{
+				"user_id":   user.ID,
+				"max_id":    maxUserData.MaxID,
+				"error":     err.Error(),
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"operation": "authenticate_max",
+			})
+		}
+		return nil, fmt.Errorf("failed to save refresh token: %w", err)
+	}
+
+	// Audit log: successful authentication
+	if s.logger != nil {
+		s.logger.Info(nil, "max_authentication_successful", map[string]interface{}{
+			"user_id":   user.ID,
+			"max_id":    maxUserData.MaxID,
+			"username":  maxUserData.Username,
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"operation": "authenticate_max",
+		})
+	}
+
+	return &TokensWithJTIResult{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+		RefreshJTI:   tokens.RefreshJTI,
+	}, nil
+}
+
+// buildDisplayName creates a display name from first and last name
+func buildDisplayName(firstName, lastName string) string {
+	if lastName != "" {
+		return firstName + " " + lastName
+	}
+	return firstName
+}
+
 // GetBotInfo retrieves bot information from MaxBot service
 func (s *AuthService) GetBotInfo(ctx context.Context) (*domain.BotInfo, error) {
 	if s.maxBotClient == nil {
