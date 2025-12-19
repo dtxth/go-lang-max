@@ -323,9 +323,17 @@ services:
 
 volumes:
   auth_pgdata:
+    external: true
+    name: auth-service_pgdata
   chat_db_data:
+    external: true  
+    name: go-microservices_chat_db_data
   employee_db_data:
+    external: true
+    name: go-microservices_employee_db_data
   structure_pgdata:
+    external: true
+    name: go-microservices_structure_pgdata
   migration_db_data:
   redis_data:
 

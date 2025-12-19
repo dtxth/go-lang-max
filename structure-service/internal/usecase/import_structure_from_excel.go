@@ -1,18 +1,18 @@
 package usecase
 
 import (
-	"database/sql"
 	"fmt"
 	"structure-service/internal/domain"
+	"structure-service/internal/infrastructure/database"
 )
 
 // ImportStructureFromExcelUseCase импортирует структуру из Excel файла
 type ImportStructureFromExcelUseCase struct {
 	repo domain.StructureRepository
-	db   *sql.DB
+	db   *database.DB
 }
 
-func NewImportStructureFromExcelUseCase(repo domain.StructureRepository, db *sql.DB) *ImportStructureFromExcelUseCase {
+func NewImportStructureFromExcelUseCase(repo domain.StructureRepository, db *database.DB) *ImportStructureFromExcelUseCase {
 	return &ImportStructureFromExcelUseCase{
 		repo: repo,
 		db:   db,

@@ -71,7 +71,7 @@ apply_migrations() {
 }
 
 # Apply migrations for each service
-apply_migrations "Auth Service" "auth-db" "postgres" "auth_db" "auth-service/migrations"
+apply_migrations "Auth Service" "auth-db" "postgres" "postgres" "auth-service/migrations"
 apply_migrations "Employee Service" "employee-db" "employee_user" "employee_db" "employee-service/migrations"
 apply_migrations "Chat Service" "chat-db" "chat_user" "chat_db" "chat-service/migrations"
 apply_migrations "Structure Service" "structure-db" "postgres" "structure_db" "structure-service/migrations"

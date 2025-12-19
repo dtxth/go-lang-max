@@ -3,21 +3,33 @@ package repository
 import (
 	"database/sql"
 	"structure-service/internal/domain"
+	"structure-service/internal/infrastructure/database"
 	"time"
 )
 
 type DepartmentManagerPostgres struct {
-	db *sql.DB
+	db  *database.DB
+	dsn string
 }
 
-func NewDepartmentManagerPostgres(db *sql.DB) domain.DepartmentManagerRepository {
+func NewDepartmentManagerPostgres(db *database.DB) domain.DepartmentManagerRepository {
 	return &DepartmentManagerPostgres{db: db}
+}
+
+func NewDepartmentManagerPostgresWithDSN(db *database.DB, dsn string) domain.DepartmentManagerRepository {
+	return &DepartmentManagerPostgres{db: db, dsn: dsn}
+}
+
+// getDB returns a working database connection
+func (r *DepartmentManagerPostgres) getDB() *database.DB {
+	return r.db
 }
 
 func (r *DepartmentManagerPostgres) CreateDepartmentManager(dm *domain.DepartmentManager) error {
 	query := `INSERT INTO department_managers (employee_id, branch_id, faculty_id, assigned_by, assigned_at) 
 			  VALUES ($1, $2, $3, $4, $5) RETURNING id`
-	err := r.db.QueryRow(query, dm.EmployeeID, dm.BranchID, dm.FacultyID, dm.AssignedBy, time.Now()).Scan(&dm.ID)
+	db := r.getDB()
+	err := db.QueryRow(query, dm.EmployeeID, dm.BranchID, dm.FacultyID, dm.AssignedBy, time.Now()).Scan(&dm.ID)
 	return err
 }
 
@@ -27,7 +39,8 @@ func (r *DepartmentManagerPostgres) GetDepartmentManagerByID(id int64) (*domain.
 			  FROM department_managers WHERE id = $1`
 	
 	var branchID, facultyID, assignedBy sql.NullInt64
-	err := r.db.QueryRow(query, id).Scan(&dm.ID, &dm.EmployeeID, &branchID, &facultyID, &assignedBy, &dm.AssignedAt)
+	db := r.getDB()
+	err := db.QueryRow(query, id).Scan(&dm.ID, &dm.EmployeeID, &branchID, &facultyID, &assignedBy, &dm.AssignedAt)
 	if err == sql.ErrNoRows {
 		return nil, domain.ErrDepartmentManagerNotFound
 	}
@@ -51,7 +64,8 @@ func (r *DepartmentManagerPostgres) GetDepartmentManagerByID(id int64) (*domain.
 func (r *DepartmentManagerPostgres) GetDepartmentManagersByEmployeeID(employeeID int64) ([]*domain.DepartmentManager, error) {
 	query := `SELECT id, employee_id, branch_id, faculty_id, assigned_by, assigned_at 
 			  FROM department_managers WHERE employee_id = $1 ORDER BY assigned_at DESC`
-	rows, err := r.db.Query(query, employeeID)
+	db := r.getDB()
+	rows, err := db.Query(query, employeeID)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +97,8 @@ func (r *DepartmentManagerPostgres) GetDepartmentManagersByEmployeeID(employeeID
 func (r *DepartmentManagerPostgres) GetDepartmentManagersByBranchID(branchID int64) ([]*domain.DepartmentManager, error) {
 	query := `SELECT id, employee_id, branch_id, faculty_id, assigned_by, assigned_at 
 			  FROM department_managers WHERE branch_id = $1 ORDER BY assigned_at DESC`
-	rows, err := r.db.Query(query, branchID)
+	db := r.getDB()
+	rows, err := db.Query(query, branchID)
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +130,8 @@ func (r *DepartmentManagerPostgres) GetDepartmentManagersByBranchID(branchID int
 func (r *DepartmentManagerPostgres) GetDepartmentManagersByFacultyID(facultyID int64) ([]*domain.DepartmentManager, error) {
 	query := `SELECT id, employee_id, branch_id, faculty_id, assigned_by, assigned_at 
 			  FROM department_managers WHERE faculty_id = $1 ORDER BY assigned_at DESC`
-	rows, err := r.db.Query(query, facultyID)
+	db := r.getDB()
+	rows, err := db.Query(query, facultyID)
 	if err != nil {
 		return nil, err
 	}
@@ -147,7 +163,8 @@ func (r *DepartmentManagerPostgres) GetDepartmentManagersByFacultyID(facultyID i
 func (r *DepartmentManagerPostgres) GetAllDepartmentManagers() ([]*domain.DepartmentManager, error) {
 	query := `SELECT id, employee_id, branch_id, faculty_id, assigned_by, assigned_at 
 			  FROM department_managers ORDER BY assigned_at DESC`
-	rows, err := r.db.Query(query)
+	db := r.getDB()
+	rows, err := db.Query(query)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +194,8 @@ func (r *DepartmentManagerPostgres) GetAllDepartmentManagers() ([]*domain.Depart
 }
 
 func (r *DepartmentManagerPostgres) DeleteDepartmentManager(id int64) error {
-	result, err := r.db.Exec("DELETE FROM department_managers WHERE id = $1", id)
+	db := r.getDB()
+	result, err := db.Exec("DELETE FROM department_managers WHERE id = $1", id)
 	if err != nil {
 		return err
 	}
