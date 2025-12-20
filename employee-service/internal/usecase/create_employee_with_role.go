@@ -158,16 +158,8 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 		log.Printf("Generated password for new employee with phone ending in %s: %s", 
 			sanitizePhone(phone), password)
 		
-		// Отправляем пароль пользователю через MAX Messenger
-		// Не блокируем создание пользователя при ошибке отправки уведомления
-		if uc.notificationService != nil {
-			err = uc.notificationService.SendPasswordNotification(ctx, phone, password)
-			if err != nil {
-				// Логируем ошибку, но не прерываем процесс создания
-				log.Printf("Failed to send password notification to phone ending in %s: %v", 
-					sanitizePhone(phone), err)
-			}
-		}
+		// Примечание: Отправка пароля через MAX Messenger отключена
+		// Пароль логируется выше для администраторов
 	}
 
 	// Создаем сотрудника в базе

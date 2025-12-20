@@ -218,10 +218,22 @@ func (s *AuthService) LoginByIdentifier(identifier, password string) (*TokensWit
     if len(identifier) > 0 && identifier[0] == '+' {
         user, err = s.repo.GetByPhone(identifier)
         if err != nil {
+            if s.logger != nil {
+                s.logger.Error(context.Background(), "failed_to_get_user_by_phone", map[string]interface{}{
+                    "phone": identifier,
+                    "error": err.Error(),
+                })
+            }
         }
     } else {
         user, err = s.repo.GetByEmail(identifier)
         if err != nil {
+            if s.logger != nil {
+                s.logger.Error(context.Background(), "failed_to_get_user_by_email", map[string]interface{}{
+                    "email": identifier,
+                    "error": err.Error(),
+                })
+            }
         }
     }
     
@@ -229,7 +241,20 @@ func (s *AuthService) LoginByIdentifier(identifier, password string) (*TokensWit
         return nil, domain.ErrInvalidCreds
     }
     
+    if s.logger != nil {
+        s.logger.Info(context.Background(), "user_found", map[string]interface{}{
+            "user_id": user.ID,
+            "phone": user.Phone,
+            "email": user.Email,
+        })
+    }
+    
     if !s.hasher.Compare(password, user.Password) {
+        if s.logger != nil {
+            s.logger.Error(context.Background(), "password_comparison_failed", map[string]interface{}{
+                "user_id": user.ID,
+            })
+        }
         return nil, domain.ErrInvalidCreds
     }
 
@@ -781,8 +806,9 @@ func (s *AuthService) AuthenticateMAX(initData string) (*TokensWithJTIResult, er
 	}
 
 	// User exists, update their information with current MAX data
-	user.Username = maxUserData.Username
-	user.Name = buildDisplayName(maxUserData.FirstName, maxUserData.LastName)
+	user.Username = &maxUserData.Username
+	displayName := buildDisplayName(maxUserData.FirstName, maxUserData.LastName)
+	user.Name = &displayName
 	
 	if err := s.repo.Update(user); err != nil {
 		// Audit log: database error

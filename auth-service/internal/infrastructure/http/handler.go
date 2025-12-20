@@ -7,6 +7,7 @@ import (
 	"auth-service/internal/infrastructure/phone"
 	"auth-service/internal/usecase"
 	"encoding/json"
+	"log"
 	"net/http"
 )
 
@@ -181,6 +182,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 // @Failure      401    {string}  string
 // @Router       /login-phone [post]
 func (h *Handler) LoginByPhone(w http.ResponseWriter, r *http.Request) {
+    log.Printf("[DEBUG] LoginByPhone called")
     requestID := middleware.GetRequestID(r.Context())
 
     
@@ -206,9 +208,13 @@ func (h *Handler) LoginByPhone(w http.ResponseWriter, r *http.Request) {
 
     // Normalize phone number to +7XXXXXXXXXX format
     normalizedPhone := phone.NormalizePhone(req.Phone)
+    
+    // Добавим логирование для отладки
+    log.Printf("[DEBUG] LoginByPhone: original=%s, normalized=%s", req.Phone, normalizedPhone)
 
     tokens, err := h.auth.LoginByIdentifier(normalizedPhone, req.Password)
     if err != nil {
+        log.Printf("[DEBUG] LoginByPhone: LoginByIdentifier failed with error: %v", err)
         errors.WriteError(w, err, requestID)
         return
     }

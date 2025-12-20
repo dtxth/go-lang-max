@@ -3,6 +3,7 @@ package repository
 import (
 	"auth-service/internal/domain"
 	"auth-service/internal/infrastructure/database"
+	"log"
 )
 
 type UserPostgres struct {
@@ -26,8 +27,17 @@ func (r *UserPostgres) Create(u *domain.User) error {
 
 func (r *UserPostgres) GetByPhone(phone string) (*domain.User, error) {
     user := &domain.User{}
-    err := r.db.QueryRow(`SELECT id, phone, email, password_hash, role, max_id, username, name FROM users WHERE phone=$1`, phone).
+    query := `SELECT id, phone, email, password_hash, role, max_id, username, name FROM users WHERE phone=$1`
+    err := r.db.QueryRow(query, phone).
         Scan(&user.ID, &user.Phone, &user.Email, &user.Password, &user.Role, &user.MaxID, &user.Username, &user.Name)
+    
+    // Добавим логирование для отладки
+    if err != nil {
+        log.Printf("[DEBUG] GetByPhone failed for phone=%s, error=%v", phone, err)
+    } else {
+        log.Printf("[DEBUG] GetByPhone success for phone=%s, found user ID=%d", phone, user.ID)
+    }
+    
     return user, err
 }
 
