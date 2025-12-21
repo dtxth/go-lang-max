@@ -110,7 +110,7 @@ func (h *Handler) Router() http.Handler {
 	// Swagger UI
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	// Wrap with request ID middleware
-	return middleware.RequestIDMiddleware(h.logger)(mux)
+	// Wrap with CORS middleware (отключен) и request ID middleware
+	return middleware.RequestIDMiddleware(h.logger)(middleware.CORSMiddleware(mux))
 }
 

@@ -130,7 +130,7 @@ func (h *Handler) Router() http.Handler {
 		w.Write([]byte("OK"))
 	})
 
-	// Wrap with request ID middleware
-	return middleware.RequestIDMiddleware(h.logger)(mux)
+	// Wrap with CORS middleware (отключен) и request ID middleware
+	return middleware.RequestIDMiddleware(h.logger)(middleware.CORSMiddleware(mux))
 }
 

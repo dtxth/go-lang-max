@@ -105,7 +105,7 @@ func (s *Server) setupRoutes() *mux.Router {
 
 	// Add middleware
 	router.Use(s.loggingMiddleware)
-	router.Use(s.corsMiddleware)
+	// router.Use(s.corsMiddleware) // CORS отключен
 	router.Use(s.requestIDMiddleware)
 	log.Printf("✅ Middleware added")
 
