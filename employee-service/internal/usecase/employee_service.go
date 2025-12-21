@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"employee-service/internal/domain"
+	"employee-service/internal/utils"
 	"strings"
 	"time"
 )
@@ -15,6 +16,7 @@ type EmployeeService struct {
 	passwordGenerator   domain.PasswordGenerator
 	notificationService domain.NotificationService
 	profileCache        domain.ProfileCacheService
+	phoneValidator      *utils.PhoneValidator
 }
 
 func NewEmployeeService(
@@ -34,6 +36,7 @@ func NewEmployeeService(
 		passwordGenerator:   passwordGenerator,
 		notificationService: notificationService,
 		profileCache:        profileCache,
+		phoneValidator:      utils.NewPhoneValidator(),
 	}
 }
 
@@ -47,9 +50,12 @@ func (s *EmployeeService) AddEmployeeByPhone(
 	universityName string,
 ) (*domain.Employee, error) {
 	// Валидация телефона
-	if !s.maxService.ValidatePhone(phone) {
+	if !s.phoneValidator.ValidatePhone(phone) {
 		return nil, domain.ErrInvalidPhone
 	}
+	
+	// Нормализуем телефон к стандартному формату
+	phone = s.phoneValidator.NormalizePhone(phone)
 	
 	// Проверяем, не существует ли уже сотрудник с таким телефоном
 	existing, _ := s.employeeRepo.GetByPhone(phone)
@@ -243,9 +249,12 @@ func (s *EmployeeService) UpdateEmployee(employee *domain.Employee) error {
 	
 	// Если изменился телефон, обновляем MAX_id
 	if employee.Phone != "" {
-		if !s.maxService.ValidatePhone(employee.Phone) {
+		if !s.phoneValidator.ValidatePhone(employee.Phone) {
 			return domain.ErrInvalidPhone
 		}
+		
+		// Нормализуем телефон
+		employee.Phone = s.phoneValidator.NormalizePhone(employee.Phone)
 		
 		maxID, err := s.maxService.GetMaxIDByPhone(employee.Phone)
 		if err != nil {

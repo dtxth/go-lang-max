@@ -15,6 +15,58 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
+        "/auth/max": {
+            "post": {
+                "description": "Validates MAX Mini App initData and returns JWT tokens",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "auth"
+                ],
+                "summary": "Authenticate MAX Mini App user",
+                "parameters": [
+                    {
+                        "description": "MAX initData",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/http.MaxAuthRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Authentication successful",
+                        "schema": {
+                            "$ref": "#/definitions/http.MaxAuthResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "401": {
+                        "description": "Authentication failed",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
+        },
         "/auth/password-reset/confirm": {
             "post": {
                 "description": "Validates reset token and updates user password",
@@ -489,7 +541,7 @@ const docTemplate = `{
         },
         "/register": {
             "post": {
-                "description": "Creates user and stores hashed password",
+                "description": "Creates user and stores hashed password. Provide either email or phone.",
                 "consumes": [
                     "application/json"
                 ],
@@ -502,7 +554,7 @@ const docTemplate = `{
                 "summary": "Register new user",
                 "parameters": [
                     {
-                        "description": "User credentials (role is optional, defaults to operator)",
+                        "description": "User credentials (provide either email or phone, role is optional, defaults to operator)",
                         "name": "input",
                         "in": "body",
                         "required": true,
@@ -513,6 +565,9 @@ const docTemplate = `{
                                     "type": "string"
                                 },
                                 "password": {
+                                    "type": "string"
+                                },
+                                "phone": {
                                     "type": "string"
                                 },
                                 "role": {
@@ -561,11 +616,23 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "max_id": {
+                    "description": "MAX-specific fields",
+                    "type": "integer"
+                },
+                "name": {
+                    "description": "Display name from MAX",
+                    "type": "string"
+                },
                 "phone": {
                     "description": "Основной идентификатор (телефон)",
                     "type": "string"
                 },
                 "role": {
+                    "type": "string"
+                },
+                "username": {
+                    "description": "MAX username",
                     "type": "string"
                 }
             }
@@ -582,6 +649,28 @@ const docTemplate = `{
                     "description": "Bot name",
                     "type": "string",
                     "example": "MAX Bot"
+                }
+            }
+        },
+        "http.MaxAuthRequest": {
+            "type": "object",
+            "required": [
+                "init_data"
+            ],
+            "properties": {
+                "init_data": {
+                    "type": "string"
+                }
+            }
+        },
+        "http.MaxAuthResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
                 }
             }
         }

@@ -6,4 +6,7 @@ type UserRepository interface {
     GetByEmail(email string) (*User, error) // Для обратной совместимости
     GetByID(id int64) (*User, error)
     Update(user *User) error
+    
+    // MAX-specific method
+    GetByMaxID(maxID int64) (*User, error)
 }

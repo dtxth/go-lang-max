@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"time"
 
 	"auth-service/internal/domain"
@@ -49,6 +50,9 @@ func (r *PasswordResetPostgres) GetByToken(token string) (*domain.PasswordResetT
 	)
 
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, domain.ErrNotFound
+		}
 		return nil, err
 	}
 

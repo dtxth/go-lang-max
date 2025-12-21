@@ -11,6 +11,7 @@ import (
 	"auth-service/internal/infrastructure/http"
 	"auth-service/internal/infrastructure/jwt"
 	"auth-service/internal/infrastructure/logger"
+	"auth-service/internal/infrastructure/max"
 	"auth-service/internal/infrastructure/maxbot"
 	"auth-service/internal/infrastructure/metrics"
 	"auth-service/internal/infrastructure/migration"
@@ -75,6 +76,9 @@ func main() {
 	hasher := hash.NewBcryptHasher()
 	jwtManager := jwt.NewManager(cfg.AccessSecret, cfg.RefreshSecret, 1*time.Hour, 7*24*time.Hour)
 	
+	// Initialize MAX auth validator
+	maxAuthValidator := max.NewAuthValidator()
+	
 	// Initialize logger
 	appLogger := logger.NewDefault()
 	
@@ -100,6 +104,10 @@ func main() {
 	}
 
 	authUC := usecase.NewAuthService(repo, refreshRepo, hasher, jwtManager, userRoleRepo)
+	
+	// Set MAX authentication configuration
+	authUC.SetMaxAuthValidator(maxAuthValidator)
+	authUC.SetMaxBotToken(cfg.MaxBotToken)
 	
 	// Set password configuration
 	authUC.SetPasswordConfig(cfg.MinPasswordLength, time.Duration(cfg.ResetTokenExpiration)*time.Minute)

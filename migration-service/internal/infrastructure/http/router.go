@@ -1,6 +1,7 @@
 package http
 
 import (
+	"migration-service/internal/infrastructure/middleware"
 	"net/http"
 
 	httpSwagger "github.com/swaggo/http-swagger"
@@ -8,7 +9,7 @@ import (
 )
 
 // SetupRoutes sets up HTTP routes
-func SetupRoutes(handler *Handler) *http.ServeMux {
+func SetupRoutes(handler *Handler) http.Handler {
 	mux := http.NewServeMux()
 
 	// Migration endpoints
@@ -29,5 +30,6 @@ func SetupRoutes(handler *Handler) *http.ServeMux {
 		httpSwagger.URL("/swagger/doc.json"),
 	))
 
-	return mux
+	// Wrap with CORS middleware (отключен) и request ID middleware
+	return middleware.RequestIDMiddleware(nil)(middleware.CORSMiddleware(mux))
 }

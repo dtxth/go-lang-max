@@ -52,6 +52,15 @@ func (m *mockUserRepository) GetByEmail(email string) (*domain.User, error) {
 	return nil, errors.New("user not found")
 }
 
+func (m *mockUserRepository) GetByMaxID(maxID int64) (*domain.User, error) {
+	for _, user := range m.users {
+		if user.MaxID != nil && *user.MaxID == maxID {
+			return user, nil
+		}
+	}
+	return nil, errors.New("user not found")
+}
+
 func (m *mockUserRepository) Update(user *domain.User) error {
 	if _, ok := m.users[user.ID]; !ok {
 		return errors.New("user not found")

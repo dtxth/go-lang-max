@@ -66,25 +66,10 @@ func (c *MaxClient) GetMaxIDByPhone(phone string) (string, error) {
 }
 
 func (c *MaxClient) ValidatePhone(phone string) bool {
-	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
-	defer cancel()
-
-	var resp *maxbotproto.ValidatePhoneResponse
-	err := grpcretry.WithRetry(ctx, "MaxBot.ValidatePhone", func() error {
-		var callErr error
-		resp, callErr = c.client.ValidatePhone(ctx, &maxbotproto.ValidatePhoneRequest{Phone: phone})
-		return callErr
-	})
-	
-	if err != nil {
-		return false
-	}
-
-	if resp.Error != "" {
-		return false
-	}
-
-	return resp.Valid
+	// Этот метод больше не используется для валидации телефонов
+	// Валидация теперь выполняется локально через PhoneValidator
+	// Оставляем реализацию для совместимости с интерфейсом
+	return true
 }
 
 // BatchGetMaxIDByPhone получает MAX_id для нескольких телефонов

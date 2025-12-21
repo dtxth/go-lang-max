@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"employee-service/internal/domain"
+	"employee-service/internal/utils"
 	"errors"
 	"log"
 	"strings"
@@ -18,6 +19,7 @@ type CreateEmployeeWithRoleUseCase struct {
 	passwordGenerator   domain.PasswordGenerator
 	notificationService domain.NotificationService
 	profileCache        domain.ProfileCacheService
+	phoneValidator      *utils.PhoneValidator
 }
 
 // NewCreateEmployeeWithRoleUseCase создает новый use case
@@ -38,6 +40,7 @@ func NewCreateEmployeeWithRoleUseCase(
 		passwordGenerator:   passwordGenerator,
 		notificationService: notificationService,
 		profileCache:        profileCache,
+		phoneValidator:      utils.NewPhoneValidator(),
 	}
 }
 
@@ -62,9 +65,12 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 	}
 
 	// Валидация телефона
-	if !uc.maxService.ValidatePhone(phone) {
+	if !uc.phoneValidator.ValidatePhone(phone) {
 		return nil, domain.ErrInvalidPhone
 	}
+
+	// Нормализуем телефон к стандартному формату
+	phone = uc.phoneValidator.NormalizePhone(phone)
 
 	// Проверяем, не существует ли уже сотрудник с таким телефоном
 	existing, _ := uc.employeeRepo.GetByPhone(phone)
@@ -158,16 +164,8 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 		log.Printf("Generated password for new employee with phone ending in %s: %s", 
 			sanitizePhone(phone), password)
 		
-		// Отправляем пароль пользователю через MAX Messenger
-		// Не блокируем создание пользователя при ошибке отправки уведомления
-		if uc.notificationService != nil {
-			err = uc.notificationService.SendPasswordNotification(ctx, phone, password)
-			if err != nil {
-				// Логируем ошибку, но не прерываем процесс создания
-				log.Printf("Failed to send password notification to phone ending in %s: %v", 
-					sanitizePhone(phone), err)
-			}
-		}
+		// Примечание: Отправка пароля через MAX Messenger отключена
+		// Пароль логируется выше для администраторов
 	}
 
 	// Создаем сотрудника в базе

@@ -16,6 +16,7 @@ func (h *Handler) Router() http.Handler {
 	mux.HandleFunc("/login-phone", h.LoginByPhone)
 	mux.HandleFunc("/refresh", h.Refresh)
 	mux.HandleFunc("/logout", h.Logout)
+	mux.HandleFunc("/auth/max", h.AuthenticateMAX)
 	
 	// Password management endpoints
 	mux.HandleFunc("/auth/password-reset/request", h.RequestPasswordReset)
@@ -35,6 +36,6 @@ func (h *Handler) Router() http.Handler {
 	// Swagger UI
     mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	// Wrap with request ID middleware
-	return middleware.RequestIDMiddleware(nil)(mux)
+	// Wrap with CORS middleware (отключен) и request ID middleware
+	return middleware.RequestIDMiddleware(nil)(middleware.CORSMiddleware(mux))
 }

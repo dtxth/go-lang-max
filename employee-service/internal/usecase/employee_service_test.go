@@ -23,10 +23,6 @@ func (m *mockMaxServiceForEmployeeTest) GetMaxIDByPhone(phone string) (string, e
 	return "max_" + phone, nil
 }
 
-func (m *mockMaxServiceForEmployeeTest) ValidatePhone(phone string) bool {
-	return len(phone) > 5
-}
-
 func (m *mockMaxServiceForEmployeeTest) BatchGetMaxIDByPhone(phones []string) (map[string]string, error) {
 	result := make(map[string]string)
 	for _, phone := range phones {
