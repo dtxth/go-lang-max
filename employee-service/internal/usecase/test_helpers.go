@@ -240,10 +240,6 @@ func (m *mockMaxService) GetMaxIDByPhone(phone string) (string, error) {
 	return "", domain.ErrMaxIDNotFound
 }
 
-func (m *mockMaxService) ValidatePhone(phone string) bool {
-	return len(phone) > 5
-}
-
 func (m *mockMaxService) BatchGetMaxIDByPhone(phones []string) (map[string]string, error) {
 	result := make(map[string]string)
 	for _, phone := range phones {

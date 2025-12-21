@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"employee-service/internal/domain"
+	"employee-service/internal/utils"
 	"errors"
 	"log"
 	"strings"
@@ -18,6 +19,7 @@ type CreateEmployeeWithRoleUseCase struct {
 	passwordGenerator   domain.PasswordGenerator
 	notificationService domain.NotificationService
 	profileCache        domain.ProfileCacheService
+	phoneValidator      *utils.PhoneValidator
 }
 
 // NewCreateEmployeeWithRoleUseCase создает новый use case
@@ -38,6 +40,7 @@ func NewCreateEmployeeWithRoleUseCase(
 		passwordGenerator:   passwordGenerator,
 		notificationService: notificationService,
 		profileCache:        profileCache,
+		phoneValidator:      utils.NewPhoneValidator(),
 	}
 }
 
@@ -62,9 +65,12 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 	}
 
 	// Валидация телефона
-	if !uc.maxService.ValidatePhone(phone) {
+	if !uc.phoneValidator.ValidatePhone(phone) {
 		return nil, domain.ErrInvalidPhone
 	}
+
+	// Нормализуем телефон к стандартному формату
+	phone = uc.phoneValidator.NormalizePhone(phone)
 
 	// Проверяем, не существует ли уже сотрудник с таким телефоном
 	existing, _ := uc.employeeRepo.GetByPhone(phone)

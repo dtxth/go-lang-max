@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"employee-service/internal/domain"
+	"employee-service/internal/utils"
 	"errors"
 	"time"
 )
@@ -13,6 +14,7 @@ type UpdateEmployeeWithRoleSyncUseCase struct {
 	universityRepo domain.UniversityRepository
 	maxService     domain.MaxService
 	authService    domain.AuthService
+	phoneValidator *utils.PhoneValidator
 }
 
 // NewUpdateEmployeeWithRoleSyncUseCase создает новый use case
@@ -27,6 +29,7 @@ func NewUpdateEmployeeWithRoleSyncUseCase(
 		universityRepo: universityRepo,
 		maxService:     maxService,
 		authService:    authService,
+		phoneValidator: utils.NewPhoneValidator(),
 	}
 }
 
@@ -78,9 +81,12 @@ func (uc *UpdateEmployeeWithRoleSyncUseCase) Execute(
 
 	// Если изменился телефон, обновляем MAX_id
 	if phone != "" && phone != existingEmployee.Phone {
-		if !uc.maxService.ValidatePhone(phone) {
+		if !uc.phoneValidator.ValidatePhone(phone) {
 			return nil, domain.ErrInvalidPhone
 		}
+
+		// Нормализуем телефон
+		phone = uc.phoneValidator.NormalizePhone(phone)
 
 		maxID, err := uc.maxService.GetMaxIDByPhone(phone)
 		if err == nil && maxID != "" {

@@ -118,10 +118,6 @@ func (m *mockMaxServiceForBatch) GetMaxIDByPhone(phone string) (string, error) {
 	return "", errors.New("not found")
 }
 
-func (m *mockMaxServiceForBatch) ValidatePhone(phone string) bool {
-	return true
-}
-
 func (m *mockMaxServiceForBatch) BatchGetMaxIDByPhone(phones []string) (map[string]string, error) {
 	result := make(map[string]string)
 	for _, phone := range phones {

@@ -6,9 +6,6 @@ type MaxService interface {
 	// GetMaxIDByPhone получает MAX_id по номеру телефона
 	GetMaxIDByPhone(phone string) (string, error)
 	
-	// ValidatePhone проверяет валидность номера телефона
-	ValidatePhone(phone string) bool
-	
 	// BatchGetMaxIDByPhone получает MAX_id для нескольких телефонов
 	// Возвращает map[phone]maxID для успешных запросов
 	BatchGetMaxIDByPhone(phones []string) (map[string]string, error)
