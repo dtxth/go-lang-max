@@ -13,11 +13,29 @@ import (
 func TestMain(m *testing.M) {
 	log.Println("Starting E2E tests...")
 	
-	// Проверяем доступность всех сервисов перед запуском тестов
+	// Check Gateway Service availability first (single entry point)
 	configs := utils.DefaultServiceConfigs()
+	gatewayConfig := configs["gateway"]
 	
-	log.Println("Checking service availability...")
-	for serviceName, config := range configs {
+	log.Printf("Checking Gateway Service at %s...", gatewayConfig.BaseURL)
+	err := utils.WaitForService(gatewayConfig.BaseURL, 10)
+	if err != nil {
+		log.Printf("WARNING: Gateway Service is not available: %v", err)
+		log.Printf("E2E tests require Gateway Service to be running")
+		log.Printf("Please start the Gateway Service and try again")
+		os.Exit(1)
+	} else {
+		log.Printf("✓ Gateway Service is available")
+	}
+	
+	// Check services that are not routed through Gateway
+	directServices := map[string]utils.ServiceConfig{
+		"migration": configs["migration"],
+		"maxbot":    configs["maxbot"],
+	}
+	
+	log.Println("Checking direct services availability...")
+	for serviceName, config := range directServices {
 		log.Printf("Checking %s at %s...", serviceName, config.BaseURL)
 		
 		err := utils.WaitForService(config.BaseURL, 10)
@@ -53,7 +71,7 @@ func logTestResult(t *testing.T, testName string, success bool) {
 // Benchmark тесты для проверки производительности
 func BenchmarkAuthServiceLogin(b *testing.B) {
 	configs := utils.DefaultServiceConfigs()
-	client := utils.NewTestClient(configs["auth"])
+	client := utils.NewTestClient(configs["auth"]) // Now points to Gateway Service
 	
 	// Создаем тестового пользователя
 	testUser := utils.GenerateTestUser()
@@ -91,7 +109,7 @@ func BenchmarkAuthServiceLogin(b *testing.B) {
 
 func BenchmarkStructureServiceGetUniversities(b *testing.B) {
 	configs := utils.DefaultServiceConfigs()
-	client := utils.NewTestClient(configs["structure"])
+	client := utils.NewTestClient(configs["structure"]) // Now points to Gateway Service
 	
 	b.ResetTimer()
 	
@@ -112,7 +130,7 @@ func BenchmarkStructureServiceGetUniversities(b *testing.B) {
 
 func BenchmarkEmployeeServiceGetAll(b *testing.B) {
 	configs := utils.DefaultServiceConfigs()
-	client := utils.NewTestClient(configs["employee"])
+	client := utils.NewTestClient(configs["employee"]) // Now points to Gateway Service
 	
 	b.ResetTimer()
 	
@@ -137,12 +155,12 @@ func TestLoadTest(t *testing.T) {
 	}
 	
 	configs := utils.DefaultServiceConfigs()
-	authClient := utils.NewTestClient(configs["auth"])
+	authClient := utils.NewTestClient(configs["auth"]) // Now points to Gateway Service
 	
-	// Проверяем доступность сервиса
-	err := utils.WaitForService(configs["auth"].BaseURL, 5)
+	// Проверяем доступность Gateway Service
+	err := utils.WaitForService(configs["gateway"].BaseURL, 5)
 	if err != nil {
-		t.Skip("Auth service not available")
+		t.Skip("Gateway service not available")
 	}
 	
 	// Создаем тестового пользователя

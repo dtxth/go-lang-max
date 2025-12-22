@@ -6,14 +6,70 @@ option go_package = "chat-service/api/proto;proto";
 
 // ChatService предоставляет методы для работы с чатами
 service ChatService {
+  // GetAllChats получает все чаты с пагинацией и поиском
+  rpc GetAllChats(GetAllChatsRequest) returns (GetAllChatsResponse);
+  
+  // SearchChats ищет чаты по параметрам
+  rpc SearchChats(SearchChatsRequest) returns (SearchChatsResponse);
+  
   // GetChatByID получает чат по ID
   rpc GetChatByID(GetChatByIDRequest) returns (GetChatByIDResponse);
   
   // CreateChat создает новый чат
   rpc CreateChat(CreateChatRequest) returns (CreateChatResponse);
   
+  // GetAllAdministrators получает всех администраторов
+  rpc GetAllAdministrators(GetAllAdministratorsRequest) returns (GetAllAdministratorsResponse);
+  
+  // GetAdministratorByID получает администратора по ID
+  rpc GetAdministratorByID(GetAdministratorByIDRequest) returns (GetAdministratorByIDResponse);
+  
+  // AddAdministrator добавляет администратора к чату
+  rpc AddAdministrator(AddAdministratorRequest) returns (AddAdministratorResponse);
+  
+  // RemoveAdministrator удаляет администратора
+  rpc RemoveAdministrator(RemoveAdministratorRequest) returns (RemoveAdministratorResponse);
+  
+  // RefreshParticipantsCount обновляет количество участников чата
+  rpc RefreshParticipantsCount(RefreshParticipantsCountRequest) returns (RefreshParticipantsCountResponse);
+  
   // AddAdministratorForMigration добавляет администратора без валидации телефона (только для миграции)
   rpc AddAdministratorForMigration(AddAdministratorForMigrationRequest) returns (AddAdministratorForMigrationResponse);
+  
+  // Health проверяет состояние сервиса
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Chat list messages
+message GetAllChatsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+  string sort_by = 3;
+  string sort_order = 4;
+}
+
+message GetAllChatsResponse {
+  repeated Chat chats = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  string error = 5;
+}
+
+message SearchChatsRequest {
+  string query = 1;
+  int32 page = 2;
+  int32 limit = 3;
+  string sort_by = 4;
+  string sort_order = 5;
+}
+
+message SearchChatsResponse {
+  repeated Chat chats = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  string error = 5;
 }
 
 message GetChatByIDRequest {
@@ -53,6 +109,48 @@ message Chat {
   string updated_at = 10;
 }
 
+// Administrator messages
+message GetAllAdministratorsRequest {
+  int32 page = 1;
+  int32 limit = 2;
+}
+
+message GetAllAdministratorsResponse {
+  repeated Administrator administrators = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 limit = 4;
+  string error = 5;
+}
+
+message GetAdministratorByIDRequest {
+  int64 id = 1;
+}
+
+message GetAdministratorByIDResponse {
+  Administrator administrator = 1;
+  string error = 2;
+}
+
+message AddAdministratorRequest {
+  int64 chat_id = 1;
+  string phone = 2;
+}
+
+message AddAdministratorResponse {
+  Administrator administrator = 1;
+  string error = 2;
+}
+
+message RemoveAdministratorRequest {
+  int64 id = 1;
+}
+
+message RemoveAdministratorResponse {
+  bool success = 1;
+  string error = 2;
+}
+
 message AddAdministratorForMigrationRequest {
   int64 chat_id = 1;
   string phone = 2;
@@ -76,3 +174,20 @@ message Administrator {
   string created_at = 7;
 }
 
+// Participants messages
+message RefreshParticipantsCountRequest {
+  int64 chat_id = 1;
+}
+
+message RefreshParticipantsCountResponse {
+  int32 participants_count = 1;
+  string error = 2;
+}
+
+// Health messages
+message HealthRequest {
+}
+
+message HealthResponse {
+  string status = 1;
+}

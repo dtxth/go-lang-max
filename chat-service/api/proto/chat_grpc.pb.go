@@ -19,9 +19,17 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	ChatService_GetAllChats_FullMethodName                  = "/chat.ChatService/GetAllChats"
+	ChatService_SearchChats_FullMethodName                  = "/chat.ChatService/SearchChats"
 	ChatService_GetChatByID_FullMethodName                  = "/chat.ChatService/GetChatByID"
 	ChatService_CreateChat_FullMethodName                   = "/chat.ChatService/CreateChat"
+	ChatService_GetAllAdministrators_FullMethodName         = "/chat.ChatService/GetAllAdministrators"
+	ChatService_GetAdministratorByID_FullMethodName         = "/chat.ChatService/GetAdministratorByID"
+	ChatService_AddAdministrator_FullMethodName             = "/chat.ChatService/AddAdministrator"
+	ChatService_RemoveAdministrator_FullMethodName          = "/chat.ChatService/RemoveAdministrator"
+	ChatService_RefreshParticipantsCount_FullMethodName     = "/chat.ChatService/RefreshParticipantsCount"
 	ChatService_AddAdministratorForMigration_FullMethodName = "/chat.ChatService/AddAdministratorForMigration"
+	ChatService_Health_FullMethodName                       = "/chat.ChatService/Health"
 )
 
 // ChatServiceClient is the client API for ChatService service.
@@ -30,12 +38,28 @@ const (
 //
 // ChatService предоставляет методы для работы с чатами
 type ChatServiceClient interface {
+	// GetAllChats получает все чаты с пагинацией и поиском
+	GetAllChats(ctx context.Context, in *GetAllChatsRequest, opts ...grpc.CallOption) (*GetAllChatsResponse, error)
+	// SearchChats ищет чаты по параметрам
+	SearchChats(ctx context.Context, in *SearchChatsRequest, opts ...grpc.CallOption) (*SearchChatsResponse, error)
 	// GetChatByID получает чат по ID
 	GetChatByID(ctx context.Context, in *GetChatByIDRequest, opts ...grpc.CallOption) (*GetChatByIDResponse, error)
 	// CreateChat создает новый чат
 	CreateChat(ctx context.Context, in *CreateChatRequest, opts ...grpc.CallOption) (*CreateChatResponse, error)
+	// GetAllAdministrators получает всех администраторов
+	GetAllAdministrators(ctx context.Context, in *GetAllAdministratorsRequest, opts ...grpc.CallOption) (*GetAllAdministratorsResponse, error)
+	// GetAdministratorByID получает администратора по ID
+	GetAdministratorByID(ctx context.Context, in *GetAdministratorByIDRequest, opts ...grpc.CallOption) (*GetAdministratorByIDResponse, error)
+	// AddAdministrator добавляет администратора к чату
+	AddAdministrator(ctx context.Context, in *AddAdministratorRequest, opts ...grpc.CallOption) (*AddAdministratorResponse, error)
+	// RemoveAdministrator удаляет администратора
+	RemoveAdministrator(ctx context.Context, in *RemoveAdministratorRequest, opts ...grpc.CallOption) (*RemoveAdministratorResponse, error)
+	// RefreshParticipantsCount обновляет количество участников чата
+	RefreshParticipantsCount(ctx context.Context, in *RefreshParticipantsCountRequest, opts ...grpc.CallOption) (*RefreshParticipantsCountResponse, error)
 	// AddAdministratorForMigration добавляет администратора без валидации телефона (только для миграции)
 	AddAdministratorForMigration(ctx context.Context, in *AddAdministratorForMigrationRequest, opts ...grpc.CallOption) (*AddAdministratorForMigrationResponse, error)
+	// Health проверяет состояние сервиса
+	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 }
 
 type chatServiceClient struct {
@@ -44,6 +68,26 @@ type chatServiceClient struct {
 
 func NewChatServiceClient(cc grpc.ClientConnInterface) ChatServiceClient {
 	return &chatServiceClient{cc}
+}
+
+func (c *chatServiceClient) GetAllChats(ctx context.Context, in *GetAllChatsRequest, opts ...grpc.CallOption) (*GetAllChatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllChatsResponse)
+	err := c.cc.Invoke(ctx, ChatService_GetAllChats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) SearchChats(ctx context.Context, in *SearchChatsRequest, opts ...grpc.CallOption) (*SearchChatsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchChatsResponse)
+	err := c.cc.Invoke(ctx, ChatService_SearchChats_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *chatServiceClient) GetChatByID(ctx context.Context, in *GetChatByIDRequest, opts ...grpc.CallOption) (*GetChatByIDResponse, error) {
@@ -66,10 +110,70 @@ func (c *chatServiceClient) CreateChat(ctx context.Context, in *CreateChatReques
 	return out, nil
 }
 
+func (c *chatServiceClient) GetAllAdministrators(ctx context.Context, in *GetAllAdministratorsRequest, opts ...grpc.CallOption) (*GetAllAdministratorsResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllAdministratorsResponse)
+	err := c.cc.Invoke(ctx, ChatService_GetAllAdministrators_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) GetAdministratorByID(ctx context.Context, in *GetAdministratorByIDRequest, opts ...grpc.CallOption) (*GetAdministratorByIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAdministratorByIDResponse)
+	err := c.cc.Invoke(ctx, ChatService_GetAdministratorByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) AddAdministrator(ctx context.Context, in *AddAdministratorRequest, opts ...grpc.CallOption) (*AddAdministratorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddAdministratorResponse)
+	err := c.cc.Invoke(ctx, ChatService_AddAdministrator_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) RemoveAdministrator(ctx context.Context, in *RemoveAdministratorRequest, opts ...grpc.CallOption) (*RemoveAdministratorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveAdministratorResponse)
+	err := c.cc.Invoke(ctx, ChatService_RemoveAdministrator_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) RefreshParticipantsCount(ctx context.Context, in *RefreshParticipantsCountRequest, opts ...grpc.CallOption) (*RefreshParticipantsCountResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RefreshParticipantsCountResponse)
+	err := c.cc.Invoke(ctx, ChatService_RefreshParticipantsCount_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *chatServiceClient) AddAdministratorForMigration(ctx context.Context, in *AddAdministratorForMigrationRequest, opts ...grpc.CallOption) (*AddAdministratorForMigrationResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(AddAdministratorForMigrationResponse)
 	err := c.cc.Invoke(ctx, ChatService_AddAdministratorForMigration_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *chatServiceClient) Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HealthResponse)
+	err := c.cc.Invoke(ctx, ChatService_Health_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -82,12 +186,28 @@ func (c *chatServiceClient) AddAdministratorForMigration(ctx context.Context, in
 //
 // ChatService предоставляет методы для работы с чатами
 type ChatServiceServer interface {
+	// GetAllChats получает все чаты с пагинацией и поиском
+	GetAllChats(context.Context, *GetAllChatsRequest) (*GetAllChatsResponse, error)
+	// SearchChats ищет чаты по параметрам
+	SearchChats(context.Context, *SearchChatsRequest) (*SearchChatsResponse, error)
 	// GetChatByID получает чат по ID
 	GetChatByID(context.Context, *GetChatByIDRequest) (*GetChatByIDResponse, error)
 	// CreateChat создает новый чат
 	CreateChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error)
+	// GetAllAdministrators получает всех администраторов
+	GetAllAdministrators(context.Context, *GetAllAdministratorsRequest) (*GetAllAdministratorsResponse, error)
+	// GetAdministratorByID получает администратора по ID
+	GetAdministratorByID(context.Context, *GetAdministratorByIDRequest) (*GetAdministratorByIDResponse, error)
+	// AddAdministrator добавляет администратора к чату
+	AddAdministrator(context.Context, *AddAdministratorRequest) (*AddAdministratorResponse, error)
+	// RemoveAdministrator удаляет администратора
+	RemoveAdministrator(context.Context, *RemoveAdministratorRequest) (*RemoveAdministratorResponse, error)
+	// RefreshParticipantsCount обновляет количество участников чата
+	RefreshParticipantsCount(context.Context, *RefreshParticipantsCountRequest) (*RefreshParticipantsCountResponse, error)
 	// AddAdministratorForMigration добавляет администратора без валидации телефона (только для миграции)
 	AddAdministratorForMigration(context.Context, *AddAdministratorForMigrationRequest) (*AddAdministratorForMigrationResponse, error)
+	// Health проверяет состояние сервиса
+	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	mustEmbedUnimplementedChatServiceServer()
 }
 
@@ -98,14 +218,38 @@ type ChatServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedChatServiceServer struct{}
 
+func (UnimplementedChatServiceServer) GetAllChats(context.Context, *GetAllChatsRequest) (*GetAllChatsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllChats not implemented")
+}
+func (UnimplementedChatServiceServer) SearchChats(context.Context, *SearchChatsRequest) (*SearchChatsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchChats not implemented")
+}
 func (UnimplementedChatServiceServer) GetChatByID(context.Context, *GetChatByIDRequest) (*GetChatByIDResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetChatByID not implemented")
 }
 func (UnimplementedChatServiceServer) CreateChat(context.Context, *CreateChatRequest) (*CreateChatResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateChat not implemented")
 }
+func (UnimplementedChatServiceServer) GetAllAdministrators(context.Context, *GetAllAdministratorsRequest) (*GetAllAdministratorsResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllAdministrators not implemented")
+}
+func (UnimplementedChatServiceServer) GetAdministratorByID(context.Context, *GetAdministratorByIDRequest) (*GetAdministratorByIDResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAdministratorByID not implemented")
+}
+func (UnimplementedChatServiceServer) AddAdministrator(context.Context, *AddAdministratorRequest) (*AddAdministratorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method AddAdministrator not implemented")
+}
+func (UnimplementedChatServiceServer) RemoveAdministrator(context.Context, *RemoveAdministratorRequest) (*RemoveAdministratorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveAdministrator not implemented")
+}
+func (UnimplementedChatServiceServer) RefreshParticipantsCount(context.Context, *RefreshParticipantsCountRequest) (*RefreshParticipantsCountResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RefreshParticipantsCount not implemented")
+}
 func (UnimplementedChatServiceServer) AddAdministratorForMigration(context.Context, *AddAdministratorForMigrationRequest) (*AddAdministratorForMigrationResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddAdministratorForMigration not implemented")
+}
+func (UnimplementedChatServiceServer) Health(context.Context, *HealthRequest) (*HealthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Health not implemented")
 }
 func (UnimplementedChatServiceServer) mustEmbedUnimplementedChatServiceServer() {}
 func (UnimplementedChatServiceServer) testEmbeddedByValue()                     {}
@@ -126,6 +270,42 @@ func RegisterChatServiceServer(s grpc.ServiceRegistrar, srv ChatServiceServer) {
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&ChatService_ServiceDesc, srv)
+}
+
+func _ChatService_GetAllChats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllChatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetAllChats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetAllChats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetAllChats(ctx, req.(*GetAllChatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_SearchChats_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchChatsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).SearchChats(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_SearchChats_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).SearchChats(ctx, req.(*SearchChatsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ChatService_GetChatByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -164,6 +344,96 @@ func _ChatService_CreateChat_Handler(srv interface{}, ctx context.Context, dec f
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_GetAllAdministrators_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllAdministratorsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetAllAdministrators(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetAllAdministrators_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetAllAdministrators(ctx, req.(*GetAllAdministratorsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_GetAdministratorByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAdministratorByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).GetAdministratorByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_GetAdministratorByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).GetAdministratorByID(ctx, req.(*GetAdministratorByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_AddAdministrator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddAdministratorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).AddAdministrator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_AddAdministrator_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).AddAdministrator(ctx, req.(*AddAdministratorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_RemoveAdministrator_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveAdministratorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).RemoveAdministrator(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_RemoveAdministrator_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).RemoveAdministrator(ctx, req.(*RemoveAdministratorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ChatService_RefreshParticipantsCount_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RefreshParticipantsCountRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).RefreshParticipantsCount(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_RefreshParticipantsCount_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).RefreshParticipantsCount(ctx, req.(*RefreshParticipantsCountRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ChatService_AddAdministratorForMigration_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(AddAdministratorForMigrationRequest)
 	if err := dec(in); err != nil {
@@ -182,6 +452,24 @@ func _ChatService_AddAdministratorForMigration_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ChatService_Health_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServiceServer).Health(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: ChatService_Health_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServiceServer).Health(ctx, req.(*HealthRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ChatService_ServiceDesc is the grpc.ServiceDesc for ChatService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -189,6 +477,14 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "chat.ChatService",
 	HandlerType: (*ChatServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetAllChats",
+			Handler:    _ChatService_GetAllChats_Handler,
+		},
+		{
+			MethodName: "SearchChats",
+			Handler:    _ChatService_SearchChats_Handler,
+		},
 		{
 			MethodName: "GetChatByID",
 			Handler:    _ChatService_GetChatByID_Handler,
@@ -198,8 +494,32 @@ var ChatService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ChatService_CreateChat_Handler,
 		},
 		{
+			MethodName: "GetAllAdministrators",
+			Handler:    _ChatService_GetAllAdministrators_Handler,
+		},
+		{
+			MethodName: "GetAdministratorByID",
+			Handler:    _ChatService_GetAdministratorByID_Handler,
+		},
+		{
+			MethodName: "AddAdministrator",
+			Handler:    _ChatService_AddAdministrator_Handler,
+		},
+		{
+			MethodName: "RemoveAdministrator",
+			Handler:    _ChatService_RemoveAdministrator_Handler,
+		},
+		{
+			MethodName: "RefreshParticipantsCount",
+			Handler:    _ChatService_RefreshParticipantsCount_Handler,
+		},
+		{
 			MethodName: "AddAdministratorForMigration",
 			Handler:    _ChatService_AddAdministratorForMigration_Handler,
+		},
+		{
+			MethodName: "Health",
+			Handler:    _ChatService_Health_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

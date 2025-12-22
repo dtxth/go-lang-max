@@ -16,5 +16,6 @@ var (
 	ErrInvalidDepartment         = errors.ValidationError("invalid department: must specify branch_id or faculty_id")
 	ErrInvalidFile               = errors.ValidationError("invalid file format")
 	ErrMissingColumns            = errors.ValidationError("missing required columns")
+	ErrInvalidInput              = errors.ValidationError("invalid input")
 )
 

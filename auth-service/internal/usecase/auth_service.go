@@ -794,45 +794,83 @@ func (s *AuthService) AuthenticateMAX(initData string) (*TokensWithJTIResult, er
 	// Try to find existing user by max_id
 	user, err := s.repo.GetByMaxID(maxUserData.MaxID)
 	if err != nil {
-		// User doesn't exist - return authentication error instead of creating
+		// User doesn't exist - create new user with MAX data
 		if s.logger != nil {
-			s.logger.Error(nil, "max_user_not_found", map[string]interface{}{
+			s.logger.Info(nil, "max_user_creation", map[string]interface{}{
 				"max_id":    maxUserData.MaxID,
+				"username":  maxUserData.Username,
 				"timestamp": time.Now().UTC().Format(time.RFC3339),
 				"operation": "authenticate_max",
 			})
 		}
-		return nil, appErrors.UnauthorizedError("User not found. Please contact administrator to register your account.")
-	}
 
-	// User exists, update their information with current MAX data
-	user.Username = &maxUserData.Username
-	displayName := buildDisplayName(maxUserData.FirstName, maxUserData.LastName)
-	user.Name = &displayName
-	
-	if err := s.repo.Update(user); err != nil {
-		// Audit log: database error
+		// Create new user with MAX data
+		displayName := buildDisplayName(maxUserData.FirstName, maxUserData.LastName)
+		newUser := &domain.User{
+			Phone:    "", // No phone for MAX users initially
+			Email:    "", // No email for MAX users initially
+			Password: "", // No password for MAX users
+			Role:     domain.RoleOperator, // Default role for MAX users
+			MaxID:    &maxUserData.MaxID,
+			Username: &maxUserData.Username,
+			Name:     &displayName,
+		}
+
+		if err := s.repo.Create(newUser); err != nil {
+			// Audit log: user creation failure
+			if s.logger != nil {
+				s.logger.Error(nil, "max_user_creation_failed", map[string]interface{}{
+					"max_id":    maxUserData.MaxID,
+					"error":     err.Error(),
+					"timestamp": time.Now().UTC().Format(time.RFC3339),
+					"operation": "authenticate_max",
+				})
+			}
+			return nil, fmt.Errorf("failed to create user: %w", err)
+		}
+
+		user = newUser
+
+		// Audit log: new user created
 		if s.logger != nil {
-			s.logger.Error(nil, "max_user_update_failed", map[string]interface{}{
+			s.logger.Info(nil, "max_user_created", map[string]interface{}{
 				"user_id":   user.ID,
 				"max_id":    maxUserData.MaxID,
-				"error":     err.Error(),
+				"username":  maxUserData.Username,
 				"timestamp": time.Now().UTC().Format(time.RFC3339),
 				"operation": "authenticate_max",
 			})
 		}
-		return nil, fmt.Errorf("failed to update user: %w", err)
-	}
-	
-	// Audit log: existing user updated
-	if s.logger != nil {
-		s.logger.Info(nil, "max_user_updated", map[string]interface{}{
-			"user_id":   user.ID,
-			"max_id":    maxUserData.MaxID,
-			"username":  maxUserData.Username,
-			"timestamp": time.Now().UTC().Format(time.RFC3339),
-			"operation": "authenticate_max",
-		})
+	} else {
+		// User exists, update their information with current MAX data
+		user.Username = &maxUserData.Username
+		displayName := buildDisplayName(maxUserData.FirstName, maxUserData.LastName)
+		user.Name = &displayName
+		
+		if err := s.repo.Update(user); err != nil {
+			// Audit log: database error
+			if s.logger != nil {
+				s.logger.Error(nil, "max_user_update_failed", map[string]interface{}{
+					"user_id":   user.ID,
+					"max_id":    maxUserData.MaxID,
+					"error":     err.Error(),
+					"timestamp": time.Now().UTC().Format(time.RFC3339),
+					"operation": "authenticate_max",
+				})
+			}
+			return nil, fmt.Errorf("failed to update user: %w", err)
+		}
+		
+		// Audit log: existing user updated
+		if s.logger != nil {
+			s.logger.Info(nil, "max_user_updated", map[string]interface{}{
+				"user_id":   user.ID,
+				"max_id":    maxUserData.MaxID,
+				"username":  maxUserData.Username,
+				"timestamp": time.Now().UTC().Format(time.RFC3339),
+				"operation": "authenticate_max",
+			})
+		}
 	}
 
 	// Generate JWT tokens using max_id as identifier

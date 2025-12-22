@@ -265,6 +265,91 @@ services:
     networks:
       - microservices-network
 
+  # Gateway Service
+  gateway-service:
+    build:
+      context: .
+      dockerfile: ./gateway-service/Dockerfile
+    container_name: gateway-service
+    environment:
+      # Gateway Configuration
+      GATEWAY_PORT: "${GATEWAY_PORT:-8080}"
+      GATEWAY_READ_TIMEOUT: "${GATEWAY_READ_TIMEOUT:-30s}"
+      GATEWAY_WRITE_TIMEOUT: "${GATEWAY_WRITE_TIMEOUT:-30s}"
+      
+      # gRPC Service Addresses
+      AUTH_SERVICE_ADDRESS: "${AUTH_SERVICE_ADDRESS:-auth-service:9090}"
+      CHAT_SERVICE_ADDRESS: "${CHAT_SERVICE_ADDRESS:-chat-service:9092}"
+      EMPLOYEE_SERVICE_ADDRESS: "${EMPLOYEE_SERVICE_ADDRESS:-employee-service:9091}"
+      STRUCTURE_SERVICE_ADDRESS: "${STRUCTURE_SERVICE_ADDRESS:-structure-service:9093}"
+      
+      # gRPC Service Timeouts
+      AUTH_SERVICE_TIMEOUT: "${AUTH_SERVICE_TIMEOUT:-10s}"
+      CHAT_SERVICE_TIMEOUT: "${CHAT_SERVICE_TIMEOUT:-10s}"
+      EMPLOYEE_SERVICE_TIMEOUT: "${EMPLOYEE_SERVICE_TIMEOUT:-10s}"
+      STRUCTURE_SERVICE_TIMEOUT: "${STRUCTURE_SERVICE_TIMEOUT:-10s}"
+      
+      # gRPC Service Retry Configuration
+      AUTH_SERVICE_MAX_RETRIES: "${AUTH_SERVICE_MAX_RETRIES:-3}"
+      CHAT_SERVICE_MAX_RETRIES: "${CHAT_SERVICE_MAX_RETRIES:-3}"
+      EMPLOYEE_SERVICE_MAX_RETRIES: "${EMPLOYEE_SERVICE_MAX_RETRIES:-3}"
+      STRUCTURE_SERVICE_MAX_RETRIES: "${STRUCTURE_SERVICE_MAX_RETRIES:-3}"
+      
+      AUTH_SERVICE_RETRY_DELAY: "${AUTH_SERVICE_RETRY_DELAY:-100ms}"
+      CHAT_SERVICE_RETRY_DELAY: "${CHAT_SERVICE_RETRY_DELAY:-100ms}"
+      EMPLOYEE_SERVICE_RETRY_DELAY: "${EMPLOYEE_SERVICE_RETRY_DELAY:-100ms}"
+      STRUCTURE_SERVICE_RETRY_DELAY: "${STRUCTURE_SERVICE_RETRY_DELAY:-100ms}"
+      
+      AUTH_SERVICE_MAX_RETRY_DELAY: "${AUTH_SERVICE_MAX_RETRY_DELAY:-5s}"
+      CHAT_SERVICE_MAX_RETRY_DELAY: "${CHAT_SERVICE_MAX_RETRY_DELAY:-5s}"
+      EMPLOYEE_SERVICE_MAX_RETRY_DELAY: "${EMPLOYEE_SERVICE_MAX_RETRY_DELAY:-5s}"
+      STRUCTURE_SERVICE_MAX_RETRY_DELAY: "${STRUCTURE_SERVICE_MAX_RETRY_DELAY:-5s}"
+      
+      AUTH_SERVICE_BACKOFF_MULTIPLIER: "${AUTH_SERVICE_BACKOFF_MULTIPLIER:-2.0}"
+      CHAT_SERVICE_BACKOFF_MULTIPLIER: "${CHAT_SERVICE_BACKOFF_MULTIPLIER:-2.0}"
+      EMPLOYEE_SERVICE_BACKOFF_MULTIPLIER: "${EMPLOYEE_SERVICE_BACKOFF_MULTIPLIER:-2.0}"
+      STRUCTURE_SERVICE_BACKOFF_MULTIPLIER: "${STRUCTURE_SERVICE_BACKOFF_MULTIPLIER:-2.0}"
+      
+      # Circuit Breaker Configuration
+      AUTH_SERVICE_CB_MAX_REQUESTS: "${AUTH_SERVICE_CB_MAX_REQUESTS:-10}"
+      CHAT_SERVICE_CB_MAX_REQUESTS: "${CHAT_SERVICE_CB_MAX_REQUESTS:-10}"
+      EMPLOYEE_SERVICE_CB_MAX_REQUESTS: "${EMPLOYEE_SERVICE_CB_MAX_REQUESTS:-10}"
+      STRUCTURE_SERVICE_CB_MAX_REQUESTS: "${STRUCTURE_SERVICE_CB_MAX_REQUESTS:-10}"
+      
+      AUTH_SERVICE_CB_INTERVAL: "${AUTH_SERVICE_CB_INTERVAL:-60s}"
+      CHAT_SERVICE_CB_INTERVAL: "${CHAT_SERVICE_CB_INTERVAL:-60s}"
+      EMPLOYEE_SERVICE_CB_INTERVAL: "${EMPLOYEE_SERVICE_CB_INTERVAL:-60s}"
+      STRUCTURE_SERVICE_CB_INTERVAL: "${STRUCTURE_SERVICE_CB_INTERVAL:-60s}"
+      
+      AUTH_SERVICE_CB_TIMEOUT: "${AUTH_SERVICE_CB_TIMEOUT:-60s}"
+      CHAT_SERVICE_CB_TIMEOUT: "${CHAT_SERVICE_CB_TIMEOUT:-60s}"
+      EMPLOYEE_SERVICE_CB_TIMEOUT: "${EMPLOYEE_SERVICE_CB_TIMEOUT:-60s}"
+      STRUCTURE_SERVICE_CB_TIMEOUT: "${STRUCTURE_SERVICE_CB_TIMEOUT:-60s}"
+      
+      # Logging Configuration
+      LOG_LEVEL: "${LOG_LEVEL:-info}"
+      LOG_FORMAT: "${LOG_FORMAT:-json}"
+    ports:
+      - "${GATEWAY_PORT:-8080}:${GATEWAY_PORT:-8080}"
+    depends_on:
+      auth-service:
+        condition: service_started
+      chat-service:
+        condition: service_started
+      employee-service:
+        condition: service_started
+      structure-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - microservices-network
+
   # Migration Service Database
   migration-db:
     image: postgres:15-alpine

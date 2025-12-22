@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package gateway;
+
+option go_package = "gateway-service/api/proto;proto";
+
+// GatewayService provides a unified HTTP-to-gRPC gateway
+service GatewayService {
+  // Health проверяет состояние gateway сервиса
+  rpc Health(HealthRequest) returns (HealthResponse);
+  
+  // GetMetrics получает метрики gateway сервиса
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+}
+
+// Health messages
+message HealthRequest {
+}
+
+message HealthResponse {
+  string status = 1;
+  map<string, string> services = 2; // статус подключенных сервисов
+}
+
+// Metrics messages
+message GetMetricsRequest {
+}
+
+message GetMetricsResponse {
+  map<string, int64> metrics = 1;
+  string error = 2;
+}

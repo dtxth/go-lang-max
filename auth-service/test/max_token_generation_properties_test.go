@@ -188,14 +188,16 @@ func TestProperty5_TokenGenerationReliability(t *testing.T) {
 			username := "existinguser" + padNumber(usernameSeed, 6)
 
 			// Create existing user with MAX ID
+			oldUsername := "oldusername"
+			oldName := "OldName"
 			existingUser := &domain.User{
 				Phone:    phone,
 				Email:    "",
 				Password: "hashedpassword",
 				Role:     domain.RoleOperator,
 				MaxID:    &maxID,
-				Username: "oldusername",
-				Name:     "OldName",
+				Username: &oldUsername,
+				Name:     &oldName,
 			}
 
 			err := userRepo.Create(existingUser)
@@ -244,8 +246,8 @@ func TestProperty5_TokenGenerationReliability(t *testing.T) {
 
 			// Verify user data was updated
 			expectedName := "UpdatedFirstName UpdatedLastName"
-			if updatedUser.Name != expectedName {
-				t.Logf("User name not updated: expected %s, got %s", expectedName, updatedUser.Name)
+			if updatedUser.Name == nil || *updatedUser.Name != expectedName {
+				t.Logf("User name not updated: expected %s, got %v", expectedName, updatedUser.Name)
 				return false
 			}
 

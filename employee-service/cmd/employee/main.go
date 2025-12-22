@@ -125,7 +125,7 @@ func main() {
 	}
 
 	// gRPC server
-	grpcHandler := grpc.NewEmployeeHandler(employeeService)
+	grpcHandler := grpc.NewEmployeeHandlerWithBatch(employeeService, batchUpdateMaxIdUseCase)
 	grpcServer := grpc.NewServer(grpcHandler, cfg.GRPCPort)
 
 	// Запускаем оба сервера

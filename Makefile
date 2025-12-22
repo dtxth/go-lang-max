@@ -1,6 +1,6 @@
 # Digital University MVP - Makefile
 
-.PHONY: help build up down logs test test-e2e clean clean-volumes restart setup health urls monitor deploy-rebuild
+.PHONY: help build up down logs test test-e2e clean clean-volumes restart setup health urls monitor deploy-rebuild proto-gen proto-validate docs-gateway
 
 # Default target
 help:
@@ -12,6 +12,12 @@ help:
 	@echo "  down       - Stop all services"
 	@echo "  restart    - Restart all services"
 	@echo "  setup      - Setup development environment"
+	@echo ""
+	@echo "🔧 Development:"
+	@echo "  proto-gen     - Generate Go code from proto files"
+	@echo "  proto-validate - Validate proto files syntax"
+	@echo "  dev-up        - Start only databases for development"
+	@echo "  dev-down      - Stop development services"
 	@echo ""
 	@echo "📊 Monitoring:"
 	@echo "  logs       - Show logs from all services"
@@ -39,12 +45,21 @@ help:
 	@echo "  db-reset      - Reset all databases"
 	@echo "  deploy-rebuild - Full rebuild and deploy"
 	@echo ""
-	@echo "👨‍💻 Development:"
-	@echo "  dev-up     - Start only databases for development"
-	@echo "  dev-down   - Stop development services"
+	@echo "📖 Documentation:"
+	@echo "  docs-gateway  - Serve Gateway Service documentation"
 
-# Build all services
-build:
+# Generate proto files
+proto-gen:
+	@echo "🔧 Generating proto files for all services..."
+	@./scripts/generate-proto.sh
+
+# Validate proto files
+proto-validate:
+	@echo "🔍 Validating proto files..."
+	@./scripts/validate-proto.sh
+
+# Build all services (with proto generation)
+build: proto-gen
 	@echo "Building all services..."
 	docker-compose build
 
@@ -195,6 +210,7 @@ urls:
 	@echo ""
 	@echo "Swagger Documentation:"
 	@echo "  Auth Service:      http://localhost:8080/swagger/"
+	@echo "  Gateway Service:   http://localhost:8082/swagger/"
 	@echo "  Structure Service: http://localhost:8083/swagger/"
 
 # Development helpers
@@ -229,3 +245,8 @@ monitor:
 quick-test:
 	@echo "Running quick health check tests..."
 	cd e2e-tests && go test -v -run "Health" -timeout 2m
+
+# Documentation
+docs-gateway:
+	@echo "📖 Starting Gateway Service documentation server..."
+	cd gateway-service && make docs-serve

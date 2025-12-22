@@ -53,8 +53,8 @@ func TestProperty3_UserLookupAndCreationBehavior(t *testing.T) {
 				Password: "hashedpassword",
 				Role:     domain.RoleOperator,
 				MaxID:    &maxID,
-				Username: username,
-				Name:     name,
+				Username: &username,
+				Name:     &name,
 			}
 
 			err := userRepo.Create(existingUser)
@@ -94,8 +94,8 @@ func TestProperty3_UserLookupAndCreationBehavior(t *testing.T) {
 
 			// User data should be updated with current MAX data
 			expectedName := "FirstName LastName"
-			if updatedUser.Name != expectedName {
-				t.Logf("User name not updated: expected %s, got %s", expectedName, updatedUser.Name)
+			if updatedUser.Name == nil || *updatedUser.Name != expectedName {
+				t.Logf("User name not updated: expected %s, got %v", expectedName, updatedUser.Name)
 				return false
 			}
 
@@ -150,14 +150,14 @@ func TestProperty3_UserLookupAndCreationBehavior(t *testing.T) {
 				return false
 			}
 
-			if newUser.Username != username {
-				t.Logf("Username not set correctly: expected %s, got %s", username, newUser.Username)
+			if newUser.Username == nil || *newUser.Username != username {
+				t.Logf("Username not set correctly: expected %s, got %v", username, newUser.Username)
 				return false
 			}
 
 			expectedName := "NewFirstName NewLastName"
-			if newUser.Name != expectedName {
-				t.Logf("Name not set correctly: expected %s, got %s", expectedName, newUser.Name)
+			if newUser.Name == nil || *newUser.Name != expectedName {
+				t.Logf("Name not set correctly: expected %s, got %v", expectedName, newUser.Name)
 				return false
 			}
 
@@ -201,15 +201,15 @@ func TestProperty3_UserLookupAndCreationBehavior(t *testing.T) {
 			}
 
 			// Username should be empty (optional field)
-			if newUser.Username != "" {
-				t.Logf("Username should be empty for missing optional field, got %s", newUser.Username)
+			if newUser.Username == nil || *newUser.Username != "" {
+				t.Logf("Username should be empty for missing optional field, got %v", newUser.Username)
 				return false
 			}
 
 			// Name should still be set correctly
 			expectedName := "FirstName LastName"
-			if newUser.Name != expectedName {
-				t.Logf("Name not set correctly: expected %s, got %s", expectedName, newUser.Name)
+			if newUser.Name == nil || *newUser.Name != expectedName {
+				t.Logf("Name not set correctly: expected %s, got %v", expectedName, newUser.Name)
 				return false
 			}
 
@@ -248,8 +248,8 @@ func TestProperty3_UserLookupAndCreationBehavior(t *testing.T) {
 
 			// Name should be just the first name (no last name)
 			expectedName := "OnlyFirstName"
-			if newUser.Name != expectedName {
-				t.Logf("Name not set correctly: expected %s, got %s", expectedName, newUser.Name)
+			if newUser.Name == nil || *newUser.Name != expectedName {
+				t.Logf("Name not set correctly: expected %s, got %v", expectedName, newUser.Name)
 				return false
 			}
 

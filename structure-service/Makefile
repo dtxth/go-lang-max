@@ -1,4 +1,10 @@
-.PHONY: build up down logs copy-proto
+.PHONY: build up down logs copy-proto proto-gen
+
+proto-gen:
+	@echo "Generating proto files for structure-service..."
+	protoc --go_out=. --go_opt=paths=source_relative \
+	       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+	       api/proto/structure.proto
 
 # Копируем proto файл из chat-service перед сборкой и модифицируем go_package
 copy-proto:
@@ -8,7 +14,7 @@ copy-proto:
 	 sed -i 's|option go_package = "chat-service/api/proto;proto";|option go_package = "structure-service/api/proto/chat;chatproto";|' api/proto/chat/chat.proto
 	@echo "Proto file copied and modified successfully"
 
-build: copy-proto
+build: proto-gen copy-proto
 	docker build -t structure-service .
 
 up:

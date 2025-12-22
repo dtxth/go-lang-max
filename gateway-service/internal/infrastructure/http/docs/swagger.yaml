@@ -1,0 +1,1857 @@
+openapi: 3.0.3
+info:
+  title: Gateway Service API
+  description: |
+    Gateway Service API предоставляет единую точку входа для всех микросервисов системы.
+    Сервис маршрутизирует HTTP запросы к соответствующим gRPC сервисам:
+    - Auth Service - аутентификация и авторизация
+    - Chat Service - управление чатами и администраторами
+    - Employee Service - управление сотрудниками
+    - Structure Service - управление структурой университетов
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@example.com
+servers:
+  - url: http://localhost:8080
+    description: Development server
+  - url: https://api.example.com
+    description: Production server
+
+tags:
+  - name: Auth
+    description: Аутентификация и авторизация пользователей
+  - name: Chat
+    description: Управление чатами
+  - name: Administrator
+    description: Управление администраторами чатов
+  - name: Employee
+    description: Управление сотрудниками
+  - name: University
+    description: Управление университетами
+  - name: Structure
+    description: Управление структурой университетов
+  - name: Department Manager
+    description: Управление менеджерами департаментов
+  - name: Health
+    description: Проверка состояния сервиса
+
+components:
+  schemas:
+    # Auth schemas
+    RegisterRequest:
+      type: object
+      required:
+        - email
+        - password
+        - phone
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          minLength: 6
+          example: "password123"
+        phone:
+          type: string
+          example: "+1234567890"
+        role:
+          type: string
+          example: "user"
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+        password:
+          type: string
+          example: "password123"
+
+    LoginByPhoneRequest:
+      type: object
+      required:
+        - phone
+        - password
+      properties:
+        phone:
+          type: string
+          example: "+1234567890"
+        password:
+          type: string
+          example: "password123"
+
+    AuthResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        id:
+          type: integer
+          format: int64
+          example: 1
+        email:
+          type: string
+          example: "user@example.com"
+        phone:
+          type: string
+          example: "+1234567890"
+        role:
+          type: string
+          example: "user"
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    RefreshRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    RefreshResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    LogoutRequest:
+      type: object
+      required:
+        - refresh_token
+      properties:
+        refresh_token:
+          type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+
+    AuthenticateMAXRequest:
+      type: object
+      required:
+        - init_data
+      properties:
+        init_data:
+          type: string
+          example: "query_id=AAHdF6IQAAAAAN0XohDhrOrc&user=%7B%22id%22%3A279058397..."
+
+    PasswordResetRequest:
+      type: object
+      required:
+        - email
+      properties:
+        email:
+          type: string
+          format: email
+          example: "user@example.com"
+
+    ResetPasswordRequest:
+      type: object
+      required:
+        - token
+        - new_password
+      properties:
+        token:
+          type: string
+          example: "reset_token_123"
+        new_password:
+          type: string
+          minLength: 6
+          example: "newpassword123"
+
+    ChangePasswordRequest:
+      type: object
+      required:
+        - current_password
+        - new_password
+      properties:
+        current_password:
+          type: string
+          example: "oldpassword123"
+        new_password:
+          type: string
+          minLength: 6
+          example: "newpassword123"
+
+    BotInfo:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 123456789
+        username:
+          type: string
+          example: "mybot"
+        first_name:
+          type: string
+          example: "My Bot"
+
+    # Chat schemas
+    Chat:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "General Chat"
+        url:
+          type: string
+          example: "https://t.me/generalchat"
+        max_chat_id:
+          type: integer
+          format: int64
+          example: -1001234567890
+        participants_count:
+          type: integer
+          format: int32
+          example: 150
+        university_id:
+          type: integer
+          format: int64
+          example: 1
+        department:
+          type: string
+          example: "Computer Science"
+        source:
+          type: string
+          example: "telegram"
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    CreateChatRequest:
+      type: object
+      required:
+        - name
+        - url
+        - max_chat_id
+        - university_id
+      properties:
+        name:
+          type: string
+          example: "General Chat"
+        url:
+          type: string
+          example: "https://t.me/generalchat"
+        max_chat_id:
+          type: integer
+          format: int64
+          example: -1001234567890
+        university_id:
+          type: integer
+          format: int64
+          example: 1
+        department:
+          type: string
+          example: "Computer Science"
+        source:
+          type: string
+          example: "telegram"
+
+    ChatsResponse:
+      type: object
+      properties:
+        chats:
+          type: array
+          items:
+            $ref: '#/components/schemas/Chat'
+        total:
+          type: integer
+          format: int32
+          example: 100
+        page:
+          type: integer
+          format: int32
+          example: 1
+        limit:
+          type: integer
+          format: int32
+          example: 10
+
+    # Administrator schemas
+    Administrator:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        chat_id:
+          type: integer
+          format: int64
+          example: 1
+        phone:
+          type: string
+          example: "+1234567890"
+        max_id:
+          type: integer
+          format: int64
+          example: 123456789
+        add_user:
+          type: boolean
+          example: true
+        add_admin:
+          type: boolean
+          example: false
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    AddAdministratorRequest:
+      type: object
+      required:
+        - chat_id
+        - phone
+        - max_id
+      properties:
+        chat_id:
+          type: integer
+          format: int64
+          example: 1
+        phone:
+          type: string
+          example: "+1234567890"
+        max_id:
+          type: integer
+          format: int64
+          example: 123456789
+        add_user:
+          type: boolean
+          example: true
+        add_admin:
+          type: boolean
+          example: false
+
+    AdministratorsResponse:
+      type: object
+      properties:
+        administrators:
+          type: array
+          items:
+            $ref: '#/components/schemas/Administrator'
+        total:
+          type: integer
+          format: int32
+          example: 50
+        page:
+          type: integer
+          format: int32
+          example: 1
+        limit:
+          type: integer
+          format: int32
+          example: 10
+
+    RefreshParticipantsRequest:
+      type: object
+      required:
+        - chat_id
+      properties:
+        chat_id:
+          type: integer
+          format: int64
+          example: 1
+
+    # Employee schemas
+    Employee:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        middle_name:
+          type: string
+          example: "Smith"
+        phone:
+          type: string
+          example: "+1234567890"
+        role:
+          type: string
+          example: "teacher"
+        university_id:
+          type: integer
+          format: int64
+          example: 1
+        max_id:
+          type: integer
+          format: int64
+          example: 123456789
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    CreateEmployeeRequest:
+      type: object
+      required:
+        - first_name
+        - last_name
+        - phone
+        - university_id
+      properties:
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        middle_name:
+          type: string
+          example: "Smith"
+        phone:
+          type: string
+          example: "+1234567890"
+        role:
+          type: string
+          example: "teacher"
+        university_id:
+          type: integer
+          format: int64
+          example: 1
+        max_id:
+          type: integer
+          format: int64
+          example: 123456789
+
+    CreateEmployeeSimpleRequest:
+      type: object
+      required:
+        - first_name
+        - phone
+      properties:
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        middle_name:
+          type: string
+          example: "Smith"
+        phone:
+          type: string
+          example: "+1234567890"
+
+    UpdateEmployeeRequest:
+      type: object
+      properties:
+        first_name:
+          type: string
+          example: "John"
+        last_name:
+          type: string
+          example: "Doe"
+        middle_name:
+          type: string
+          example: "Smith"
+        phone:
+          type: string
+          example: "+1234567890"
+        role:
+          type: string
+          example: "teacher"
+        university_id:
+          type: integer
+          format: int64
+          example: 1
+        max_id:
+          type: integer
+          format: int64
+          example: 123456789
+
+    EmployeesResponse:
+      type: object
+      properties:
+        employees:
+          type: array
+          items:
+            $ref: '#/components/schemas/Employee'
+        total:
+          type: integer
+          format: int32
+          example: 200
+        page:
+          type: integer
+          format: int32
+          example: 1
+        limit:
+          type: integer
+          format: int32
+          example: 10
+
+    BatchUpdateMaxIDRequest:
+      type: object
+      required:
+        - updates
+      properties:
+        updates:
+          type: array
+          items:
+            type: object
+            properties:
+              employee_id:
+                type: integer
+                format: int64
+                example: 1
+              max_id:
+                type: integer
+                format: int64
+                example: 123456789
+
+    BatchJob:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "job_123"
+        status:
+          type: string
+          enum: [pending, processing, completed, failed]
+          example: "processing"
+        total_items:
+          type: integer
+          format: int32
+          example: 100
+        processed_items:
+          type: integer
+          format: int32
+          example: 50
+        failed_items:
+          type: integer
+          format: int32
+          example: 2
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        error_message:
+          type: string
+          example: "Some items failed to process"
+
+    # University schemas
+    University:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        name:
+          type: string
+          example: "Moscow State University"
+        inn:
+          type: string
+          example: "1234567890"
+        kpp:
+          type: string
+          example: "123456789"
+        foiv:
+          type: string
+          example: "Ministry of Education"
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+        updated_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    CreateUniversityRequest:
+      type: object
+      required:
+        - name
+        - inn
+      properties:
+        name:
+          type: string
+          example: "Moscow State University"
+        inn:
+          type: string
+          example: "1234567890"
+        kpp:
+          type: string
+          example: "123456789"
+        foiv:
+          type: string
+          example: "Ministry of Education"
+
+    UniversitiesResponse:
+      type: object
+      properties:
+        universities:
+          type: array
+          items:
+            $ref: '#/components/schemas/University'
+        total:
+          type: integer
+          format: int32
+          example: 50
+        page:
+          type: integer
+          format: int32
+          example: 1
+        limit:
+          type: integer
+          format: int32
+          example: 10
+        offset:
+          type: integer
+          format: int32
+          example: 0
+
+    UpdateUniversityNameRequest:
+      type: object
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          example: "New University Name"
+
+    CreateStructureRequest:
+      type: object
+      required:
+        - university_name
+        - branch_name
+        - faculty_name
+        - group_name
+      properties:
+        university_name:
+          type: string
+          example: "Moscow State University"
+        branch_name:
+          type: string
+          example: "Main Campus"
+        faculty_name:
+          type: string
+          example: "Computer Science"
+        group_name:
+          type: string
+          example: "CS-2023"
+
+    ImportExcelResponse:
+      type: object
+      properties:
+        processed_rows:
+          type: integer
+          format: int32
+          example: 100
+        successful_rows:
+          type: integer
+          format: int32
+          example: 95
+        failed_rows:
+          type: integer
+          format: int32
+          example: 5
+        errors:
+          type: array
+          items:
+            type: string
+          example: ["Row 5: Invalid phone number", "Row 12: Missing required field"]
+
+    # Department Manager schemas
+    DepartmentManager:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+          example: 1
+        user_id:
+          type: integer
+          format: int64
+          example: 1
+        department_id:
+          type: integer
+          format: int64
+          example: 1
+        created_at:
+          type: string
+          format: date-time
+          example: "2023-01-01T00:00:00Z"
+
+    CreateDepartmentManagerRequest:
+      type: object
+      required:
+        - user_id
+        - department_id
+      properties:
+        user_id:
+          type: integer
+          format: int64
+          example: 1
+        department_id:
+          type: integer
+          format: int64
+          example: 1
+
+    # Common schemas
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: "Invalid request"
+        message:
+          type: string
+          example: "The request contains invalid data"
+        request_id:
+          type: string
+          example: "req_1234567890"
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok, degraded]
+          example: "ok"
+        services:
+          type: object
+          additionalProperties:
+            type: string
+          example:
+            auth: "healthy"
+            chat: "healthy"
+            employee: "healthy"
+            structure: "healthy"
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      description: Номер страницы (начиная с 1)
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 1
+        example: 1
+
+    LimitParam:
+      name: limit
+      in: query
+      description: Количество элементов на странице
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 100
+        default: 10
+        example: 10
+
+    SortByParam:
+      name: sort_by
+      in: query
+      description: Поле для сортировки
+      required: false
+      schema:
+        type: string
+        default: "created_at"
+        example: "created_at"
+
+    SortOrderParam:
+      name: sort_order
+      in: query
+      description: Порядок сортировки
+      required: false
+      schema:
+        type: string
+        enum: [asc, desc]
+        default: "desc"
+        example: "desc"
+
+    QueryParam:
+      name: query
+      in: query
+      description: Поисковый запрос
+      required: true
+      schema:
+        type: string
+        example: "search term"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+paths:
+  # Auth endpoints
+  /register:
+    post:
+      tags:
+        - Auth
+      summary: Регистрация нового пользователя
+      description: Создает нового пользователя в системе
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '200':
+          description: Успешная регистрация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Ошибка валидации данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /login:
+    post:
+      tags:
+        - Auth
+      summary: Вход по email
+      description: Аутентификация пользователя по email и паролю
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Успешная аутентификация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /login-phone:
+    post:
+      tags:
+        - Auth
+      summary: Вход по телефону
+      description: Аутентификация пользователя по номеру телефона и паролю
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginByPhoneRequest'
+      responses:
+        '200':
+          description: Успешная аутентификация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Неверные учетные данные
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /refresh:
+    post:
+      tags:
+        - Auth
+      summary: Обновление токена
+      description: Обновляет access token используя refresh token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+      responses:
+        '200':
+          description: Токен успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshResponse'
+        '401':
+          description: Недействительный refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /logout:
+    post:
+      tags:
+        - Auth
+      summary: Выход из системы
+      description: Завершает сессию пользователя
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LogoutRequest'
+      responses:
+        '200':
+          description: Успешный выход
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/max:
+    post:
+      tags:
+        - Auth
+      summary: Аутентификация через MAX
+      description: Аутентификация пользователя через MAX (Telegram Mini App)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthenticateMAXRequest'
+      responses:
+        '200':
+          description: Успешная аутентификация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Ошибка аутентификации MAX
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /auth/password-reset/request:
+    post:
+      tags:
+        - Auth
+      summary: Запрос сброса пароля
+      description: Отправляет запрос на сброс пароля
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordResetRequest'
+      responses:
+        '200':
+          description: Запрос отправлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/password-reset/reset:
+    post:
+      tags:
+        - Auth
+      summary: Сброс пароля
+      description: Сбрасывает пароль используя токен
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPasswordRequest'
+      responses:
+        '200':
+          description: Пароль успешно сброшен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /auth/password/change:
+    post:
+      tags:
+        - Auth
+      summary: Изменение пароля
+      description: Изменяет пароль аутентифицированного пользователя
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePasswordRequest'
+      responses:
+        '200':
+          description: Пароль успешно изменен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '401':
+          description: Неавторизован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /bot/me:
+    get:
+      tags:
+        - Auth
+      summary: Информация о боте
+      description: Получает информацию о боте
+      responses:
+        '200':
+          description: Информация о боте
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BotInfo'
+
+  /metrics:
+    get:
+      tags:
+        - Auth
+      summary: Метрики системы
+      description: Получает метрики системы
+      responses:
+        '200':
+          description: Метрики системы
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Проверка состояния
+      description: Проверяет состояние Gateway Service и всех подключенных сервисов
+      responses:
+        '200':
+          description: Все сервисы работают нормально
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        '503':
+          description: Один или несколько сервисов недоступны
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+
+  # Chat endpoints
+  /chats:
+    get:
+      tags:
+        - Chat
+      summary: Получить все чаты
+      description: Возвращает список всех чатов с пагинацией
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Список чатов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatsResponse'
+
+    post:
+      tags:
+        - Chat
+      summary: Создать чат
+      description: Создает новый чат
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateChatRequest'
+      responses:
+        '201':
+          description: Чат успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        '400':
+          description: Ошибка валидации данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /chats/{id}:
+    get:
+      tags:
+        - Chat
+      summary: Получить чат по ID
+      description: Возвращает информацию о конкретном чате
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID чата
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Информация о чате
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Chat'
+        '404':
+          description: Чат не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /chats/search:
+    get:
+      tags:
+        - Chat
+      summary: Поиск чатов
+      description: Поиск чатов по названию или другим параметрам
+      parameters:
+        - $ref: '#/components/parameters/QueryParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Результаты поиска
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatsResponse'
+
+  /chats/refresh-participants:
+    post:
+      tags:
+        - Chat
+      summary: Обновить количество участников
+      description: Обновляет количество участников в чате
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshParticipantsRequest'
+      responses:
+        '200':
+          description: Количество участников обновлено
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  participants_count:
+                    type: integer
+                    format: int32
+                    example: 150
+
+  # Administrator endpoints
+  /administrators:
+    get:
+      tags:
+        - Administrator
+      summary: Получить всех администраторов
+      description: Возвращает список всех администраторов чатов
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Список администраторов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdministratorsResponse'
+
+    post:
+      tags:
+        - Administrator
+      summary: Добавить администратора
+      description: Добавляет нового администратора к чату
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddAdministratorRequest'
+      responses:
+        '201':
+          description: Администратор успешно добавлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Administrator'
+        '400':
+          description: Ошибка валидации данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /administrators/{id}:
+    get:
+      tags:
+        - Administrator
+      summary: Получить администратора по ID
+      description: Возвращает информацию о конкретном администраторе
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID администратора
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Информация об администраторе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Administrator'
+        '404':
+          description: Администратор не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Administrator
+      summary: Удалить администратора
+      description: Удаляет администратора из чата
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID администратора
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Администратор успешно удален
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Администратор не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Employee endpoints
+  /employees/all:
+    get:
+      tags:
+        - Employee
+      summary: Получить всех сотрудников
+      description: Возвращает список всех сотрудников с пагинацией
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Список сотрудников
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeesResponse'
+
+  /employees/search:
+    get:
+      tags:
+        - Employee
+      summary: Поиск сотрудников
+      description: Поиск сотрудников по имени, телефону или другим параметрам
+      parameters:
+        - $ref: '#/components/parameters/QueryParam'
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Результаты поиска
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeesResponse'
+
+  /employees/{id}:
+    get:
+      tags:
+        - Employee
+      summary: Получить сотрудника по ID
+      description: Возвращает информацию о конкретном сотруднике
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID сотрудника
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Информация о сотруднике
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Сотрудник не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Employee
+      summary: Создать сотрудника
+      description: Создает нового сотрудника
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeRequest'
+      responses:
+        '201':
+          description: Сотрудник успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '400':
+          description: Ошибка валидации данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Employee
+      summary: Обновить сотрудника
+      description: Обновляет информацию о сотруднике
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID сотрудника
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEmployeeRequest'
+      responses:
+        '200':
+          description: Сотрудник успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+        '404':
+          description: Сотрудник не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Employee
+      summary: Удалить сотрудника
+      description: Удаляет сотрудника из системы
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID сотрудника
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Сотрудник успешно удален
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Сотрудник не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /simple-employee:
+    post:
+      tags:
+        - Employee
+      summary: Создать простого сотрудника
+      description: Создает сотрудника с минимальным набором полей
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEmployeeSimpleRequest'
+      responses:
+        '201':
+          description: Сотрудник успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Employee'
+
+  /employees/batch-update-maxid:
+    post:
+      tags:
+        - Employee
+      summary: Массовое обновление MAX ID
+      description: Обновляет MAX ID для множества сотрудников
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BatchUpdateMaxIDRequest'
+      responses:
+        '200':
+          description: Задача создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  job_id:
+                    type: string
+                    example: "job_123"
+
+  /employees/batch-status:
+    get:
+      tags:
+        - Employee
+      summary: Статус массовых операций
+      description: Возвращает статус всех массовых операций
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Список задач
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/BatchJob'
+
+  /employees/batch-status/{jobId}:
+    get:
+      tags:
+        - Employee
+      summary: Статус конкретной массовой операции
+      description: Возвращает статус конкретной массовой операции
+      parameters:
+        - name: jobId
+          in: path
+          required: true
+          description: ID задачи
+          schema:
+            type: string
+            example: "job_123"
+      responses:
+        '200':
+          description: Статус задачи
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BatchJob'
+        '404':
+          description: Задача не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # University endpoints
+  /universities:
+    get:
+      tags:
+        - University
+      summary: Получить все университеты
+      description: Возвращает список всех университетов с пагинацией
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+        - $ref: '#/components/parameters/SortByParam'
+        - $ref: '#/components/parameters/SortOrderParam'
+      responses:
+        '200':
+          description: Список университетов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UniversitiesResponse'
+
+    post:
+      tags:
+        - University
+      summary: Создать университет
+      description: Создает новый университет
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUniversityRequest'
+      responses:
+        '201':
+          description: Университет успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/University'
+        '400':
+          description: Ошибка валидации данных
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /universities/{id}:
+    get:
+      tags:
+        - University
+      summary: Получить университет по ID
+      description: Возвращает информацию о конкретном университете
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID университета
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Информация об университете
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/University'
+        '404':
+          description: Университет не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /universities/{id}/structure:
+    get:
+      tags:
+        - University
+      summary: Получить структуру университета
+      description: Возвращает структуру конкретного университета
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID университета
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Структура университета
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                    format: int64
+                    example: 1
+                  name:
+                    type: string
+                    example: "Moscow State University"
+                  type:
+                    type: string
+                    example: "university"
+        '404':
+          description: Университет не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /universities/{id}/name:
+    put:
+      tags:
+        - University
+      summary: Обновить название университета
+      description: Обновляет название университета
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID университета
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateUniversityNameRequest'
+      responses:
+        '200':
+          description: Название успешно обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/University'
+        '404':
+          description: Университет не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Structure endpoints
+  /structure:
+    post:
+      tags:
+        - Structure
+      summary: Создать структуру
+      description: Создает структуру университета (филиал, факультет, группа)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateStructureRequest'
+      responses:
+        '200':
+          description: Структура успешно создана
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Structure created successfully"
+                  university_id:
+                    type: integer
+                    format: int64
+                    example: 1
+                  branch_id:
+                    type: integer
+                    format: int64
+                    example: 1
+                  faculty_id:
+                    type: integer
+                    format: int64
+                    example: 1
+                  group_id:
+                    type: integer
+                    format: int64
+                    example: 1
+
+  /import/excel:
+    post:
+      tags:
+        - Structure
+      summary: Импорт из Excel
+      description: Импортирует данные из Excel файла
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Excel файл для импорта
+      responses:
+        '200':
+          description: Импорт завершен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportExcelResponse'
+        '400':
+          description: Ошибка импорта
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  # Department Manager endpoints
+  /departments/managers:
+    get:
+      tags:
+        - Department Manager
+      summary: Получить всех менеджеров департаментов
+      description: Возвращает список всех менеджеров департаментов
+      parameters:
+        - $ref: '#/components/parameters/PageParam'
+        - $ref: '#/components/parameters/LimitParam'
+      responses:
+        '200':
+          description: Список менеджеров департаментов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DepartmentManager'
+
+    post:
+      tags:
+        - Department Manager
+      summary: Создать менеджера департамента
+      description: Назначает пользователя менеджером департамента
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateDepartmentManagerRequest'
+      responses:
+        '201':
+          description: Менеджер успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepartmentManager'
+        '404':
+          description: Пользователь или департамент не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /departments/managers/{id}:
+    delete:
+      tags:
+        - Department Manager
+      summary: Удалить менеджера департамента
+      description: Удаляет менеджера департамента
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID менеджера
+          schema:
+            type: integer
+            format: int64
+            example: 1
+      responses:
+        '200':
+          description: Менеджер успешно удален
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          description: Менеджер не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

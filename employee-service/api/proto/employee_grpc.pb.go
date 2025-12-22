@@ -19,10 +19,21 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	EmployeeService_GetAllEmployees_FullMethodName          = "/employee.EmployeeService/GetAllEmployees"
+	EmployeeService_SearchEmployees_FullMethodName          = "/employee.EmployeeService/SearchEmployees"
+	EmployeeService_GetEmployeeByID_FullMethodName          = "/employee.EmployeeService/GetEmployeeByID"
+	EmployeeService_CreateEmployee_FullMethodName           = "/employee.EmployeeService/CreateEmployee"
+	EmployeeService_CreateEmployeeSimple_FullMethodName     = "/employee.EmployeeService/CreateEmployeeSimple"
+	EmployeeService_CreateEmployeeByPhone_FullMethodName    = "/employee.EmployeeService/CreateEmployeeByPhone"
+	EmployeeService_UpdateEmployee_FullMethodName           = "/employee.EmployeeService/UpdateEmployee"
+	EmployeeService_DeleteEmployee_FullMethodName           = "/employee.EmployeeService/DeleteEmployee"
+	EmployeeService_BatchUpdateMaxID_FullMethodName         = "/employee.EmployeeService/BatchUpdateMaxID"
+	EmployeeService_GetBatchStatus_FullMethodName           = "/employee.EmployeeService/GetBatchStatus"
+	EmployeeService_GetBatchStatusByID_FullMethodName       = "/employee.EmployeeService/GetBatchStatusByID"
 	EmployeeService_GetUniversityByID_FullMethodName        = "/employee.EmployeeService/GetUniversityByID"
 	EmployeeService_GetUniversityByINN_FullMethodName       = "/employee.EmployeeService/GetUniversityByINN"
 	EmployeeService_GetUniversityByINNAndKPP_FullMethodName = "/employee.EmployeeService/GetUniversityByINNAndKPP"
-	EmployeeService_GetEmployeeByID_FullMethodName          = "/employee.EmployeeService/GetEmployeeByID"
+	EmployeeService_Health_FullMethodName                   = "/employee.EmployeeService/Health"
 )
 
 // EmployeeServiceClient is the client API for EmployeeService service.
@@ -31,14 +42,36 @@ const (
 //
 // EmployeeService предоставляет методы для работы с сотрудниками и университетами
 type EmployeeServiceClient interface {
+	// GetAllEmployees получает всех сотрудников с пагинацией
+	GetAllEmployees(ctx context.Context, in *GetAllEmployeesRequest, opts ...grpc.CallOption) (*GetAllEmployeesResponse, error)
+	// SearchEmployees ищет сотрудников по параметрам
+	SearchEmployees(ctx context.Context, in *SearchEmployeesRequest, opts ...grpc.CallOption) (*SearchEmployeesResponse, error)
+	// GetEmployeeByID получает сотрудника по ID
+	GetEmployeeByID(ctx context.Context, in *GetEmployeeByIDRequest, opts ...grpc.CallOption) (*GetEmployeeByIDResponse, error)
+	// CreateEmployee создает нового сотрудника
+	CreateEmployee(ctx context.Context, in *CreateEmployeeRequest, opts ...grpc.CallOption) (*CreateEmployeeResponse, error)
+	// CreateEmployeeSimple создает сотрудника с минимальными данными
+	CreateEmployeeSimple(ctx context.Context, in *CreateEmployeeSimpleRequest, opts ...grpc.CallOption) (*CreateEmployeeSimpleResponse, error)
+	// CreateEmployeeByPhone создает сотрудника только по телефону
+	CreateEmployeeByPhone(ctx context.Context, in *CreateEmployeeByPhoneRequest, opts ...grpc.CallOption) (*CreateEmployeeByPhoneResponse, error)
+	// UpdateEmployee обновляет данные сотрудника
+	UpdateEmployee(ctx context.Context, in *UpdateEmployeeRequest, opts ...grpc.CallOption) (*UpdateEmployeeResponse, error)
+	// DeleteEmployee удаляет сотрудника
+	DeleteEmployee(ctx context.Context, in *DeleteEmployeeRequest, opts ...grpc.CallOption) (*DeleteEmployeeResponse, error)
+	// BatchUpdateMaxID обновляет MAX ID для группы сотрудников
+	BatchUpdateMaxID(ctx context.Context, in *BatchUpdateMaxIDRequest, opts ...grpc.CallOption) (*BatchUpdateMaxIDResponse, error)
+	// GetBatchStatus получает статус всех batch операций
+	GetBatchStatus(ctx context.Context, in *GetBatchStatusRequest, opts ...grpc.CallOption) (*GetBatchStatusResponse, error)
+	// GetBatchStatusByID получает статус конкретной batch операции
+	GetBatchStatusByID(ctx context.Context, in *GetBatchStatusByIDRequest, opts ...grpc.CallOption) (*GetBatchStatusByIDResponse, error)
 	// GetUniversityByID получает вуз по ID
 	GetUniversityByID(ctx context.Context, in *GetUniversityByIDRequest, opts ...grpc.CallOption) (*GetUniversityByIDResponse, error)
 	// GetUniversityByINN получает вуз по ИНН
 	GetUniversityByINN(ctx context.Context, in *GetUniversityByINNRequest, opts ...grpc.CallOption) (*GetUniversityByINNResponse, error)
 	// GetUniversityByINNAndKPP получает вуз по ИНН и КПП
 	GetUniversityByINNAndKPP(ctx context.Context, in *GetUniversityByINNAndKPPRequest, opts ...grpc.CallOption) (*GetUniversityByINNAndKPPResponse, error)
-	// GetEmployeeByID получает сотрудника по ID
-	GetEmployeeByID(ctx context.Context, in *GetEmployeeByIDRequest, opts ...grpc.CallOption) (*GetEmployeeByIDResponse, error)
+	// Health проверяет состояние сервиса
+	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 }
 
 type employeeServiceClient struct {
@@ -47,6 +80,116 @@ type employeeServiceClient struct {
 
 func NewEmployeeServiceClient(cc grpc.ClientConnInterface) EmployeeServiceClient {
 	return &employeeServiceClient{cc}
+}
+
+func (c *employeeServiceClient) GetAllEmployees(ctx context.Context, in *GetAllEmployeesRequest, opts ...grpc.CallOption) (*GetAllEmployeesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllEmployeesResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_GetAllEmployees_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) SearchEmployees(ctx context.Context, in *SearchEmployeesRequest, opts ...grpc.CallOption) (*SearchEmployeesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SearchEmployeesResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_SearchEmployees_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) GetEmployeeByID(ctx context.Context, in *GetEmployeeByIDRequest, opts ...grpc.CallOption) (*GetEmployeeByIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetEmployeeByIDResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_GetEmployeeByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) CreateEmployee(ctx context.Context, in *CreateEmployeeRequest, opts ...grpc.CallOption) (*CreateEmployeeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateEmployeeResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_CreateEmployee_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) CreateEmployeeSimple(ctx context.Context, in *CreateEmployeeSimpleRequest, opts ...grpc.CallOption) (*CreateEmployeeSimpleResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateEmployeeSimpleResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_CreateEmployeeSimple_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) CreateEmployeeByPhone(ctx context.Context, in *CreateEmployeeByPhoneRequest, opts ...grpc.CallOption) (*CreateEmployeeByPhoneResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateEmployeeByPhoneResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_CreateEmployeeByPhone_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) UpdateEmployee(ctx context.Context, in *UpdateEmployeeRequest, opts ...grpc.CallOption) (*UpdateEmployeeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateEmployeeResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_UpdateEmployee_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) DeleteEmployee(ctx context.Context, in *DeleteEmployeeRequest, opts ...grpc.CallOption) (*DeleteEmployeeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteEmployeeResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_DeleteEmployee_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) BatchUpdateMaxID(ctx context.Context, in *BatchUpdateMaxIDRequest, opts ...grpc.CallOption) (*BatchUpdateMaxIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BatchUpdateMaxIDResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_BatchUpdateMaxID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) GetBatchStatus(ctx context.Context, in *GetBatchStatusRequest, opts ...grpc.CallOption) (*GetBatchStatusResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBatchStatusResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_GetBatchStatus_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *employeeServiceClient) GetBatchStatusByID(ctx context.Context, in *GetBatchStatusByIDRequest, opts ...grpc.CallOption) (*GetBatchStatusByIDResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetBatchStatusByIDResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_GetBatchStatusByID_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *employeeServiceClient) GetUniversityByID(ctx context.Context, in *GetUniversityByIDRequest, opts ...grpc.CallOption) (*GetUniversityByIDResponse, error) {
@@ -79,10 +222,10 @@ func (c *employeeServiceClient) GetUniversityByINNAndKPP(ctx context.Context, in
 	return out, nil
 }
 
-func (c *employeeServiceClient) GetEmployeeByID(ctx context.Context, in *GetEmployeeByIDRequest, opts ...grpc.CallOption) (*GetEmployeeByIDResponse, error) {
+func (c *employeeServiceClient) Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(GetEmployeeByIDResponse)
-	err := c.cc.Invoke(ctx, EmployeeService_GetEmployeeByID_FullMethodName, in, out, cOpts...)
+	out := new(HealthResponse)
+	err := c.cc.Invoke(ctx, EmployeeService_Health_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -95,14 +238,36 @@ func (c *employeeServiceClient) GetEmployeeByID(ctx context.Context, in *GetEmpl
 //
 // EmployeeService предоставляет методы для работы с сотрудниками и университетами
 type EmployeeServiceServer interface {
+	// GetAllEmployees получает всех сотрудников с пагинацией
+	GetAllEmployees(context.Context, *GetAllEmployeesRequest) (*GetAllEmployeesResponse, error)
+	// SearchEmployees ищет сотрудников по параметрам
+	SearchEmployees(context.Context, *SearchEmployeesRequest) (*SearchEmployeesResponse, error)
+	// GetEmployeeByID получает сотрудника по ID
+	GetEmployeeByID(context.Context, *GetEmployeeByIDRequest) (*GetEmployeeByIDResponse, error)
+	// CreateEmployee создает нового сотрудника
+	CreateEmployee(context.Context, *CreateEmployeeRequest) (*CreateEmployeeResponse, error)
+	// CreateEmployeeSimple создает сотрудника с минимальными данными
+	CreateEmployeeSimple(context.Context, *CreateEmployeeSimpleRequest) (*CreateEmployeeSimpleResponse, error)
+	// CreateEmployeeByPhone создает сотрудника только по телефону
+	CreateEmployeeByPhone(context.Context, *CreateEmployeeByPhoneRequest) (*CreateEmployeeByPhoneResponse, error)
+	// UpdateEmployee обновляет данные сотрудника
+	UpdateEmployee(context.Context, *UpdateEmployeeRequest) (*UpdateEmployeeResponse, error)
+	// DeleteEmployee удаляет сотрудника
+	DeleteEmployee(context.Context, *DeleteEmployeeRequest) (*DeleteEmployeeResponse, error)
+	// BatchUpdateMaxID обновляет MAX ID для группы сотрудников
+	BatchUpdateMaxID(context.Context, *BatchUpdateMaxIDRequest) (*BatchUpdateMaxIDResponse, error)
+	// GetBatchStatus получает статус всех batch операций
+	GetBatchStatus(context.Context, *GetBatchStatusRequest) (*GetBatchStatusResponse, error)
+	// GetBatchStatusByID получает статус конкретной batch операции
+	GetBatchStatusByID(context.Context, *GetBatchStatusByIDRequest) (*GetBatchStatusByIDResponse, error)
 	// GetUniversityByID получает вуз по ID
 	GetUniversityByID(context.Context, *GetUniversityByIDRequest) (*GetUniversityByIDResponse, error)
 	// GetUniversityByINN получает вуз по ИНН
 	GetUniversityByINN(context.Context, *GetUniversityByINNRequest) (*GetUniversityByINNResponse, error)
 	// GetUniversityByINNAndKPP получает вуз по ИНН и КПП
 	GetUniversityByINNAndKPP(context.Context, *GetUniversityByINNAndKPPRequest) (*GetUniversityByINNAndKPPResponse, error)
-	// GetEmployeeByID получает сотрудника по ID
-	GetEmployeeByID(context.Context, *GetEmployeeByIDRequest) (*GetEmployeeByIDResponse, error)
+	// Health проверяет состояние сервиса
+	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	mustEmbedUnimplementedEmployeeServiceServer()
 }
 
@@ -113,6 +278,39 @@ type EmployeeServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedEmployeeServiceServer struct{}
 
+func (UnimplementedEmployeeServiceServer) GetAllEmployees(context.Context, *GetAllEmployeesRequest) (*GetAllEmployeesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllEmployees not implemented")
+}
+func (UnimplementedEmployeeServiceServer) SearchEmployees(context.Context, *SearchEmployeesRequest) (*SearchEmployeesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method SearchEmployees not implemented")
+}
+func (UnimplementedEmployeeServiceServer) GetEmployeeByID(context.Context, *GetEmployeeByIDRequest) (*GetEmployeeByIDResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetEmployeeByID not implemented")
+}
+func (UnimplementedEmployeeServiceServer) CreateEmployee(context.Context, *CreateEmployeeRequest) (*CreateEmployeeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateEmployee not implemented")
+}
+func (UnimplementedEmployeeServiceServer) CreateEmployeeSimple(context.Context, *CreateEmployeeSimpleRequest) (*CreateEmployeeSimpleResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateEmployeeSimple not implemented")
+}
+func (UnimplementedEmployeeServiceServer) CreateEmployeeByPhone(context.Context, *CreateEmployeeByPhoneRequest) (*CreateEmployeeByPhoneResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateEmployeeByPhone not implemented")
+}
+func (UnimplementedEmployeeServiceServer) UpdateEmployee(context.Context, *UpdateEmployeeRequest) (*UpdateEmployeeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateEmployee not implemented")
+}
+func (UnimplementedEmployeeServiceServer) DeleteEmployee(context.Context, *DeleteEmployeeRequest) (*DeleteEmployeeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method DeleteEmployee not implemented")
+}
+func (UnimplementedEmployeeServiceServer) BatchUpdateMaxID(context.Context, *BatchUpdateMaxIDRequest) (*BatchUpdateMaxIDResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method BatchUpdateMaxID not implemented")
+}
+func (UnimplementedEmployeeServiceServer) GetBatchStatus(context.Context, *GetBatchStatusRequest) (*GetBatchStatusResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBatchStatus not implemented")
+}
+func (UnimplementedEmployeeServiceServer) GetBatchStatusByID(context.Context, *GetBatchStatusByIDRequest) (*GetBatchStatusByIDResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetBatchStatusByID not implemented")
+}
 func (UnimplementedEmployeeServiceServer) GetUniversityByID(context.Context, *GetUniversityByIDRequest) (*GetUniversityByIDResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUniversityByID not implemented")
 }
@@ -122,8 +320,8 @@ func (UnimplementedEmployeeServiceServer) GetUniversityByINN(context.Context, *G
 func (UnimplementedEmployeeServiceServer) GetUniversityByINNAndKPP(context.Context, *GetUniversityByINNAndKPPRequest) (*GetUniversityByINNAndKPPResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUniversityByINNAndKPP not implemented")
 }
-func (UnimplementedEmployeeServiceServer) GetEmployeeByID(context.Context, *GetEmployeeByIDRequest) (*GetEmployeeByIDResponse, error) {
-	return nil, status.Error(codes.Unimplemented, "method GetEmployeeByID not implemented")
+func (UnimplementedEmployeeServiceServer) Health(context.Context, *HealthRequest) (*HealthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Health not implemented")
 }
 func (UnimplementedEmployeeServiceServer) mustEmbedUnimplementedEmployeeServiceServer() {}
 func (UnimplementedEmployeeServiceServer) testEmbeddedByValue()                         {}
@@ -144,6 +342,204 @@ func RegisterEmployeeServiceServer(s grpc.ServiceRegistrar, srv EmployeeServiceS
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&EmployeeService_ServiceDesc, srv)
+}
+
+func _EmployeeService_GetAllEmployees_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllEmployeesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).GetAllEmployees(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_GetAllEmployees_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).GetAllEmployees(ctx, req.(*GetAllEmployeesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_SearchEmployees_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SearchEmployeesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).SearchEmployees(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_SearchEmployees_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).SearchEmployees(ctx, req.(*SearchEmployeesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_GetEmployeeByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetEmployeeByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).GetEmployeeByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_GetEmployeeByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).GetEmployeeByID(ctx, req.(*GetEmployeeByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_CreateEmployee_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateEmployeeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).CreateEmployee(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_CreateEmployee_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).CreateEmployee(ctx, req.(*CreateEmployeeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_CreateEmployeeSimple_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateEmployeeSimpleRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).CreateEmployeeSimple(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_CreateEmployeeSimple_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).CreateEmployeeSimple(ctx, req.(*CreateEmployeeSimpleRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_CreateEmployeeByPhone_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateEmployeeByPhoneRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).CreateEmployeeByPhone(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_CreateEmployeeByPhone_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).CreateEmployeeByPhone(ctx, req.(*CreateEmployeeByPhoneRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_UpdateEmployee_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateEmployeeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).UpdateEmployee(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_UpdateEmployee_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).UpdateEmployee(ctx, req.(*UpdateEmployeeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_DeleteEmployee_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteEmployeeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).DeleteEmployee(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_DeleteEmployee_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).DeleteEmployee(ctx, req.(*DeleteEmployeeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_BatchUpdateMaxID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BatchUpdateMaxIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).BatchUpdateMaxID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_BatchUpdateMaxID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).BatchUpdateMaxID(ctx, req.(*BatchUpdateMaxIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_GetBatchStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBatchStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).GetBatchStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_GetBatchStatus_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).GetBatchStatus(ctx, req.(*GetBatchStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _EmployeeService_GetBatchStatusByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBatchStatusByIDRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(EmployeeServiceServer).GetBatchStatusByID(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: EmployeeService_GetBatchStatusByID_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(EmployeeServiceServer).GetBatchStatusByID(ctx, req.(*GetBatchStatusByIDRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _EmployeeService_GetUniversityByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -200,20 +596,20 @@ func _EmployeeService_GetUniversityByINNAndKPP_Handler(srv interface{}, ctx cont
 	return interceptor(ctx, in, info, handler)
 }
 
-func _EmployeeService_GetEmployeeByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(GetEmployeeByIDRequest)
+func _EmployeeService_Health_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(EmployeeServiceServer).GetEmployeeByID(ctx, in)
+		return srv.(EmployeeServiceServer).Health(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: EmployeeService_GetEmployeeByID_FullMethodName,
+		FullMethod: EmployeeService_Health_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(EmployeeServiceServer).GetEmployeeByID(ctx, req.(*GetEmployeeByIDRequest))
+		return srv.(EmployeeServiceServer).Health(ctx, req.(*HealthRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -225,6 +621,50 @@ var EmployeeService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "employee.EmployeeService",
 	HandlerType: (*EmployeeServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetAllEmployees",
+			Handler:    _EmployeeService_GetAllEmployees_Handler,
+		},
+		{
+			MethodName: "SearchEmployees",
+			Handler:    _EmployeeService_SearchEmployees_Handler,
+		},
+		{
+			MethodName: "GetEmployeeByID",
+			Handler:    _EmployeeService_GetEmployeeByID_Handler,
+		},
+		{
+			MethodName: "CreateEmployee",
+			Handler:    _EmployeeService_CreateEmployee_Handler,
+		},
+		{
+			MethodName: "CreateEmployeeSimple",
+			Handler:    _EmployeeService_CreateEmployeeSimple_Handler,
+		},
+		{
+			MethodName: "CreateEmployeeByPhone",
+			Handler:    _EmployeeService_CreateEmployeeByPhone_Handler,
+		},
+		{
+			MethodName: "UpdateEmployee",
+			Handler:    _EmployeeService_UpdateEmployee_Handler,
+		},
+		{
+			MethodName: "DeleteEmployee",
+			Handler:    _EmployeeService_DeleteEmployee_Handler,
+		},
+		{
+			MethodName: "BatchUpdateMaxID",
+			Handler:    _EmployeeService_BatchUpdateMaxID_Handler,
+		},
+		{
+			MethodName: "GetBatchStatus",
+			Handler:    _EmployeeService_GetBatchStatus_Handler,
+		},
+		{
+			MethodName: "GetBatchStatusByID",
+			Handler:    _EmployeeService_GetBatchStatusByID_Handler,
+		},
 		{
 			MethodName: "GetUniversityByID",
 			Handler:    _EmployeeService_GetUniversityByID_Handler,
@@ -238,8 +678,8 @@ var EmployeeService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _EmployeeService_GetUniversityByINNAndKPP_Handler,
 		},
 		{
-			MethodName: "GetEmployeeByID",
-			Handler:    _EmployeeService_GetEmployeeByID_Handler,
+			MethodName: "Health",
+			Handler:    _EmployeeService_Health_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

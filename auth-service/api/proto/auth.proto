@@ -6,6 +6,42 @@ option go_package = "auth-service/api/proto;proto";
 
 // AuthService предоставляет методы для аутентификации и авторизации
 service AuthService {
+  // Register регистрирует нового пользователя
+  rpc Register(RegisterRequest) returns (RegisterResponse);
+  
+  // Login аутентифицирует пользователя по email/password
+  rpc Login(LoginRequest) returns (LoginResponse);
+  
+  // LoginByPhone аутентифицирует пользователя по телефону/паролю
+  rpc LoginByPhone(LoginByPhoneRequest) returns (LoginResponse);
+  
+  // Refresh обновляет токены доступа
+  rpc Refresh(RefreshRequest) returns (RefreshResponse);
+  
+  // Logout завершает сессию пользователя
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+  
+  // AuthenticateMAX аутентифицирует пользователя через MAX
+  rpc AuthenticateMAX(AuthenticateMAXRequest) returns (AuthenticateMAXResponse);
+  
+  // RequestPasswordReset генерирует токен сброса пароля и отправляет его пользователю
+  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
+  
+  // ResetPassword сбрасывает пароль пользователя с использованием токена
+  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
+  
+  // ChangePassword изменяет пароль аутентифицированного пользователя
+  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+  
+  // GetBotMe получает информацию о боте
+  rpc GetBotMe(GetBotMeRequest) returns (GetBotMeResponse);
+  
+  // GetMetrics получает метрики сервиса
+  rpc GetMetrics(GetMetricsRequest) returns (GetMetricsResponse);
+  
+  // Health проверяет состояние сервиса
+  rpc Health(HealthRequest) returns (HealthResponse);
+  
   // ValidateToken проверяет валидность токена и возвращает информацию о пользователе
   rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
   
@@ -23,15 +59,113 @@ service AuthService {
   
   // RevokeUserRoles отзывает все роли пользователя
   rpc RevokeUserRoles(RevokeUserRolesRequest) returns (RevokeUserRolesResponse);
-  
-  // RequestPasswordReset генерирует токен сброса пароля и отправляет его пользователю
-  rpc RequestPasswordReset(RequestPasswordResetRequest) returns (RequestPasswordResetResponse);
-  
-  // ResetPassword сбрасывает пароль пользователя с использованием токена
-  rpc ResetPassword(ResetPasswordRequest) returns (ResetPasswordResponse);
-  
-  // ChangePassword изменяет пароль аутентифицированного пользователя
-  rpc ChangePassword(ChangePasswordRequest) returns (ChangePasswordResponse);
+}
+
+// Register messages
+message RegisterRequest {
+  string email = 1;
+  string phone = 2;
+  string password = 3;
+  string role = 4;
+}
+
+message RegisterResponse {
+  TokenPair tokens = 1;
+  User user = 2;
+  string error = 3;
+}
+
+// Login messages
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginByPhoneRequest {
+  string phone = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  TokenPair tokens = 1;
+  User user = 2;
+  string error = 3;
+}
+
+// Token messages
+message TokenPair {
+  string access_token = 1;
+  string refresh_token = 2;
+}
+
+message RefreshRequest {
+  string refresh_token = 1;
+}
+
+message RefreshResponse {
+  TokenPair tokens = 1;
+  string error = 2;
+}
+
+message LogoutRequest {
+  string refresh_token = 1;
+}
+
+message LogoutResponse {
+  bool success = 1;
+  string error = 2;
+}
+
+// MAX authentication messages
+message AuthenticateMAXRequest {
+  string init_data = 1;
+}
+
+message AuthenticateMAXResponse {
+  TokenPair tokens = 1;
+  User user = 2;
+  string error = 3;
+}
+
+// Bot messages
+message GetBotMeRequest {
+}
+
+message GetBotMeResponse {
+  BotInfo bot = 1;
+  string error = 2;
+}
+
+message BotInfo {
+  string id = 1;
+  string username = 2;
+  string first_name = 3;
+}
+
+// Metrics messages
+message GetMetricsRequest {
+}
+
+message GetMetricsResponse {
+  map<string, int64> metrics = 1;
+  string error = 2;
+}
+
+// Health messages
+message HealthRequest {
+}
+
+message HealthResponse {
+  string status = 1;
+}
+
+// User messages
+message User {
+  int64 id = 1;
+  string email = 2;
+  string phone = 3;
+  string role = 4;
+  string created_at = 5;
 }
 
 message ValidateTokenRequest {
@@ -47,7 +181,7 @@ message ValidateTokenResponse {
   int64 branch_id = 6;
   int64 faculty_id = 7;
   string error = 8;
-  string email = 9; // Опциональный
+  string email = 9;
 }
 
 message GetUserRequest {
@@ -59,7 +193,7 @@ message GetUserResponse {
   string phone = 2;
   string role = 3;
   string error = 4;
-  string email = 5; // Опциональный
+  string email = 5;
 }
 
 message GetUserPermissionsRequest {
@@ -84,7 +218,7 @@ message UserPermission {
 message CreateUserRequest {
   string phone = 1;
   string password = 2;
-  string email = 3; // Опциональный
+  string email = 3;
 }
 
 message CreateUserResponse {

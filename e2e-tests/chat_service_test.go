@@ -10,16 +10,16 @@ import (
 )
 
 func TestChatService(t *testing.T) {
-	// Настройка клиента
+	// Настройка клиента для Gateway Service
 	configs := utils.DefaultServiceConfigs()
-	client := utils.NewTestClient(configs["chat"])
+	client := utils.NewTestClient(configs["chat"]) // Now points to Gateway Service
 
-	// Ждем доступности сервиса
-	err := utils.WaitForService(configs["chat"].BaseURL, 10)
-	require.NoError(t, err, "Chat service should be available")
+	// Ждем доступности Gateway Service
+	err := utils.WaitForService(configs["gateway"].BaseURL, 10)
+	require.NoError(t, err, "Gateway service should be available")
 
-	// Получаем токен авторизации из auth service
-	authClient := utils.NewTestClient(configs["auth"])
+	// Получаем токен авторизации из auth service (через Gateway)
+	authClient := utils.NewTestClient(configs["auth"]) // Also points to Gateway Service
 	testUser := utils.GenerateTestUser()
 	
 	// Регистрируем пользователя

@@ -1,6 +1,12 @@
-.PHONY: build run test clean docker-build docker-up docker-down migrate swagger
+.PHONY: build run test clean docker-build docker-up docker-down migrate swagger proto-gen
 
-build:
+proto-gen:
+	@echo "Generating proto files for employee-service..."
+	protoc --go_out=. --go_opt=paths=source_relative \
+	       --go-grpc_out=. --go-grpc_opt=paths=source_relative \
+	       api/proto/employee.proto
+
+build: proto-gen
 	go build -o bin/employee-service ./cmd/employee
 
 run:

@@ -1,0 +1,16 @@
+goos: darwin
+goarch: arm64
+cpu: Apple M1 Pro
+BenchmarkGRPCClientCreation-10             	 1682172	       758.2 ns/op	    1728 B/op	      18 allocs/op
+BenchmarkClientRetrieval-10                	82397067	        14.49 ns/op	       0 B/op	       0 allocs/op
+BenchmarkRetryLogicExecution-10            	 3170418	       383.4 ns/op	     384 B/op	       5 allocs/op
+BenchmarkRetryLogicWithFailures-10         	     326	   4150806 ns/op	    1910 B/op	      36 allocs/op
+BenchmarkCircuitBreakerExecution-10        	 6039075	       222.4 ns/op	       0 B/op	       0 allocs/op
+BenchmarkConfigurationLoading-10           	 1400792	       920.4 ns/op	     416 B/op	       1 allocs/op
+BenchmarkTimeoutContextCreation-10         	 3651013	       380.8 ns/op	     272 B/op	       4 allocs/op
+BenchmarkConcurrentClientAccess-10         	16151888	        82.53 ns/op	       0 B/op	       0 allocs/op
+BenchmarkErrorHandling-10                  	 3031537	       417.5 ns/op	     192 B/op	       6 allocs/op
+BenchmarkMetricsCollection-10              	80179065	        15.06 ns/op	       0 B/op	       0 allocs/op
+BenchmarkConcurrentMetricsCollection-10    	11326803	       105.6 ns/op	       0 B/op	       0 allocs/op
+PASS
+ok  	command-line-arguments	21.260s

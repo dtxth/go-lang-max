@@ -10,13 +10,13 @@ import (
 )
 
 func TestEmployeeService(t *testing.T) {
-	// Настройка клиента
+	// Настройка клиента для Gateway Service
 	configs := utils.DefaultServiceConfigs()
-	client := utils.NewTestClient(configs["employee"])
+	client := utils.NewTestClient(configs["employee"]) // Now points to Gateway Service
 
-	// Ждем доступности сервиса
-	err := utils.WaitForService(configs["employee"].BaseURL, 10)
-	require.NoError(t, err, "Employee service should be available")
+	// Ждем доступности Gateway Service
+	err := utils.WaitForService(configs["gateway"].BaseURL, 10)
+	require.NoError(t, err, "Gateway service should be available")
 
 	var testEmployee utils.TestEmployee
 

@@ -257,10 +257,10 @@ func TestAuthService_AuthenticateMAX_Success_NewUser(t *testing.T) {
 	if createdUser.MaxID == nil || *createdUser.MaxID != 123 {
 		t.Errorf("AuthenticateMAX() user MaxID = %v, want 123", createdUser.MaxID)
 	}
-	if createdUser.Username != "johndoe" {
+	if createdUser.Username == nil || *createdUser.Username != "johndoe" {
 		t.Errorf("AuthenticateMAX() user Username = %v, want johndoe", createdUser.Username)
 	}
-	if createdUser.Name != "John Doe" {
+	if createdUser.Name == nil || *createdUser.Name != "John Doe" {
 		t.Errorf("AuthenticateMAX() user Name = %v, want 'John Doe'", createdUser.Name)
 	}
 	if createdUser.Role != domain.RoleOperator {
@@ -282,11 +282,13 @@ func TestAuthService_AuthenticateMAX_Success_ExistingUser(t *testing.T) {
 
 	// Create existing user
 	maxID := int64(123)
+	username := "oldusername"
+	name := "Old Name"
 	existingUser := &domain.User{
 		ID:       1,
 		MaxID:    &maxID,
-		Username: "oldusername",
-		Name:     "Old Name",
+		Username: &username,
+		Name:     &name,
 		Role:     domain.RoleOperator,
 	}
 	userRepo.users[1] = existingUser
@@ -330,10 +332,10 @@ func TestAuthService_AuthenticateMAX_Success_ExistingUser(t *testing.T) {
 
 	// Verify user data was updated
 	updatedUser := userRepo.users[1]
-	if updatedUser.Username != "newusername" {
+	if updatedUser.Username == nil || *updatedUser.Username != "newusername" {
 		t.Errorf("AuthenticateMAX() user Username = %v, want newusername", updatedUser.Username)
 	}
-	if updatedUser.Name != "New Name" {
+	if updatedUser.Name == nil || *updatedUser.Name != "New Name" {
 		t.Errorf("AuthenticateMAX() user Name = %v, want 'New Name'", updatedUser.Name)
 	}
 

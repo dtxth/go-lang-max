@@ -313,8 +313,8 @@ func TestProperty7_ComprehensiveAuditLogging(t *testing.T) {
 			// Create existing user to force update path
 			existingUser := &domain.User{
 				MaxID:    &maxID,
-				Username: username,
-				Name:     firstName,
+				Username: &username,
+				Name:     &firstName,
 				Role:     domain.RoleOperator,
 			}
 			

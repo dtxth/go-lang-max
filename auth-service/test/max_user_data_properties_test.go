@@ -41,8 +41,8 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 				Password: "hashedpassword",
 				Role:     domain.RoleOperator,
 				MaxID:    &maxID,
-				Username: username,
-				Name:     name,
+				Username: &username,
+				Name:     &name,
 			}
 
 			err := userRepo.Create(user)
@@ -64,13 +64,13 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 				return false
 			}
 
-			if retrievedUser.Username != username {
-				t.Logf("Username mismatch: expected %s, got %s", username, retrievedUser.Username)
+			if retrievedUser.Username == nil || *retrievedUser.Username != username {
+				t.Logf("Username mismatch: expected %s, got %v", username, retrievedUser.Username)
 				return false
 			}
 
-			if retrievedUser.Name != name {
-				t.Logf("Name mismatch: expected %s, got %s", name, retrievedUser.Name)
+			if retrievedUser.Name == nil || *retrievedUser.Name != name {
+				t.Logf("Name mismatch: expected %s, got %v", name, retrievedUser.Name)
 				return false
 			}
 
@@ -97,14 +97,15 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 			name := "Name" + padNumber(nameSeed, 6)
 
 			// Create user with MAX fields but no username
+			emptyUsername := ""
 			user := &domain.User{
 				Phone:    phone,
 				Email:    "",
 				Password: "hashedpassword",
 				Role:     domain.RoleOperator,
 				MaxID:    &maxID,
-				Username: "", // Empty username
-				Name:     name,
+				Username: &emptyUsername, // Empty username
+				Name:     &name,
 			}
 
 			err := userRepo.Create(user)
@@ -126,13 +127,13 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 				return false
 			}
 
-			if retrievedUser.Username != "" {
-				t.Logf("Username should be empty, got %s", retrievedUser.Username)
+			if retrievedUser.Username == nil || *retrievedUser.Username != "" {
+				t.Logf("Username should be empty, got %v", retrievedUser.Username)
 				return false
 			}
 
-			if retrievedUser.Name != name {
-				t.Logf("Name mismatch: expected %s, got %s", name, retrievedUser.Name)
+			if retrievedUser.Name == nil || *retrievedUser.Name != name {
+				t.Logf("Name mismatch: expected %s, got %v", name, retrievedUser.Name)
 				return false
 			}
 
@@ -161,8 +162,8 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 				Password: "hashedpassword",
 				Role:     domain.RoleOperator,
 				MaxID:    &maxID,
-				Username: username1,
-				Name:     name1,
+				Username: &username1,
+				Name:     &name1,
 			}
 
 			err := userRepo.Create(user)
@@ -172,8 +173,8 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 			}
 
 			// Update user with new MAX fields
-			user.Username = username2
-			user.Name = name2
+			user.Username = &username2
+			user.Name = &name2
 
 			err = userRepo.Update(user)
 			if err != nil {
@@ -189,13 +190,13 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 			}
 
 			// Verify MAX fields are updated correctly
-			if retrievedUser.Username != username2 {
-				t.Logf("Username not updated: expected %s, got %s", username2, retrievedUser.Username)
+			if retrievedUser.Username == nil || *retrievedUser.Username != username2 {
+				t.Logf("Username not updated: expected %s, got %v", username2, retrievedUser.Username)
 				return false
 			}
 
-			if retrievedUser.Name != name2 {
-				t.Logf("Name not updated: expected %s, got %s", name2, retrievedUser.Name)
+			if retrievedUser.Name == nil || *retrievedUser.Name != name2 {
+				t.Logf("Name not updated: expected %s, got %v", name2, retrievedUser.Name)
 				return false
 			}
 
@@ -223,24 +224,28 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 			phone2 := "+7" + padNumber(phoneNum2, 10)
 
 			// Create two users with different MAX IDs
+			username1 := "user1"
+			name1 := "Name1"
 			user1 := &domain.User{
 				Phone:    phone1,
 				Email:    "",
 				Password: "hashedpassword1",
 				Role:     domain.RoleOperator,
 				MaxID:    &maxID1,
-				Username: "user1",
-				Name:     "Name1",
+				Username: &username1,
+				Name:     &name1,
 			}
 
+			username2 := "user2"
+			name2 := "Name2"
 			user2 := &domain.User{
 				Phone:    phone2,
 				Email:    "",
 				Password: "hashedpassword2",
 				Role:     domain.RoleOperator,
 				MaxID:    &maxID2,
-				Username: "user2",
-				Name:     "Name2",
+				Username: &username2,
+				Name:     &name2,
 			}
 
 			err := userRepo.Create(user1)
@@ -297,14 +302,16 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 			phone := "+7" + padNumber(phoneNum, 10)
 
 			// Create user without MAX fields
+			emptyUsername := ""
+			emptyName := ""
 			user := &domain.User{
 				Phone:    phone,
 				Email:    "test@example.com",
 				Password: "hashedpassword",
 				Role:     domain.RoleOperator,
 				MaxID:    nil, // No MAX ID
-				Username: "",
-				Name:     "",
+				Username: &emptyUsername,
+				Name:     &emptyName,
 			}
 
 			err := userRepo.Create(user)
@@ -326,13 +333,13 @@ func TestProperty4_UserDataManagementConsistency(t *testing.T) {
 				return false
 			}
 
-			if retrievedUser.Username != "" {
-				t.Logf("Username should be empty, got %s", retrievedUser.Username)
+			if retrievedUser.Username == nil || *retrievedUser.Username != "" {
+				t.Logf("Username should be empty, got %v", retrievedUser.Username)
 				return false
 			}
 
-			if retrievedUser.Name != "" {
-				t.Logf("Name should be empty, got %s", retrievedUser.Name)
+			if retrievedUser.Name == nil || *retrievedUser.Name != "" {
+				t.Logf("Name should be empty, got %v", retrievedUser.Name)
 				return false
 			}
 

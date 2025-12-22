@@ -96,7 +96,7 @@ func main() {
 	}
 
 	// gRPC server
-	grpcHandler := grpc.NewStructureHandler(structureUC, createStructureUC)
+	grpcHandler := grpc.NewStructureHandler(structureUC, createStructureUC, getUniversityStructureUC, assignOperatorUC, importStructureUC, dmRepo)
 	grpcServer := grpc.NewServer(grpcHandler, cfg.GRPCPort)
 
 	// Запускаем оба сервера

@@ -11,13 +11,13 @@ import (
 )
 
 func TestStructureService(t *testing.T) {
-	// Настройка клиента
+	// Настройка клиента для Gateway Service
 	configs := utils.DefaultServiceConfigs()
-	client := utils.NewTestClient(configs["structure"])
+	client := utils.NewTestClient(configs["structure"]) // Now points to Gateway Service
 
-	// Ждем доступности сервиса
-	err := utils.WaitForService(configs["structure"].BaseURL, 10)
-	require.NoError(t, err, "Structure service should be available")
+	// Ждем доступности Gateway Service
+	err := utils.WaitForService(configs["gateway"].BaseURL, 10)
+	require.NoError(t, err, "Gateway service should be available")
 
 	var testUniversity utils.TestUniversity
 	var universityID int

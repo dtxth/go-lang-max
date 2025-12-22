@@ -10,13 +10,13 @@ import (
 )
 
 func TestAuthService(t *testing.T) {
-	// Настройка клиента
+	// Настройка клиента для Gateway Service
 	configs := utils.DefaultServiceConfigs()
-	client := utils.NewTestClient(configs["auth"])
+	client := utils.NewTestClient(configs["auth"]) // Now points to Gateway Service
 
-	// Ждем доступности сервиса
-	err := utils.WaitForService(configs["auth"].BaseURL, 10)
-	require.NoError(t, err, "Auth service should be available")
+	// Ждем доступности Gateway Service
+	err := utils.WaitForService(configs["gateway"].BaseURL, 10)
+	require.NoError(t, err, "Gateway service should be available")
 
 	t.Run("Health Check", func(t *testing.T) {
 		resp, err := client.GetClient().R().Get("/health")

@@ -19,11 +19,23 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	StructureService_GetUniversityByID_FullMethodName     = "/structure.StructureService/GetUniversityByID"
-	StructureService_GetUniversityByINN_FullMethodName    = "/structure.StructureService/GetUniversityByINN"
-	StructureService_CreateOrGetUniversity_FullMethodName = "/structure.StructureService/CreateOrGetUniversity"
-	StructureService_CreateStructure_FullMethodName       = "/structure.StructureService/CreateStructure"
-	StructureService_LinkGroupToChat_FullMethodName       = "/structure.StructureService/LinkGroupToChat"
+	StructureService_GetAllUniversities_FullMethodName       = "/structure.StructureService/GetAllUniversities"
+	StructureService_CreateUniversity_FullMethodName         = "/structure.StructureService/CreateUniversity"
+	StructureService_GetUniversityByID_FullMethodName        = "/structure.StructureService/GetUniversityByID"
+	StructureService_GetUniversityByINN_FullMethodName       = "/structure.StructureService/GetUniversityByINN"
+	StructureService_GetUniversityStructure_FullMethodName   = "/structure.StructureService/GetUniversityStructure"
+	StructureService_UpdateUniversityName_FullMethodName     = "/structure.StructureService/UpdateUniversityName"
+	StructureService_CreateOrGetUniversity_FullMethodName    = "/structure.StructureService/CreateOrGetUniversity"
+	StructureService_CreateStructure_FullMethodName          = "/structure.StructureService/CreateStructure"
+	StructureService_ImportExcel_FullMethodName              = "/structure.StructureService/ImportExcel"
+	StructureService_UpdateBranchName_FullMethodName         = "/structure.StructureService/UpdateBranchName"
+	StructureService_UpdateFacultyName_FullMethodName        = "/structure.StructureService/UpdateFacultyName"
+	StructureService_UpdateGroupName_FullMethodName          = "/structure.StructureService/UpdateGroupName"
+	StructureService_LinkGroupToChat_FullMethodName          = "/structure.StructureService/LinkGroupToChat"
+	StructureService_GetAllDepartmentManagers_FullMethodName = "/structure.StructureService/GetAllDepartmentManagers"
+	StructureService_CreateDepartmentManager_FullMethodName  = "/structure.StructureService/CreateDepartmentManager"
+	StructureService_RemoveDepartmentManager_FullMethodName  = "/structure.StructureService/RemoveDepartmentManager"
+	StructureService_Health_FullMethodName                   = "/structure.StructureService/Health"
 )
 
 // StructureServiceClient is the client API for StructureService service.
@@ -32,16 +44,40 @@ const (
 //
 // StructureService предоставляет методы для работы со структурой вузов
 type StructureServiceClient interface {
+	// GetAllUniversities получает все университеты с пагинацией
+	GetAllUniversities(ctx context.Context, in *GetAllUniversitiesRequest, opts ...grpc.CallOption) (*GetAllUniversitiesResponse, error)
+	// CreateUniversity создает новый университет
+	CreateUniversity(ctx context.Context, in *CreateUniversityRequest, opts ...grpc.CallOption) (*CreateUniversityResponse, error)
 	// GetUniversityByID получает вуз по ID
 	GetUniversityByID(ctx context.Context, in *GetUniversityByIDRequest, opts ...grpc.CallOption) (*GetUniversityByIDResponse, error)
 	// GetUniversityByINN получает вуз по ИНН
 	GetUniversityByINN(ctx context.Context, in *GetUniversityByINNRequest, opts ...grpc.CallOption) (*GetUniversityByINNResponse, error)
+	// GetUniversityStructure получает структуру университета
+	GetUniversityStructure(ctx context.Context, in *GetUniversityStructureRequest, opts ...grpc.CallOption) (*GetUniversityStructureResponse, error)
+	// UpdateUniversityName обновляет название университета
+	UpdateUniversityName(ctx context.Context, in *UpdateUniversityNameRequest, opts ...grpc.CallOption) (*UpdateUniversityNameResponse, error)
 	// CreateOrGetUniversity создает или получает вуз по ИНН/КПП
 	CreateOrGetUniversity(ctx context.Context, in *CreateOrGetUniversityRequest, opts ...grpc.CallOption) (*CreateOrGetUniversityResponse, error)
 	// CreateStructure создает полную структуру (университет, филиал, факультет, группа)
 	CreateStructure(ctx context.Context, in *CreateStructureRequest, opts ...grpc.CallOption) (*CreateStructureResponse, error)
+	// ImportExcel импортирует данные из Excel файла
+	ImportExcel(ctx context.Context, in *ImportExcelRequest, opts ...grpc.CallOption) (*ImportExcelResponse, error)
+	// UpdateBranchName обновляет название филиала
+	UpdateBranchName(ctx context.Context, in *UpdateBranchNameRequest, opts ...grpc.CallOption) (*UpdateBranchNameResponse, error)
+	// UpdateFacultyName обновляет название факультета
+	UpdateFacultyName(ctx context.Context, in *UpdateFacultyNameRequest, opts ...grpc.CallOption) (*UpdateFacultyNameResponse, error)
+	// UpdateGroupName обновляет название группы
+	UpdateGroupName(ctx context.Context, in *UpdateGroupNameRequest, opts ...grpc.CallOption) (*UpdateGroupNameResponse, error)
 	// LinkGroupToChat связывает группу с чатом
 	LinkGroupToChat(ctx context.Context, in *LinkGroupToChatRequest, opts ...grpc.CallOption) (*LinkGroupToChatResponse, error)
+	// GetAllDepartmentManagers получает всех менеджеров департаментов
+	GetAllDepartmentManagers(ctx context.Context, in *GetAllDepartmentManagersRequest, opts ...grpc.CallOption) (*GetAllDepartmentManagersResponse, error)
+	// CreateDepartmentManager назначает оператора департамента
+	CreateDepartmentManager(ctx context.Context, in *CreateDepartmentManagerRequest, opts ...grpc.CallOption) (*CreateDepartmentManagerResponse, error)
+	// RemoveDepartmentManager удаляет оператора департамента
+	RemoveDepartmentManager(ctx context.Context, in *RemoveDepartmentManagerRequest, opts ...grpc.CallOption) (*RemoveDepartmentManagerResponse, error)
+	// Health проверяет состояние сервиса
+	Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error)
 }
 
 type structureServiceClient struct {
@@ -50,6 +86,26 @@ type structureServiceClient struct {
 
 func NewStructureServiceClient(cc grpc.ClientConnInterface) StructureServiceClient {
 	return &structureServiceClient{cc}
+}
+
+func (c *structureServiceClient) GetAllUniversities(ctx context.Context, in *GetAllUniversitiesRequest, opts ...grpc.CallOption) (*GetAllUniversitiesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllUniversitiesResponse)
+	err := c.cc.Invoke(ctx, StructureService_GetAllUniversities_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) CreateUniversity(ctx context.Context, in *CreateUniversityRequest, opts ...grpc.CallOption) (*CreateUniversityResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateUniversityResponse)
+	err := c.cc.Invoke(ctx, StructureService_CreateUniversity_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *structureServiceClient) GetUniversityByID(ctx context.Context, in *GetUniversityByIDRequest, opts ...grpc.CallOption) (*GetUniversityByIDResponse, error) {
@@ -66,6 +122,26 @@ func (c *structureServiceClient) GetUniversityByINN(ctx context.Context, in *Get
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(GetUniversityByINNResponse)
 	err := c.cc.Invoke(ctx, StructureService_GetUniversityByINN_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) GetUniversityStructure(ctx context.Context, in *GetUniversityStructureRequest, opts ...grpc.CallOption) (*GetUniversityStructureResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetUniversityStructureResponse)
+	err := c.cc.Invoke(ctx, StructureService_GetUniversityStructure_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) UpdateUniversityName(ctx context.Context, in *UpdateUniversityNameRequest, opts ...grpc.CallOption) (*UpdateUniversityNameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateUniversityNameResponse)
+	err := c.cc.Invoke(ctx, StructureService_UpdateUniversityName_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -92,10 +168,90 @@ func (c *structureServiceClient) CreateStructure(ctx context.Context, in *Create
 	return out, nil
 }
 
+func (c *structureServiceClient) ImportExcel(ctx context.Context, in *ImportExcelRequest, opts ...grpc.CallOption) (*ImportExcelResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportExcelResponse)
+	err := c.cc.Invoke(ctx, StructureService_ImportExcel_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) UpdateBranchName(ctx context.Context, in *UpdateBranchNameRequest, opts ...grpc.CallOption) (*UpdateBranchNameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateBranchNameResponse)
+	err := c.cc.Invoke(ctx, StructureService_UpdateBranchName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) UpdateFacultyName(ctx context.Context, in *UpdateFacultyNameRequest, opts ...grpc.CallOption) (*UpdateFacultyNameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateFacultyNameResponse)
+	err := c.cc.Invoke(ctx, StructureService_UpdateFacultyName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) UpdateGroupName(ctx context.Context, in *UpdateGroupNameRequest, opts ...grpc.CallOption) (*UpdateGroupNameResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateGroupNameResponse)
+	err := c.cc.Invoke(ctx, StructureService_UpdateGroupName_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *structureServiceClient) LinkGroupToChat(ctx context.Context, in *LinkGroupToChatRequest, opts ...grpc.CallOption) (*LinkGroupToChatResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(LinkGroupToChatResponse)
 	err := c.cc.Invoke(ctx, StructureService_LinkGroupToChat_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) GetAllDepartmentManagers(ctx context.Context, in *GetAllDepartmentManagersRequest, opts ...grpc.CallOption) (*GetAllDepartmentManagersResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAllDepartmentManagersResponse)
+	err := c.cc.Invoke(ctx, StructureService_GetAllDepartmentManagers_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) CreateDepartmentManager(ctx context.Context, in *CreateDepartmentManagerRequest, opts ...grpc.CallOption) (*CreateDepartmentManagerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(CreateDepartmentManagerResponse)
+	err := c.cc.Invoke(ctx, StructureService_CreateDepartmentManager_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) RemoveDepartmentManager(ctx context.Context, in *RemoveDepartmentManagerRequest, opts ...grpc.CallOption) (*RemoveDepartmentManagerResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveDepartmentManagerResponse)
+	err := c.cc.Invoke(ctx, StructureService_RemoveDepartmentManager_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *structureServiceClient) Health(ctx context.Context, in *HealthRequest, opts ...grpc.CallOption) (*HealthResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(HealthResponse)
+	err := c.cc.Invoke(ctx, StructureService_Health_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -108,16 +264,40 @@ func (c *structureServiceClient) LinkGroupToChat(ctx context.Context, in *LinkGr
 //
 // StructureService предоставляет методы для работы со структурой вузов
 type StructureServiceServer interface {
+	// GetAllUniversities получает все университеты с пагинацией
+	GetAllUniversities(context.Context, *GetAllUniversitiesRequest) (*GetAllUniversitiesResponse, error)
+	// CreateUniversity создает новый университет
+	CreateUniversity(context.Context, *CreateUniversityRequest) (*CreateUniversityResponse, error)
 	// GetUniversityByID получает вуз по ID
 	GetUniversityByID(context.Context, *GetUniversityByIDRequest) (*GetUniversityByIDResponse, error)
 	// GetUniversityByINN получает вуз по ИНН
 	GetUniversityByINN(context.Context, *GetUniversityByINNRequest) (*GetUniversityByINNResponse, error)
+	// GetUniversityStructure получает структуру университета
+	GetUniversityStructure(context.Context, *GetUniversityStructureRequest) (*GetUniversityStructureResponse, error)
+	// UpdateUniversityName обновляет название университета
+	UpdateUniversityName(context.Context, *UpdateUniversityNameRequest) (*UpdateUniversityNameResponse, error)
 	// CreateOrGetUniversity создает или получает вуз по ИНН/КПП
 	CreateOrGetUniversity(context.Context, *CreateOrGetUniversityRequest) (*CreateOrGetUniversityResponse, error)
 	// CreateStructure создает полную структуру (университет, филиал, факультет, группа)
 	CreateStructure(context.Context, *CreateStructureRequest) (*CreateStructureResponse, error)
+	// ImportExcel импортирует данные из Excel файла
+	ImportExcel(context.Context, *ImportExcelRequest) (*ImportExcelResponse, error)
+	// UpdateBranchName обновляет название филиала
+	UpdateBranchName(context.Context, *UpdateBranchNameRequest) (*UpdateBranchNameResponse, error)
+	// UpdateFacultyName обновляет название факультета
+	UpdateFacultyName(context.Context, *UpdateFacultyNameRequest) (*UpdateFacultyNameResponse, error)
+	// UpdateGroupName обновляет название группы
+	UpdateGroupName(context.Context, *UpdateGroupNameRequest) (*UpdateGroupNameResponse, error)
 	// LinkGroupToChat связывает группу с чатом
 	LinkGroupToChat(context.Context, *LinkGroupToChatRequest) (*LinkGroupToChatResponse, error)
+	// GetAllDepartmentManagers получает всех менеджеров департаментов
+	GetAllDepartmentManagers(context.Context, *GetAllDepartmentManagersRequest) (*GetAllDepartmentManagersResponse, error)
+	// CreateDepartmentManager назначает оператора департамента
+	CreateDepartmentManager(context.Context, *CreateDepartmentManagerRequest) (*CreateDepartmentManagerResponse, error)
+	// RemoveDepartmentManager удаляет оператора департамента
+	RemoveDepartmentManager(context.Context, *RemoveDepartmentManagerRequest) (*RemoveDepartmentManagerResponse, error)
+	// Health проверяет состояние сервиса
+	Health(context.Context, *HealthRequest) (*HealthResponse, error)
 	mustEmbedUnimplementedStructureServiceServer()
 }
 
@@ -128,11 +308,23 @@ type StructureServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedStructureServiceServer struct{}
 
+func (UnimplementedStructureServiceServer) GetAllUniversities(context.Context, *GetAllUniversitiesRequest) (*GetAllUniversitiesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllUniversities not implemented")
+}
+func (UnimplementedStructureServiceServer) CreateUniversity(context.Context, *CreateUniversityRequest) (*CreateUniversityResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateUniversity not implemented")
+}
 func (UnimplementedStructureServiceServer) GetUniversityByID(context.Context, *GetUniversityByIDRequest) (*GetUniversityByIDResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUniversityByID not implemented")
 }
 func (UnimplementedStructureServiceServer) GetUniversityByINN(context.Context, *GetUniversityByINNRequest) (*GetUniversityByINNResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetUniversityByINN not implemented")
+}
+func (UnimplementedStructureServiceServer) GetUniversityStructure(context.Context, *GetUniversityStructureRequest) (*GetUniversityStructureResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetUniversityStructure not implemented")
+}
+func (UnimplementedStructureServiceServer) UpdateUniversityName(context.Context, *UpdateUniversityNameRequest) (*UpdateUniversityNameResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateUniversityName not implemented")
 }
 func (UnimplementedStructureServiceServer) CreateOrGetUniversity(context.Context, *CreateOrGetUniversityRequest) (*CreateOrGetUniversityResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateOrGetUniversity not implemented")
@@ -140,8 +332,32 @@ func (UnimplementedStructureServiceServer) CreateOrGetUniversity(context.Context
 func (UnimplementedStructureServiceServer) CreateStructure(context.Context, *CreateStructureRequest) (*CreateStructureResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method CreateStructure not implemented")
 }
+func (UnimplementedStructureServiceServer) ImportExcel(context.Context, *ImportExcelRequest) (*ImportExcelResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportExcel not implemented")
+}
+func (UnimplementedStructureServiceServer) UpdateBranchName(context.Context, *UpdateBranchNameRequest) (*UpdateBranchNameResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateBranchName not implemented")
+}
+func (UnimplementedStructureServiceServer) UpdateFacultyName(context.Context, *UpdateFacultyNameRequest) (*UpdateFacultyNameResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateFacultyName not implemented")
+}
+func (UnimplementedStructureServiceServer) UpdateGroupName(context.Context, *UpdateGroupNameRequest) (*UpdateGroupNameResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateGroupName not implemented")
+}
 func (UnimplementedStructureServiceServer) LinkGroupToChat(context.Context, *LinkGroupToChatRequest) (*LinkGroupToChatResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method LinkGroupToChat not implemented")
+}
+func (UnimplementedStructureServiceServer) GetAllDepartmentManagers(context.Context, *GetAllDepartmentManagersRequest) (*GetAllDepartmentManagersResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAllDepartmentManagers not implemented")
+}
+func (UnimplementedStructureServiceServer) CreateDepartmentManager(context.Context, *CreateDepartmentManagerRequest) (*CreateDepartmentManagerResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method CreateDepartmentManager not implemented")
+}
+func (UnimplementedStructureServiceServer) RemoveDepartmentManager(context.Context, *RemoveDepartmentManagerRequest) (*RemoveDepartmentManagerResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveDepartmentManager not implemented")
+}
+func (UnimplementedStructureServiceServer) Health(context.Context, *HealthRequest) (*HealthResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method Health not implemented")
 }
 func (UnimplementedStructureServiceServer) mustEmbedUnimplementedStructureServiceServer() {}
 func (UnimplementedStructureServiceServer) testEmbeddedByValue()                          {}
@@ -162,6 +378,42 @@ func RegisterStructureServiceServer(s grpc.ServiceRegistrar, srv StructureServic
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&StructureService_ServiceDesc, srv)
+}
+
+func _StructureService_GetAllUniversities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllUniversitiesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).GetAllUniversities(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_GetAllUniversities_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).GetAllUniversities(ctx, req.(*GetAllUniversitiesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_CreateUniversity_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateUniversityRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).CreateUniversity(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_CreateUniversity_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).CreateUniversity(ctx, req.(*CreateUniversityRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _StructureService_GetUniversityByID_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -196,6 +448,42 @@ func _StructureService_GetUniversityByINN_Handler(srv interface{}, ctx context.C
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(StructureServiceServer).GetUniversityByINN(ctx, req.(*GetUniversityByINNRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_GetUniversityStructure_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUniversityStructureRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).GetUniversityStructure(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_GetUniversityStructure_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).GetUniversityStructure(ctx, req.(*GetUniversityStructureRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_UpdateUniversityName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateUniversityNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).UpdateUniversityName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_UpdateUniversityName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).UpdateUniversityName(ctx, req.(*UpdateUniversityNameRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -236,6 +524,78 @@ func _StructureService_CreateStructure_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StructureService_ImportExcel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportExcelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).ImportExcel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_ImportExcel_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).ImportExcel(ctx, req.(*ImportExcelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_UpdateBranchName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateBranchNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).UpdateBranchName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_UpdateBranchName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).UpdateBranchName(ctx, req.(*UpdateBranchNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_UpdateFacultyName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateFacultyNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).UpdateFacultyName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_UpdateFacultyName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).UpdateFacultyName(ctx, req.(*UpdateFacultyNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_UpdateGroupName_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateGroupNameRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).UpdateGroupName(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_UpdateGroupName_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).UpdateGroupName(ctx, req.(*UpdateGroupNameRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _StructureService_LinkGroupToChat_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(LinkGroupToChatRequest)
 	if err := dec(in); err != nil {
@@ -254,6 +614,78 @@ func _StructureService_LinkGroupToChat_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _StructureService_GetAllDepartmentManagers_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAllDepartmentManagersRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).GetAllDepartmentManagers(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_GetAllDepartmentManagers_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).GetAllDepartmentManagers(ctx, req.(*GetAllDepartmentManagersRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_CreateDepartmentManager_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateDepartmentManagerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).CreateDepartmentManager(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_CreateDepartmentManager_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).CreateDepartmentManager(ctx, req.(*CreateDepartmentManagerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_RemoveDepartmentManager_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveDepartmentManagerRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).RemoveDepartmentManager(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_RemoveDepartmentManager_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).RemoveDepartmentManager(ctx, req.(*RemoveDepartmentManagerRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _StructureService_Health_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(HealthRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(StructureServiceServer).Health(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: StructureService_Health_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(StructureServiceServer).Health(ctx, req.(*HealthRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // StructureService_ServiceDesc is the grpc.ServiceDesc for StructureService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -262,12 +694,28 @@ var StructureService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*StructureServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
+			MethodName: "GetAllUniversities",
+			Handler:    _StructureService_GetAllUniversities_Handler,
+		},
+		{
+			MethodName: "CreateUniversity",
+			Handler:    _StructureService_CreateUniversity_Handler,
+		},
+		{
 			MethodName: "GetUniversityByID",
 			Handler:    _StructureService_GetUniversityByID_Handler,
 		},
 		{
 			MethodName: "GetUniversityByINN",
 			Handler:    _StructureService_GetUniversityByINN_Handler,
+		},
+		{
+			MethodName: "GetUniversityStructure",
+			Handler:    _StructureService_GetUniversityStructure_Handler,
+		},
+		{
+			MethodName: "UpdateUniversityName",
+			Handler:    _StructureService_UpdateUniversityName_Handler,
 		},
 		{
 			MethodName: "CreateOrGetUniversity",
@@ -278,8 +726,40 @@ var StructureService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _StructureService_CreateStructure_Handler,
 		},
 		{
+			MethodName: "ImportExcel",
+			Handler:    _StructureService_ImportExcel_Handler,
+		},
+		{
+			MethodName: "UpdateBranchName",
+			Handler:    _StructureService_UpdateBranchName_Handler,
+		},
+		{
+			MethodName: "UpdateFacultyName",
+			Handler:    _StructureService_UpdateFacultyName_Handler,
+		},
+		{
+			MethodName: "UpdateGroupName",
+			Handler:    _StructureService_UpdateGroupName_Handler,
+		},
+		{
 			MethodName: "LinkGroupToChat",
 			Handler:    _StructureService_LinkGroupToChat_Handler,
+		},
+		{
+			MethodName: "GetAllDepartmentManagers",
+			Handler:    _StructureService_GetAllDepartmentManagers_Handler,
+		},
+		{
+			MethodName: "CreateDepartmentManager",
+			Handler:    _StructureService_CreateDepartmentManager_Handler,
+		},
+		{
+			MethodName: "RemoveDepartmentManager",
+			Handler:    _StructureService_RemoveDepartmentManager_Handler,
+		},
+		{
+			MethodName: "Health",
+			Handler:    _StructureService_Health_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

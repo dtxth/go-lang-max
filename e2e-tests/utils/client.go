@@ -48,30 +48,38 @@ func (tc *TestClient) ClearAuth() {
 }
 
 // DefaultServiceConfigs возвращает конфигурации по умолчанию для всех сервисов
+// All services now route through the Gateway Service at port 8080
 func DefaultServiceConfigs() map[string]ServiceConfig {
+	// Gateway Service acts as the single entry point for all microservices
+	gatewayBaseURL := "http://localhost:8080"
+	
 	return map[string]ServiceConfig{
 		"auth": {
-			BaseURL: "http://localhost:8080",
+			BaseURL: gatewayBaseURL, // Auth endpoints routed through Gateway
 			Timeout: 30 * time.Second,
 		},
 		"employee": {
-			BaseURL: "http://localhost:8081",
+			BaseURL: gatewayBaseURL, // Employee endpoints routed through Gateway
 			Timeout: 30 * time.Second,
 		},
 		"chat": {
-			BaseURL: "http://localhost:8082",
+			BaseURL: gatewayBaseURL, // Chat endpoints routed through Gateway
 			Timeout: 30 * time.Second,
 		},
 		"structure": {
-			BaseURL: "http://localhost:8083",
+			BaseURL: gatewayBaseURL, // Structure endpoints routed through Gateway
 			Timeout: 30 * time.Second,
 		},
 		"migration": {
-			BaseURL: "http://localhost:8084",
+			BaseURL: "http://localhost:8084", // Migration service remains direct (not part of Gateway)
 			Timeout: 30 * time.Second,
 		},
 		"maxbot": {
-			BaseURL: "http://localhost:8095",
+			BaseURL: "http://localhost:8095", // MaxBot service remains direct (not part of Gateway)
+			Timeout: 30 * time.Second,
+		},
+		"gateway": {
+			BaseURL: gatewayBaseURL, // Gateway Service health checks
 			Timeout: 30 * time.Second,
 		},
 	}
