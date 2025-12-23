@@ -180,8 +180,8 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 		employee.UserID = &userID
 		
 		// Логируем сгенерированный пароль для администраторов
-		log.Printf("Generated password for new employee with phone ending in %s: %s", 
-			sanitizePhone(phone), password)
+		// log.Printf("Generated password for new employee with phone ending in %s: %s", 
+		//	sanitizePhone(phone), password)
 		
 		// Примечание: Отправка пароля через MAX Messenger отключена
 		// Пароль логируется выше для администраторов

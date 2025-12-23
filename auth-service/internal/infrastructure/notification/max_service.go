@@ -42,7 +42,7 @@ func (s *MaxNotificationService) SendPasswordNotification(ctx context.Context, p
 	// Mock implementation - just log the notification
 	s.logger.Info(ctx, "Mock: Password notification sent", map[string]interface{}{
 		"phone_suffix": sanitizedPhone,
-		"password":     password,
+		// "password":     password,  // Commented out to avoid logging passwords
 	})
 	
 	return nil
@@ -55,7 +55,7 @@ func (s *MaxNotificationService) SendResetTokenNotification(ctx context.Context,
 	// Mock implementation - just log the notification
 	s.logger.Info(ctx, "Mock: Reset token notification sent", map[string]interface{}{
 		"phone_suffix": sanitizedPhone,
-		"token":        token,
+		// "token":        token,  // Commented out to avoid logging tokens
 	})
 	
 	return nil

@@ -172,8 +172,8 @@ func (s *AuthService) CreateUser(phone, password string) (int64, error) {
     }
     
     // Логируем сгенерированный пароль для администраторов
-    log.Printf("Generated password for new user with phone ending in %s: %s", 
-        sanitizePhone(phone), password)
+    // log.Printf("Generated password for new user with phone ending in %s: %s", 
+    //    sanitizePhone(phone), password)
     
     // Audit log: user created (without password or hash)
     if s.logger != nil {
@@ -494,8 +494,8 @@ func (s *AuthService) RequestPasswordReset(phone string) error {
 	}
 
 	// Логируем токен сброса пароля для администраторов
-	log.Printf("Generated password reset token for user with phone ending in %s: %s", 
-		sanitizePhone(phone), token)
+	// log.Printf("Generated password reset token for user with phone ending in %s: %s", 
+	//	sanitizePhone(phone), token)
 
 	// Send token via notification service
 	if err := s.notificationService.SendResetTokenNotification(nil, phone, token); err != nil {
