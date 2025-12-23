@@ -10,9 +10,12 @@ type MaxService interface {
 
 	// ValidatePhone проверяет валидность номера телефона
 	ValidatePhone(phone string) bool
-	
+
 	// GetChatInfo получает информацию о чате из MAX API
 	GetChatInfo(ctx context.Context, chatID int64) (*ChatInfo, error)
+
+	// GetInternalUsers получает детальную информацию о пользователях по номерам телефонов
+	GetInternalUsers(phones []string) ([]*InternalUser, []string, error)
 }
 
 // ChatInfo содержит информацию о чате из MAX API
@@ -22,5 +25,18 @@ type ChatInfo struct {
 	Type              string
 	ParticipantsCount int
 	Description       string
+}
+
+// InternalUser представляет детальную информацию о пользователе из MAX
+type InternalUser struct {
+	UserID        int64
+	FirstName     string
+	LastName      string
+	IsBot         bool
+	Username      string
+	AvatarURL     string
+	FullAvatarURL string
+	Link          string
+	PhoneNumber   string
 }
 

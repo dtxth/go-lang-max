@@ -109,9 +109,11 @@ func (m *mockChatRepoForAdd) GetAllWithSortingAndSearch(limit, offset int, sortB
 }
 
 type mockMaxServiceForAdd struct {
-	maxIDs       map[string]string // phone -> maxID
-	validateFunc func(string) bool
-	getMaxIDFunc func(string) (string, error)
+	maxIDs        map[string]string                        // phone -> maxID
+	validateFunc  func(string) bool
+	getMaxIDFunc  func(string) (string, error)
+	internalUsers map[string][]*domain.InternalUser        // phone -> users
+	failedPhones  map[string][]string                      // phone -> failed phones
 }
 
 func (m *mockMaxServiceForAdd) ValidatePhone(phone string) bool {
@@ -140,6 +142,40 @@ func (m *mockMaxServiceForAdd) GetChatInfo(ctx context.Context, chatID int64) (*
 		ParticipantsCount: 10,
 		Description:       "Test chat description",
 	}, nil
+}
+
+func (m *mockMaxServiceForAdd) GetInternalUsers(phones []string) ([]*domain.InternalUser, []string, error) {
+	if len(phones) == 0 {
+		return []*domain.InternalUser{}, []string{}, nil
+	}
+	
+	phone := phones[0] // Для простоты берем первый телефон
+	
+	if users, ok := m.internalUsers[phone]; ok {
+		if len(users) == 0 {
+			// Пользователь не найден
+			failed := []string{}
+			if failedList, exists := m.failedPhones[phone]; exists {
+				failed = failedList
+			} else {
+				failed = []string{phone}
+			}
+			return []*domain.InternalUser{}, failed, nil
+		}
+		return users, []string{}, nil
+	}
+	
+	// По умолчанию пользователь не найден
+	return []*domain.InternalUser{}, []string{phone}, nil
+}
+
+// Helper function to create mockMaxServiceForAdd with default values
+func newMockMaxServiceForAdd() *mockMaxServiceForAdd {
+	return &mockMaxServiceForAdd{
+		maxIDs:        make(map[string]string),
+		internalUsers: make(map[string][]*domain.InternalUser),
+		failedPhones:  make(map[string][]string),
+	}
 }
 
 func TestAddAdministratorWithPermissionCheck_Superadmin_Success(t *testing.T) {

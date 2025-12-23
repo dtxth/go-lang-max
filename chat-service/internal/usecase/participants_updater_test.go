@@ -110,6 +110,11 @@ func (m *MockMaxServiceForParticipants) GetChatInfo(ctx context.Context, chatID 
 	return args.Get(0).(*domain.ChatInfo), args.Error(1)
 }
 
+func (m *MockMaxServiceForParticipants) GetInternalUsers(phones []string) ([]*domain.InternalUser, []string, error) {
+	args := m.Called(phones)
+	return args.Get(0).([]*domain.InternalUser), args.Get(1).([]string), args.Error(2)
+}
+
 func TestParticipantsUpdaterService_UpdateSingle(t *testing.T) {
 	tests := []struct {
 		name           string

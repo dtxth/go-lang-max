@@ -4,6 +4,7 @@ import (
 	"chat-service/internal/domain"
 	"context"
 	"errors"
+	"fmt"
 	"strings"
 	"time"
 )
@@ -130,12 +131,23 @@ func (s *ChatService) AddAdministratorWithFlags(chatID int64, phone string, maxI
 		return nil, domain.ErrAdministratorExists
 	}
 
-	// Если MAX_id не передан, получаем его по телефону (только если не пропускаем валидацию)
-	if maxID == "" && !skipPhoneValidation {
-		maxID, err = s.maxService.GetMaxIDByPhone(phone)
+	// Если MAX_id не передан, получаем его по телефону через GetInternalUsers
+	if maxID == "" {
+		users, failed, err := s.maxService.GetInternalUsers([]string{phone})
 		if err != nil {
 			return nil, err
 		}
+
+		// Проверяем, что пользователь найден
+		if len(users) == 0 {
+			if len(failed) > 0 {
+				return nil, domain.ErrMaxIDNotFound
+			}
+			return nil, domain.ErrInvalidPhone
+		}
+
+		// Используем UserID как MaxID
+		maxID = strings.TrimSpace(fmt.Sprintf("%d", users[0].UserID))
 	}
 
 	// Создаем администратора

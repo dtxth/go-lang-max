@@ -115,6 +115,47 @@ func (c *MaxClient) GetChatInfo(ctx context.Context, chatID int64) (*domain.Chat
 	}, nil
 }
 
+func (c *MaxClient) GetInternalUsers(phones []string) ([]*domain.InternalUser, []string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+
+	var resp *maxbotproto.GetInternalUsersResponse
+	err := grpcretry.WithRetry(ctx, "MaxBot.GetInternalUsers", func() error {
+		var callErr error
+		resp, callErr = c.client.GetInternalUsers(ctx, &maxbotproto.GetInternalUsersRequest{
+			PhoneNumbers: phones,
+		})
+		return callErr
+	})
+
+	if err != nil {
+		return nil, phones, err
+	}
+
+	if resp.Error != "" {
+		return nil, phones, mapError(resp.ErrorCode, resp.Error)
+	}
+
+	// Конвертируем protobuf объекты в domain объекты
+	users := make([]*domain.InternalUser, 0, len(resp.Users))
+	for _, protoUser := range resp.Users {
+		user := &domain.InternalUser{
+			UserID:        protoUser.UserId,
+			FirstName:     protoUser.FirstName,
+			LastName:      protoUser.LastName,
+			IsBot:         protoUser.IsBot,
+			Username:      protoUser.Username,
+			AvatarURL:     protoUser.AvatarUrl,
+			FullAvatarURL: protoUser.FullAvatarUrl,
+			Link:          protoUser.Link,
+			PhoneNumber:   protoUser.PhoneNumber,
+		}
+		users = append(users, user)
+	}
+
+	return users, resp.FailedPhoneNumbers, nil
+}
+
 func mapError(code maxbotproto.ErrorCode, message string) error {
 	switch code {
 	case maxbotproto.ErrorCode_ERROR_CODE_INVALID_PHONE:

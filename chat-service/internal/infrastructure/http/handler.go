@@ -40,11 +40,11 @@ type PaginatedChatsResponse struct {
 
 // AddAdministratorRequest представляет запрос на добавление администратора
 type AddAdministratorRequest struct {
-	Phone                string `json:"phone" example:"+79001234567" binding:"required"`
+	Phone                string `json:"phone" example:"+79001234567"`
 	MaxID                string `json:"max_id,omitempty" example:"496728250"`
-	AddUser              bool   `json:"add_user" example:"true"`
-	AddAdmin             bool   `json:"add_admin" example:"true"`
-	SkipPhoneValidation  bool   `json:"skip_phone_validation,omitempty" example:"false"`
+	AddUser              *bool  `json:"add_user,omitempty" example:"true"`
+	AddAdmin             *bool  `json:"add_admin,omitempty" example:"true"`
+	SkipPhoneValidation  *bool  `json:"skip_phone_validation,omitempty" example:"false"`
 }
 
 // AdministratorListResponse представляет ответ со списком администраторов и пагинацией
@@ -282,8 +282,24 @@ func (h *Handler) AddAdministrator(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Устанавливаем дефолтные значения для необязательных полей
+	addUser := true
+	if req.AddUser != nil {
+		addUser = *req.AddUser
+	}
+
+	addAdmin := true
+	if req.AddAdmin != nil {
+		addAdmin = *req.AddAdmin
+	}
+
+	skipPhoneValidation := false
+	if req.SkipPhoneValidation != nil {
+		skipPhoneValidation = *req.SkipPhoneValidation
+	}
+
 	// Используем новый метод с флагами
-	admin, err := h.chatService.AddAdministratorWithFlags(chatID, req.Phone, req.MaxID, req.AddUser, req.AddAdmin, req.SkipPhoneValidation)
+	admin, err := h.chatService.AddAdministratorWithFlags(chatID, req.Phone, req.MaxID, addUser, addAdmin, skipPhoneValidation)
 	if err != nil {
 		statusCode := http.StatusInternalServerError
 		if err == domain.ErrChatNotFound {
