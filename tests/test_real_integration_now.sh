@@ -19,7 +19,7 @@ if kill -0 $MAXBOT_PID 2>/dev/null; then
     
     # Show relevant logs
     echo "   📋 MaxBot logs:"
-    grep -E "(Loading environment|MAX_API_TOKEN|MOCK_MODE|Successfully retrieved bot info)" /tmp/maxbot-real.log | tail -5
+    grep -E "(Loading environment|MAX_BOT_TOKEN|MOCK_MODE|Successfully retrieved bot info)" /tmp/maxbot-real.log | tail -5
 else
     echo "   ❌ MaxBot service failed to start"
     echo "   📋 Error logs:"

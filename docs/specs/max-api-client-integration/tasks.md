@@ -1,7 +1,7 @@
 # Implementation Plan
 
 - [x] 1. Configuration setup (COMPLETED)
-  - Configuration already properly loads MAX_API_TOKEN, MAX_API_URL, and MAX_API_TIMEOUT
+  - Configuration already properly loads MAX_BOT_TOKEN, MAX_API_URL, and MAX_API_TIMEOUT
   - Domain interface MaxAPIClient exists with correct methods
   - Usecase layer properly structured
   - gRPC handler with error mapping complete
@@ -74,7 +74,7 @@
   - **Validates: Requirements 5.5**
 
 - [x] 5. Update main.go with validation and error handling
-  - Add validation for MAX_API_TOKEN (fail fast if missing)
+  - Add validation for MAX_BOT_TOKEN (fail fast if missing)
   - Handle client initialization errors gracefully
   - Add appropriate logging for startup
   - _Requirements: 1.1, 1.2, 1.3_
@@ -100,7 +100,7 @@
 
 - [x] 7. Update documentation
   - Update maxbot-service README.md with new Max API integration details
-  - Document required environment variables (MAX_API_TOKEN, MAX_API_URL, MAX_API_TIMEOUT)
+  - Document required environment variables (MAX_BOT_TOKEN, MAX_API_URL, MAX_API_TIMEOUT)
   - Add examples of how to configure the service
   - Document available Max API features and future extension points
   - _Requirements: 8.4_

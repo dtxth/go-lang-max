@@ -112,7 +112,7 @@ message GetChatInfoResponse {
 
 ### MAX API Integration
 - Uses official MAX Bot API client
-- Handles authentication with MAX_API_TOKEN
+- Handles authentication with MAX_BOT_TOKEN
 - Maps MAX API errors to domain errors
 - Supports both positive and negative chat IDs
 
@@ -127,7 +127,7 @@ message GetChatInfoResponse {
 
 1. **gRPC reflection not enabled**: Use proto files directly
 2. **Chat not found (404)**: Normal for test chat IDs
-3. **Authentication errors**: Check MAX_API_TOKEN
+3. **Authentication errors**: Check MAX_BOT_TOKEN
 4. **HTTP routing issues**: Use gRPC as workaround
 
 ### Debug Commands

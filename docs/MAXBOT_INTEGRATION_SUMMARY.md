@@ -132,7 +132,7 @@ if user.Phone != "" {
 ### Переменные окружения для MaxBot Service
 
 ```bash
-MAX_API_TOKEN=your-bot-token          # Обязательно
+MAX_BOT_TOKEN=your-bot-token          # Обязательно
 MAX_API_URL=https://api.max.ru        # По умолчанию
 MAX_API_TIMEOUT=5s                    # По умолчанию
 GRPC_PORT=9095                        # По умолчанию
@@ -236,7 +236,7 @@ protoc --go_out=. --go_opt=paths=source_relative \
 
 ```bash
 cd maxbot-service
-export MAX_API_TOKEN="your-bot-token"
+export MAX_BOT_TOKEN="your-bot-token"
 go run cmd/maxbot/main.go
 ```
 

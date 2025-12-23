@@ -131,7 +131,7 @@ go run cmd/migration/main.go
 ```bash
 cd maxbot-service
 
-export MAX_API_TOKEN="your-max-api-token"
+export MAX_BOT_TOKEN="your-max-bot-token"
 export MAX_API_URL="https://api.max.ru"
 export GRPC_PORT="9095"
 

@@ -66,7 +66,7 @@ func (h *Handler) RequestIDMiddleware(next http.Handler) http.Handler {
 
 ---
 
-### 2. MaxBot Service требует MAX_API_TOKEN
+### 2. MaxBot Service требует MAX_BOT_TOKEN
 
 **Статус:** 🟡 Ожидаемое поведение
 
@@ -74,11 +74,11 @@ func (h *Handler) RequestIDMiddleware(next http.Handler) http.Handler {
 - maxbot-service
 
 **Описание:**
-MaxBot service постоянно перезапускается, требуя MAX_API_TOKEN.
+MaxBot service постоянно перезапускается, требуя MAX_BOT_TOKEN.
 
 **Ошибка:**
 ```
-MAX_API_TOKEN environment variable is required but not set. 
+MAX_BOT_TOKEN environment variable is required but not set. 
 Please configure the bot token.
 ```
 
@@ -91,7 +91,7 @@ Please configure the bot token.
 ```yaml
 maxbot-service:
   environment:
-    MAX_API_TOKEN: "your-token-here"
+    MAX_BOT_TOKEN: "your-token-here"
     MAX_API_URL: "https://api.max.com"
 ```
 
@@ -273,7 +273,7 @@ docker exec employee-service ps aux
 ### 2025-11-30
 - ✅ Решена проблема со сборкой Docker (cross-service dependencies)
 - 🔴 Обнаружена проблема с logger nil pointer в middleware
-- 🟡 Обнаружена проблема с MAX_API_TOKEN в maxbot-service
+- 🟡 Обнаружена проблема с MAX_BOT_TOKEN в maxbot-service
 
 ---
 

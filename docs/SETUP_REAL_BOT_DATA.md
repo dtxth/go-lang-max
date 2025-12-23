@@ -8,13 +8,13 @@
 ### Шаг 1: Подготовка токена
 ```bash
 # Замените на ваш реальный токен MAX API
-export MAX_API_TOKEN="your-real-max-api-token-here"
+export MAX_BOT_TOKEN="your-real-max-bot-token-here"
 
 # Убедитесь, что MOCK_MODE отключен
 unset MOCK_MODE
 
 # Проверьте переменные
-echo "Token: ${MAX_API_TOKEN:0:10}..."
+echo "Token: ${MAX_BOT_TOKEN:0:10}..."
 echo "Mock mode: ${MOCK_MODE:-disabled}"
 ```
 
@@ -27,17 +27,17 @@ cd maxbot-service
 ./debug_config.sh
 
 # Или запуск напрямую:
-# export MAX_API_TOKEN="your-token"
+# export MAX_BOT_TOKEN="your-token"
 # go run cmd/maxbot/main.go
 ```
 
 **Ожидаемый вывод:**
 ```
-✅ MAX_API_TOKEN is set
+✅ MAX_BOT_TOKEN is set
 ✅ MOCK_MODE is disabled - will use real client
 Starting MaxBot Service...
 Configuration loaded - GRPC Port: 9095, HTTP Port: 8095
-MAX_API_TOKEN validated (length: XX characters)
+MAX_BOT_TOKEN validated (length: XX characters)
 Initializing Max API client...
 Max API client initialized successfully
 Starting gRPC server on port 9095
@@ -89,15 +89,15 @@ curl http://localhost:8080/bot/me
 ### Проблема 1: MaxBot service использует mock
 **Симптомы:**
 - В логах MaxBot: `"Running in MOCK MODE"`
-- Или: `"MAX_API_TOKEN environment variable is required"`
+- Или: `"MAX_BOT_TOKEN environment variable is required"`
 
 **Решение:**
 ```bash
 # Проверьте переменные
-env | grep -E "(MAX_API_TOKEN|MOCK_MODE)"
+env | grep -E "(MAX_BOT_TOKEN|MOCK_MODE)"
 
 # Установите токен
-export MAX_API_TOKEN="your-real-token"
+export MAX_BOT_TOKEN="your-real-token"
 
 # Убедитесь, что MOCK_MODE не установлен
 unset MOCK_MODE
@@ -127,7 +127,7 @@ export MAXBOT_SERVICE_ADDR="localhost:9095"
 **Решение:**
 ```bash
 # Проверьте токен
-curl -H "Authorization: Bearer $MAX_API_TOKEN" https://api.max.ru/bot/getMe
+curl -H "Authorization: Bearer $MAX_BOT_TOKEN" https://api.max.ru/bot/getMe
 
 # Или проверьте в коде MAX API клиента
 ```
@@ -144,7 +144,7 @@ curl -H "Authorization: Bearer $MAX_API_TOKEN" https://api.max.ru/bot/getMe
 Создайте скрипт `start_real_bot.sh`:
 ```bash
 #!/bin/bash
-export MAX_API_TOKEN="your-real-token"
+export MAX_BOT_TOKEN="your-real-token"
 export MAXBOT_SERVICE_ADDR="localhost:9095"
 unset MOCK_MODE
 

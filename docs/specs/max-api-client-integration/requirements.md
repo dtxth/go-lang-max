@@ -24,7 +24,7 @@ This document specifies the requirements for integrating the official max-bot-ap
 #### Acceptance Criteria
 
 1. WHEN the maxbot-service starts THEN the system SHALL initialize the Max API client using the official max-bot-api-client-go library with the configured bot token
-2. WHEN the Max API client is created THEN the system SHALL use the bot token from the MAX_API_TOKEN environment variable
+2. WHEN the Max API client is created THEN the system SHALL use the bot token from the MAX_BOT_TOKEN environment variable
 3. WHEN the Max API client initialization fails THEN the system SHALL return a descriptive error and prevent service startup
 4. WHEN the service makes API calls THEN the system SHALL use the official client library instead of the stub implementation
 
@@ -81,7 +81,7 @@ This document specifies the requirements for integrating the official max-bot-ap
 
 #### Acceptance Criteria
 
-1. WHEN the service starts THEN the system SHALL read the MAX_API_TOKEN environment variable for authentication
+1. WHEN the service starts THEN the system SHALL read the MAX_BOT_TOKEN environment variable for authentication
 2. WHEN the service starts THEN the system SHALL read the MAX_API_URL environment variable for the API base URL
 3. WHEN the service starts THEN the system SHALL read the MAX_API_TIMEOUT environment variable for request timeout configuration
 4. WHEN an environment variable is missing THEN the system SHALL use a sensible default value or fail with a clear error message

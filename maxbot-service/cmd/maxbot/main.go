@@ -35,15 +35,15 @@ func main() {
 	} else {
 		// Validate required configuration for real API
 		if cfg.MaxAPIToken == "" {
-			log.Fatal("MAX_API_TOKEN environment variable is required but not set. Please configure the bot token or enable MOCK_MODE=true.")
+			log.Fatal("MAX_BOT_TOKEN environment variable is required but not set. Please configure the bot token or enable MOCK_MODE=true.")
 		}
-		log.Printf("MAX_API_TOKEN validated (length: %d characters)", len(cfg.MaxAPIToken))
+		log.Printf("MAX_BOT_TOKEN validated (length: %d characters)", len(cfg.MaxAPIToken))
 
 		// Initialize real Max API client
 		log.Println("Initializing Max API client...")
 		realClient, clientErr := maxapi.NewClient(cfg.MaxAPIURL, cfg.MaxAPIToken, cfg.RequestTimeout)
 		if clientErr != nil {
-			log.Fatalf("Failed to initialize Max API client: %v. Please check your MAX_API_TOKEN and MAX_API_URL configuration.", clientErr)
+			log.Fatalf("Failed to initialize Max API client: %v. Please check your MAX_BOT_TOKEN and MAX_API_URL configuration.", clientErr)
 		}
 		apiClient = realClient
 		log.Println("Max API client initialized successfully")

@@ -49,7 +49,7 @@ brew install protobuf  # macOS
 
 ```bash
 cd maxbot-service
-export MAX_API_TOKEN="your-bot-token"
+export MAX_BOT_TOKEN="your-bot-token"
 go run cmd/maxbot/main.go
 ```
 
@@ -198,7 +198,7 @@ err := chatService.NotifyAdministrators(chatID, "Важное уведомлен
 ### MaxBot Service
 
 ```bash
-MAX_API_TOKEN=your-bot-token          # Обязательно!
+MAX_BOT_TOKEN=your-bot-token          # Обязательно!
 MAX_API_URL=https://api.max.ru        # По умолчанию
 MAX_API_TIMEOUT=5s                    # По умолчанию
 GRPC_PORT=9095                        # По умолчанию
@@ -217,7 +217,7 @@ MAXBOT_TIMEOUT=5s                     # Таймаут запросов
 services:
   maxbot-service:
     environment:
-      - MAX_API_TOKEN=${MAX_API_TOKEN}
+      - MAX_BOT_TOKEN=${MAX_BOT_TOKEN}
       - GRPC_PORT=9095
     ports:
       - "9095:9095"
@@ -298,7 +298,7 @@ export PATH="$PATH:$(go env GOPATH)/bin"
 
 ```bash
 # Проверить токен
-echo $MAX_API_TOKEN
+echo $MAX_BOT_TOKEN
 
 # Проверить порт
 lsof -i :9095

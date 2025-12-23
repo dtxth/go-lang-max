@@ -34,7 +34,7 @@ func Load() *Config {
 		GRPCPort:       getEnv("GRPC_PORT", "9095"),
 		HTTPPort:       getEnv("HTTP_PORT", "8095"),
 		MaxAPIURL:      getEnv("MAX_API_URL", ""),
-		MaxAPIToken:    getEnv("MAX_API_TOKEN", ""),
+		MaxAPIToken:    getEnv("MAX_BOT_TOKEN", ""),
 		RequestTimeout: getDurationEnv("MAX_API_TIMEOUT", 5*time.Second),
 		MockMode:       getBoolEnv("MOCK_MODE", false),
 		

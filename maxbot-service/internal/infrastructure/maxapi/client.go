@@ -23,7 +23,7 @@ type Client struct {
 
 func NewClient(baseURL, token string, timeout time.Duration) (*Client, error) {
 	if token == "" {
-		return nil, errors.New("MAX_API_TOKEN is required")
+		return nil, errors.New("MAX_BOT_TOKEN is required")
 	}
 
 	api, err := maxbot.New(token)
@@ -347,7 +347,7 @@ func (c *Client) GetMe(ctx context.Context) (*domain.BotInfo, error) {
 	}
 
 	log.Printf("[DEBUG] Successfully retrieved bot info from REAL client: %s", result.Name)
-	log.Printf("[INFO] Using real MAX API client with token (length: %d chars)", len(os.Getenv("MAX_API_TOKEN")))
+	log.Printf("[INFO] Using real MAX API client with token (length: %d chars)", len(os.Getenv("MAX_BOT_TOKEN")))
 	return result, nil
 }
 

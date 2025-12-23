@@ -177,7 +177,7 @@ JWT_ACCESS_SECRET=$(openssl rand -base64 32)
 JWT_REFRESH_SECRET=$(openssl rand -base64 32)
 
 # MAX Messenger API
-MAX_API_TOKEN=your_production_max_api_token
+MAX_BOT_TOKEN=your_production_max_bot_token
 MAX_API_URL=https://api.max.ru
 
 # Google Sheets API (для миграции)

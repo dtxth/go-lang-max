@@ -505,7 +505,7 @@ services:
   maxbot-service:
     build: ./maxbot-service
     environment:
-      - MAX_API_TOKEN=${MAX_API_TOKEN}
+      - MAX_BOT_TOKEN=${MAX_BOT_TOKEN}
       - MAX_API_URL=https://api.max.ru
       - MAX_API_TIMEOUT=5s
       - GRPC_PORT=9095

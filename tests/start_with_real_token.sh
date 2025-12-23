@@ -5,22 +5,22 @@ echo "=================================================="
 
 # Check if token is provided
 if [ -z "$1" ]; then
-    echo "❌ Usage: $0 <MAX_API_TOKEN>"
-    echo "   Example: $0 your-real-max-api-token"
+    echo "❌ Usage: $0 <MAX_BOT_TOKEN>"
+    echo "   Example: $0 your-real-max-bot-token"
     exit 1
 fi
 
-MAX_API_TOKEN="$1"
-echo "✅ Using provided MAX API token (${#MAX_API_TOKEN} characters)"
+MAX_BOT_TOKEN="$1"
+echo "✅ Using provided MAX BOT token (${#MAX_BOT_TOKEN} characters)"
 
 # Set environment variables
-export MAX_API_TOKEN="$MAX_API_TOKEN"
+export MAX_BOT_TOKEN="$MAX_BOT_TOKEN"
 export MAXBOT_SERVICE_ADDR="localhost:9095"
 unset MOCK_MODE
 
 echo ""
 echo "📋 Configuration:"
-echo "   MAX_API_TOKEN: ${MAX_API_TOKEN:0:10}..."
+echo "   MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:0:10}..."
 echo "   MAXBOT_SERVICE_ADDR: $MAXBOT_SERVICE_ADDR"
 echo "   MOCK_MODE: disabled"
 

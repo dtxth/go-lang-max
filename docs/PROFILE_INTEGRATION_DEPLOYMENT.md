@@ -25,7 +25,7 @@ Edit `.env` file with your specific configuration:
 
 ```bash
 # MAX API Configuration
-MAX_API_TOKEN=your-actual-max-api-token
+MAX_BOT_TOKEN=your-actual-max-bot-token
 MOCK_MODE=false
 
 # Profile Cache Configuration

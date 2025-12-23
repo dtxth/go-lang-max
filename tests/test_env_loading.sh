@@ -7,12 +7,12 @@ echo "============================"
 if [ -f ".env" ]; then
     echo "✅ .env file exists"
     
-    # Show MAX_API_TOKEN from file (first 10 chars)
-    token_from_file=$(grep "^MAX_API_TOKEN=" .env | cut -d'=' -f2)
+    # Show MAX_BOT_TOKEN from file (first 10 chars)
+    token_from_file=$(grep "^MAX_BOT_TOKEN=" .env | cut -d'=' -f2)
     echo "📄 Token in .env: ${token_from_file:0:10}..."
     
     # Check current environment
-    echo "🌍 Current environment MAX_API_TOKEN: ${MAX_API_TOKEN:0:10:-not set}..."
+    echo "🌍 Current environment MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:0:10:-not set}..."
     
     # Test maxbot-service loading
     echo ""

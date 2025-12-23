@@ -81,7 +81,7 @@ The service is configured through environment variables. All configuration optio
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `MAX_API_TOKEN` | Bot authentication token for Max Messenger API | `your-bot-token-here` |
+| `MAX_BOT_TOKEN` | Bot authentication token for Max Messenger API | `your-bot-token-here` |
 
 ### Profile Integration Variables (NEW)
 
@@ -110,7 +110,7 @@ The service is configured through environment variables. All configuration optio
 #### Development Environment
 
 ```bash
-export MAX_API_TOKEN="your-dev-bot-token"
+export MAX_BOT_TOKEN="your-dev-bot-token"
 export MAX_API_URL="https://api-dev.max.ru"
 export MAX_API_TIMEOUT="10s"
 export GRPC_PORT="9095"
@@ -119,7 +119,7 @@ export GRPC_PORT="9095"
 #### Production Environment
 
 ```bash
-export MAX_API_TOKEN="your-prod-bot-token"
+export MAX_BOT_TOKEN="your-prod-bot-token"
 export MAX_API_URL="https://api.max.ru"
 export MAX_API_TIMEOUT="5s"
 export GRPC_PORT="9095"
@@ -132,7 +132,7 @@ services:
   maxbot-service:
     image: maxbot-service:latest
     environment:
-      - MAX_API_TOKEN=your-bot-token
+      - MAX_BOT_TOKEN=your-bot-token
       - MAX_API_URL=https://api.max.ru
       - MAX_API_TIMEOUT=5s
       - GRPC_PORT=9095
@@ -158,7 +158,7 @@ metadata:
   name: maxbot-secrets
 type: Opaque
 stringData:
-  MAX_API_TOKEN: "your-bot-token"
+  MAX_BOT_TOKEN: "your-bot-token"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -183,7 +183,7 @@ spec:
 
 ```bash
 # Set required environment variables
-export MAX_API_TOKEN="your-bot-token"
+export MAX_BOT_TOKEN="your-bot-token"
 
 # Run the service
 go run cmd/maxbot/main.go
@@ -197,7 +197,7 @@ docker build -t maxbot-service:latest .
 
 # Run the container
 docker run -p 9095:9095 \
-  -e MAX_API_TOKEN="your-bot-token" \
+  -e MAX_BOT_TOKEN="your-bot-token" \
   -e MAX_API_URL="https://api.max.ru" \
   maxbot-service:latest
 ```
@@ -659,7 +659,7 @@ The service includes:
 
 ## Security Considerations
 
-1. **Token Security**: Never log or expose the `MAX_API_TOKEN` in error messages or logs
+1. **Token Security**: Never log or expose the `MAX_BOT_TOKEN` in error messages or logs
 2. **Phone Privacy**: Only last 4 digits of phone numbers are logged
 3. **Error Sanitization**: Error messages are sanitized before returning to clients
 4. **Rate Limiting**: Respects Max API rate limits to prevent service disruption
@@ -676,11 +676,11 @@ The service includes:
 
 ### Service Won't Start
 
-**Problem**: Service fails to start with "MAX_API_TOKEN is required"
+**Problem**: Service fails to start with "MAX_BOT_TOKEN is required"
 
-**Solution**: Ensure the `MAX_API_TOKEN` environment variable is set:
+**Solution**: Ensure the `MAX_BOT_TOKEN` environment variable is set:
 ```bash
-export MAX_API_TOKEN="your-bot-token"
+export MAX_BOT_TOKEN="your-bot-token"
 ```
 
 ### Authentication Errors

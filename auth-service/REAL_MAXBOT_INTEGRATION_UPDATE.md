@@ -84,7 +84,7 @@ go test ./internal/infrastructure/http/ -v -run TestHandler_GetBotMe
 ### 1. Запустить MaxBot service
 ```bash
 cd maxbot-service
-export MAX_API_TOKEN="your-real-bot-token"
+export MAX_BOT_TOKEN="your-real-bot-token"
 go run cmd/maxbot/main.go
 ```
 
@@ -127,7 +127,7 @@ curl http://localhost:8080/bot/me
 
 ## Следующие шаги
 
-1. **Настроить реальный MAX_API_TOKEN** в production
+1. **Настроить реальный MAX_BOT_TOKEN** в production
 2. **Мониторинг** - добавить метрики для вызовов MAX API
 3. **Кэширование** - кэшировать информацию о боте (опционально)
 4. **Логирование** - улучшить логирование для отладки

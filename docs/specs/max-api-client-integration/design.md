@@ -170,7 +170,7 @@ func Load() *Config {
     return &Config{
         GRPCPort:       getEnv("GRPC_PORT", "9095"),
         MaxAPIURL:      getEnv("MAX_API_URL", "https://api.max.ru"),
-        MaxAPIToken:    getEnv("MAX_API_TOKEN", ""),
+        MaxAPIToken:    getEnv("MAX_BOT_TOKEN", ""),
         RequestTimeout: getDurationEnv("MAX_API_TIMEOUT", 5*time.Second),
     }
 }
@@ -425,7 +425,7 @@ func main() {
     
     // Validate required configuration
     if cfg.MaxAPIToken == "" {
-        log.Fatal("MAX_API_TOKEN is required")
+        log.Fatal("MAX_BOT_TOKEN is required")
     }
     
     // Initialize Max API client
@@ -498,7 +498,7 @@ These can be added to the domain interface and implemented in the infrastructure
 ### Environment Variables
 
 Required:
-- `MAX_API_TOKEN`: Bot authentication token (no default, must be provided)
+- `MAX_BOT_TOKEN`: Bot authentication token (no default, must be provided)
 
 Optional:
 - `MAX_API_URL`: API base URL (default: "https://api.max.ru")
@@ -508,7 +508,7 @@ Optional:
 ### Migration Path
 
 1. Deploy new version with max-bot-api-client-go integration
-2. Configure MAX_API_TOKEN in environment
+2. Configure MAX_BOT_TOKEN in environment
 3. Monitor logs for API errors
 4. Verify GetMaxIDByPhone returns real Max IDs
 5. Remove old stub implementation code

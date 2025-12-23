@@ -240,7 +240,7 @@ services:
       GRPC_PORT: "${MAXBOT_GRPC_PORT:-9095}"
       HTTP_PORT: "${MAXBOT_HTTP_PORT:-8095}"
       MAX_API_URL: ""
-      MAX_API_TOKEN: "${MAX_API_TOKEN:-test-token-for-development}"
+      MAX_BOT_TOKEN: "${MAX_BOT_TOKEN:-test-token-for-development}"
       MAX_API_TIMEOUT: ${MAX_API_TIMEOUT:-5s}
       MOCK_MODE: "${MOCK_MODE:-true}"
       LOG_LEVEL: "${LOG_LEVEL:-info}"

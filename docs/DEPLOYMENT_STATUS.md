@@ -15,7 +15,7 @@
 | Employee Service | ❌ Не работает | Logger nil pointer |
 | Chat Service | ❌ Не работает | Logger nil pointer |
 | Structure Service | ❌ Не работает | Logger nil pointer |
-| MaxBot Service | 🔄 Перезапускается | Требует MAX_API_TOKEN |
+| MaxBot Service | 🔄 Перезапускается | Требует MAX_BOT_TOKEN |
 
 ## 🎯 Результаты развертывания
 
@@ -83,7 +83,7 @@ Testing migration-service... ✓
 
 2. **MaxBot Token**
    - Затронут: maxbot-service
-   - Причина: Отсутствует MAX_API_TOKEN
+   - Причина: Отсутствует MAX_BOT_TOKEN
    - Решение: Добавить токен в docker-compose.yml или сделать опциональным
 
 ## 📁 Созданные файлы

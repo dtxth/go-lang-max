@@ -36,7 +36,7 @@
 - [ ] **Протестировать MaxBot Service**
   ```bash
   cd maxbot-service
-  export MAX_API_TOKEN="your-bot-token"
+  export MAX_BOT_TOKEN="your-bot-token"
   go run cmd/maxbot/main.go
   ```
 
@@ -215,7 +215,7 @@
   - Проверить sanitization сообщений об ошибках
 
 - [ ] **Настроить переменные окружения**
-  - MAX_API_TOKEN должен быть в secrets
+  - MAX_BOT_TOKEN должен быть в secrets
   - Не коммитить токены в git
 
 ## 📊 Мониторинг
