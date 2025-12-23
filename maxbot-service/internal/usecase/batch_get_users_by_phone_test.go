@@ -84,6 +84,31 @@ func (m *MockMaxAPIClient) GetUserProfileByPhone(ctx context.Context, phone stri
 	return nil, domain.ErrMaxIDNotFound
 }
 
+func (m *MockMaxAPIClient) GetInternalUsers(ctx context.Context, phones []string) ([]*domain.InternalUser, []string, error) {
+	users := make([]*domain.InternalUser, 0)
+	failedPhones := make([]string, 0)
+	
+	for i, phone := range phones {
+		if _, exists := m.existingPhones[phone]; exists {
+			users = append(users, &domain.InternalUser{
+				UserID:        int64(100000 + i),
+				FirstName:     "Test",
+				LastName:      "User",
+				IsBot:         false,
+				Username:      "testuser",
+				AvatarURL:     "https://example.com/avatar.jpg",
+				FullAvatarURL: "https://example.com/avatar_full.jpg",
+				Link:          "max.ru/testuser",
+				PhoneNumber:   phone,
+			})
+		} else {
+			failedPhones = append(failedPhones, phone)
+		}
+	}
+	
+	return users, failedPhones, nil
+}
+
 func TestBatchGetUsersByPhoneUseCase_Execute(t *testing.T) {
 	mockClient := NewMockMaxAPIClient()
 	mockClient.AddExistingPhone("+79991234567", "+79991234567")

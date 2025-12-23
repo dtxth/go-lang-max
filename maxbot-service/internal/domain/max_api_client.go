@@ -32,6 +32,9 @@ type MaxAPIClient interface {
 	
 	// GetUserProfileByPhone получает профиль пользователя по номеру телефона
 	GetUserProfileByPhone(ctx context.Context, phone string) (*UserProfile, error)
+	
+	// GetInternalUsers получает детальную информацию о пользователях по номерам телефонов
+	GetInternalUsers(ctx context.Context, phones []string) ([]*InternalUser, []string, error)
 }
 
 // ChatInfo содержит информацию о чате
@@ -76,4 +79,17 @@ type UserProfile struct {
 	FirstName string
 	LastName  string
 	Phone     string
+}
+
+// InternalUser содержит детальную информацию о пользователе из MAX API /internal/users
+type InternalUser struct {
+	UserID        int64
+	FirstName     string
+	LastName      string
+	IsBot         bool
+	Username      string
+	AvatarURL     string
+	FullAvatarURL string
+	Link          string
+	PhoneNumber   string
 }

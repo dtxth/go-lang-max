@@ -67,3 +67,7 @@ func (s *MaxBotService) GetMe(ctx context.Context) (*domain.BotInfo, error) {
 func (s *MaxBotService) GetUserProfileByPhone(ctx context.Context, phone string) (*domain.UserProfile, error) {
 	return s.apiClient.GetUserProfileByPhone(ctx, phone)
 }
+
+func (s *MaxBotService) GetInternalUsers(ctx context.Context, phones []string) ([]*domain.InternalUser, []string, error) {
+	return s.apiClient.GetInternalUsers(ctx, phones)
+}

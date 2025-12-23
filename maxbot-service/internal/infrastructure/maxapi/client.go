@@ -390,6 +390,102 @@ func (c *Client) GetUserProfileByPhone(ctx context.Context, phone string) (*doma
 	return profile, nil
 }
 
+func (c *Client) GetInternalUsers(ctx context.Context, phones []string) ([]*domain.InternalUser, []string, error) {
+	if len(phones) == 0 {
+		return []*domain.InternalUser{}, []string{}, nil
+	}
+
+	if len(phones) > 100 {
+		return nil, nil, fmt.Errorf("batch size exceeds maximum of 100 phones")
+	}
+
+	// Normalize all phone numbers
+	normalizedPhones := make([]string, 0, len(phones))
+	for _, phone := range phones {
+		valid, normalized, err := c.ValidatePhone(phone)
+		if err != nil {
+			continue
+		}
+		if valid {
+			normalizedPhones = append(normalizedPhones, normalized)
+		}
+	}
+
+	if len(normalizedPhones) == 0 {
+		return []*domain.InternalUser{}, phones, nil
+	}
+
+	// TODO: Implement actual MAX API /internal/users call when available
+	// For now, we'll simulate the response using existing methods
+	
+	// Get existing phones using CheckPhoneNumbers
+	existingPhones, err := c.CheckPhoneNumbers(ctx, normalizedPhones)
+	if err != nil {
+		log.Printf("[ERROR] Failed to check phone numbers for internal users: %v", err)
+		return nil, normalizedPhones, err
+	}
+
+	// Create a set of existing phones for quick lookup
+	existingSet := make(map[string]bool)
+	for _, phone := range existingPhones {
+		existingSet[phone] = true
+	}
+
+	// Build internal users list
+	users := make([]*domain.InternalUser, 0, len(existingPhones))
+	failedPhones := make([]string, 0)
+
+	for _, phone := range normalizedPhones {
+		if existingSet[phone] {
+			// Create internal user with available data
+			// TODO: Replace with real MAX API /internal/users response
+			user := &domain.InternalUser{
+				UserID:        generateUserID(phone), // Mock user ID generation
+				FirstName:     "",                    // Will be populated by real API
+				LastName:      "",                    // Will be populated by real API
+				IsBot:         false,
+				Username:      "",                    // Will be populated by real API
+				AvatarURL:     "",                    // Will be populated by real API
+				FullAvatarURL: "",                    // Will be populated by real API
+				Link:          generateUserLink(""),  // Will be populated by real API
+				PhoneNumber:   phone,
+			}
+			users = append(users, user)
+		} else {
+			failedPhones = append(failedPhones, phone)
+		}
+	}
+
+	log.Printf("[DEBUG] GetInternalUsers processed %d phones, found %d users, %d failed", 
+		len(normalizedPhones), len(users), len(failedPhones))
+	
+	return users, failedPhones, nil
+}
+
+// generateUserID creates a mock user ID from phone number
+// TODO: Remove when real MAX API is implemented
+func generateUserID(phone string) int64 {
+	// Simple hash-based ID generation for testing
+	hash := int64(0)
+	for _, char := range phone {
+		hash = hash*31 + int64(char)
+	}
+	if hash < 0 {
+		hash = -hash
+	}
+	return hash % 999999999 + 100000000 // Ensure 9-digit ID
+}
+
+// generateUserLink creates a mock user link
+// TODO: Remove when real MAX API is implemented
+func generateUserLink(username string) string {
+	if username != "" {
+		return fmt.Sprintf("max.ru/%s", username)
+	}
+	// Generate hash-based link for users without username
+	return "max.ru/u/generated_hash"
+}
+
 func (c *Client) ValidatePhone(phone string) (bool, string, error) {
 	cleaned := nonDigitRegexp.ReplaceAllString(phone, "")
 

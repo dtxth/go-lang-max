@@ -207,6 +207,53 @@ func (h *MaxBotHandler) GetMe(ctx context.Context, req *maxbotproto.GetMeRequest
 	}, nil
 }
 
+func (h *MaxBotHandler) GetInternalUsers(ctx context.Context, req *maxbotproto.GetInternalUsersRequest) (*maxbotproto.GetInternalUsersResponse, error) {
+	if len(req.GetPhoneNumbers()) == 0 {
+		return &maxbotproto.GetInternalUsersResponse{
+			Users:               []*maxbotproto.InternalUser{},
+			FailedPhoneNumbers:  []string{},
+			ErrorCode:           maxbotproto.ErrorCode_ERROR_CODE_UNSPECIFIED,
+		}, nil
+	}
+
+	if len(req.GetPhoneNumbers()) > 100 {
+		return &maxbotproto.GetInternalUsersResponse{
+			Error:     "batch size exceeds maximum of 100 phones",
+			ErrorCode: maxbotproto.ErrorCode_ERROR_CODE_INTERNAL,
+		}, nil
+	}
+
+	users, failedPhones, err := h.service.GetInternalUsers(ctx, req.GetPhoneNumbers())
+	if err != nil {
+		return &maxbotproto.GetInternalUsersResponse{
+			Error:     err.Error(),
+			ErrorCode: mapError(err),
+		}, nil
+	}
+
+	// Convert domain users to protobuf users
+	protoUsers := make([]*maxbotproto.InternalUser, 0, len(users))
+	for _, user := range users {
+		protoUsers = append(protoUsers, &maxbotproto.InternalUser{
+			UserId:        user.UserID,
+			FirstName:     user.FirstName,
+			LastName:      user.LastName,
+			IsBot:         user.IsBot,
+			Username:      user.Username,
+			AvatarUrl:     user.AvatarURL,
+			FullAvatarUrl: user.FullAvatarURL,
+			Link:          user.Link,
+			PhoneNumber:   user.PhoneNumber,
+		})
+	}
+
+	return &maxbotproto.GetInternalUsersResponse{
+		Users:              protoUsers,
+		FailedPhoneNumbers: failedPhones,
+		ErrorCode:          maxbotproto.ErrorCode_ERROR_CODE_UNSPECIFIED,
+	}, nil
+}
+
 // TODO: Uncomment when protobuf files are regenerated with UserProfile definitions
 // func (h *MaxBotHandler) GetUserProfileByPhone(ctx context.Context, req *maxbotproto.GetUserProfileByPhoneRequest) (*maxbotproto.GetUserProfileByPhoneResponse, error) {
 // 	if req.Phone == "" {

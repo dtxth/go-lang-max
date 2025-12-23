@@ -48,6 +48,8 @@ type ErrorResponse struct {
 	Message string `json:"message" example:"Internal server error"`  // Error message
 } // @name ErrorResponse
 
+
+
 // ChatInfoResponse represents the response for chat info endpoint
 // @Description Chat information response
 type ChatInfoResponse struct {
@@ -153,6 +155,8 @@ func (h *MaxBotHTTPHandler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+
 
 // HandleMaxWebhook godoc
 // @Summary Handle MAX webhook events

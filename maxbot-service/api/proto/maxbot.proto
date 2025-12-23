@@ -43,6 +43,8 @@ service MaxBotService {
   // GetMe получает информацию о боте (имя и ссылку для добавления)
   rpc GetMe(GetMeRequest) returns (GetMeResponse);
   
+  // GetInternalUsers получает детальную информацию о пользователях по номерам телефонов
+  rpc GetInternalUsers(GetInternalUsersRequest) returns (GetInternalUsersResponse);
 
 }
 
@@ -216,4 +218,28 @@ message UserProfile {
   string first_name = 2;
   string last_name = 3;
   string phone = 4;
+}
+
+// GetInternalUsers
+message GetInternalUsersRequest {
+  repeated string phone_numbers = 1;
+}
+
+message GetInternalUsersResponse {
+  repeated InternalUser users = 1;
+  repeated string failed_phone_numbers = 2;
+  ErrorCode error_code = 3;
+  string error = 4;
+}
+
+message InternalUser {
+  int64 user_id = 1;
+  string first_name = 2;
+  string last_name = 3;
+  bool is_bot = 4;
+  string username = 5;
+  string avatar_url = 6;
+  string full_avatar_url = 7;
+  string link = 8;
+  string phone_number = 9;
 }

@@ -288,3 +288,63 @@ func (c *MockClient) GetUserProfileByPhone(ctx context.Context, phone string) (*
 	
 	return profile, nil
 }
+
+func (c *MockClient) GetInternalUsers(ctx context.Context, phones []string) ([]*domain.InternalUser, []string, error) {
+	if len(phones) == 0 {
+		return []*domain.InternalUser{}, []string{}, nil
+	}
+
+	if len(phones) > 100 {
+		return nil, nil, fmt.Errorf("batch size exceeds maximum of 100 phones")
+	}
+
+	users := make([]*domain.InternalUser, 0, len(phones))
+	failedPhones := make([]string, 0)
+
+	for i, phone := range phones {
+		valid, normalized, err := c.ValidatePhone(phone)
+		if err != nil || !valid {
+			failedPhones = append(failedPhones, phone)
+			continue
+		}
+
+		// Mock user data with variations
+		user := &domain.InternalUser{
+			UserID:        int64(100000000 + i), // Mock user ID
+			PhoneNumber:   normalized,
+			IsBot:         false,
+			AvatarURL:     fmt.Sprintf("https://max.ru/avatars/%d_small.jpg", 100000000+i),
+			FullAvatarURL: fmt.Sprintf("https://max.ru/avatars/%d_full.jpg", 100000000+i),
+		}
+
+		// Vary mock data based on phone number for testing
+		if strings.Contains(normalized, "1234") {
+			user.FirstName = "Петр"
+			user.LastName = "Петров"
+			user.Username = "petr_petrov"
+			user.Link = "max.ru/petr_petrov"
+		} else if strings.Contains(normalized, "5678") {
+			user.FirstName = "Анна"
+			user.LastName = "Сидорова"
+			user.Username = "anna_sidorova"
+			user.Link = "max.ru/anna_sidorova"
+		} else if strings.Contains(normalized, "9999") {
+			user.FirstName = "Мария"
+			user.LastName = "Иванова"
+			user.Username = "" // No username
+			user.Link = "max.ru/u/abc123hash"
+		} else {
+			user.FirstName = "Иван"
+			user.LastName = "Иванов"
+			user.Username = "ivan_ivanov"
+			user.Link = "max.ru/ivan_ivanov"
+		}
+
+		users = append(users, user)
+	}
+
+	log.Printf("[DEBUG] [MOCK] GetInternalUsers processed %d phones, found %d users, %d failed", 
+		len(phones), len(users), len(failedPhones))
+	
+	return users, failedPhones, nil
+}
