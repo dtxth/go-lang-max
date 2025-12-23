@@ -6,6 +6,7 @@ import (
 	"auth-service/internal/domain"
 	"auth-service/internal/infrastructure/cleanup"
 	"auth-service/internal/infrastructure/database"
+	"auth-service/internal/infrastructure/employee"
 	"auth-service/internal/infrastructure/grpc"
 	"auth-service/internal/infrastructure/hash"
 	"auth-service/internal/infrastructure/http"
@@ -134,6 +135,15 @@ func main() {
 		// Use mock client when no address is configured
 		authUC.SetMaxBotClient(maxbot.NewMockClient())
 		log.Printf("Using mock MaxBot client (no address configured)")
+	}
+	
+	// Initialize Employee client if configured
+	if cfg.EmployeeServiceAddr != "" {
+		employeeClient := employee.NewClient(cfg.EmployeeServiceAddr)
+		authUC.SetEmployeeClient(employeeClient)
+		log.Printf("Initialized Employee client (addr: %s)", cfg.EmployeeServiceAddr)
+	} else {
+		log.Printf("Employee service not configured - employee data updates disabled")
 	}
 	
 	handler := http.NewHandler(authUC)

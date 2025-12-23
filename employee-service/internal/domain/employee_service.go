@@ -19,6 +19,9 @@ type EmployeeServiceInterface interface {
 	// GetEmployeeByID получает сотрудника по ID
 	GetEmployeeByID(id int64) (*Employee, error)
 	
+	// GetEmployeeByMaxID получает сотрудника по MAX ID
+	GetEmployeeByMaxID(maxID string) (*Employee, error)
+	
 	// UpdateEmployee обновляет данные сотрудника
 	UpdateEmployee(employee *Employee) error
 	

@@ -75,7 +75,7 @@ make test
 
 **⚠️ Известные проблемы:**
 - Logger nil pointer в некоторых сервисах (требует исправления)
-- MaxBot service требует MAX_API_TOKEN для запуска
+- MaxBot service требует MAX_BOT_TOKEN для запуска
 - См. [KNOWN_ISSUES.md](./KNOWN_ISSUES.md) для подробностей
 
 ## Архитектура
@@ -661,7 +661,7 @@ LOG_LEVEL=info
 
 ### MaxBot Service
 ```bash
-MAX_API_TOKEN=your-max-api-token   # Токен для MAX Messenger Bot API (обязательно!)
+MAX_BOT_TOKEN=your-max-bot-token   # Токен для MAX Messenger Bot API (обязательно!)
 MAX_API_URL=https://api.max.ru     # URL MAX Messenger API
 MAX_API_TIMEOUT=5s                 # Таймаут для API запросов
 GRPC_PORT=9095                     # Порт gRPC сервера
@@ -940,7 +940,7 @@ cp auth-service/.env.example auth-service/.env
 **Критически важные настройки:**
 - Используйте сильные JWT секреты (минимум 32 символа)
 - Настройте production DATABASE_URL с SSL
-- Укажите реальный MAX_API_TOKEN
+- Укажите реальный MAX_BOT_TOKEN
 - Установите LOG_LEVEL=info (не debug)
 
 #### 2. Настройка базы данных
@@ -1356,7 +1356,7 @@ conn, err := grpc.Dial(
 
 ```bash
 # Проверьте токен MAX API
-curl -H "Authorization: Bearer $MAX_API_TOKEN" \
+curl -H "Authorization: Bearer $MAX_BOT_TOKEN" \
      https://api.max.ru/v1/users/search?phone=+79991234567
 
 # Проверьте логи MaxBot Service

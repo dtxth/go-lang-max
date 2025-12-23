@@ -75,11 +75,16 @@ func TestAuthValidator_ValidateInitData(t *testing.T) {
 			errContains: "invalid max_id format",
 		},
 		{
-			name:        "missing first_name",
-			initData:    createValidInitData(map[string]string{"max_id": "123"}, botToken),
-			botToken:    botToken,
-			wantErr:     true,
-			errContains: "first_name is required",
+			name:     "missing first_name (now allowed)",
+			initData: createValidInitData(map[string]string{"max_id": "123"}, botToken),
+			botToken: botToken,
+			wantErr:  false,
+			expected: &domain.MaxUserData{
+				MaxID:     123,
+				Username:  "",
+				FirstName: "",
+				LastName:  "",
+			},
 		},
 		{
 			name:     "valid minimal data",

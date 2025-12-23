@@ -618,3 +618,66 @@ func (h *Handler) GetAllBatchJobs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(jobs)
 }
+// UpdateEmployeeByMaxID обновляет данные сотрудника по MAX ID
+// @Summary      Update employee by MAX ID
+// @Description  Update employee first_name, last_name, and username by MAX ID
+// @Tags         employees
+// @Accept       json
+// @Produce      json
+// @Param        request  body      UpdateEmployeeByMaxIDRequest  true  "Employee update data"
+// @Success      200      {object}  Employee
+// @Failure      400      {string}  string
+// @Failure      404      {string}  string
+// @Failure      500      {string}  string
+// @Router       /employees/update-by-max-id [put]
+func (h *Handler) UpdateEmployeeByMaxID(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		MaxID     string `json:"max_id"`
+		FirstName string `json:"first_name"`
+		LastName  string `json:"last_name"`
+		Username  string `json:"username"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	if req.MaxID == "" {
+		http.Error(w, "max_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Получаем существующего сотрудника по MAX ID
+	employee, err := h.employeeService.GetEmployeeByMaxID(req.MaxID)
+	if err != nil {
+		if err.Error() == "employee not found" {
+			http.Error(w, "employee not found", http.StatusNotFound)
+		} else {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	// Обновляем поля (разрешаем пустые значения)
+	employee.FirstName = req.FirstName
+	employee.LastName = req.LastName
+	// Username пока не сохраняем в employee, так как это поле auth-service
+
+	// Сохраняем изменения
+	if err := h.employeeService.UpdateEmployee(employee); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(employee)
+}
+
+type UpdateEmployeeByMaxIDRequest struct {
+	MaxID     string `json:"max_id" example:"123456"`
+	FirstName string `json:"first_name" example:"Андрей"`
+	LastName  string `json:"last_name" example:"Иванов"`
+	Username  string `json:"username" example:"testuser"`
+}

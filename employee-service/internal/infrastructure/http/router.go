@@ -161,6 +161,15 @@ func (h *Handler) Router() http.Handler {
 		json.NewEncoder(w).Encode(employee)
 	})
 
+	// Update employee by MAX ID
+	mux.HandleFunc("/employees/update-by-max-id", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPut {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		h.UpdateEmployeeByMaxID(w, r)
+	})
+
 	// Wrap with CORS middleware (отключен) и request ID middleware
 	return middleware.RequestIDMiddleware(h.logger)(middleware.CORSMiddleware(mux))
 }

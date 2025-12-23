@@ -239,6 +239,15 @@ func (s *EmployeeService) GetEmployeeByID(id int64) (*domain.Employee, error) {
 	return employee, nil
 }
 
+// GetEmployeeByMaxID получает сотрудника по MAX ID
+func (s *EmployeeService) GetEmployeeByMaxID(maxID string) (*domain.Employee, error) {
+	employee, err := s.employeeRepo.GetByMaxID(maxID)
+	if err != nil {
+		return nil, domain.ErrEmployeeNotFound
+	}
+	return employee, nil
+}
+
 // UpdateEmployee обновляет данные сотрудника
 func (s *EmployeeService) UpdateEmployee(employee *domain.Employee) error {
 	// Проверяем существование сотрудника

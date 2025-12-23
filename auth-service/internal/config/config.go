@@ -14,6 +14,7 @@ type Config struct {
     GRPCPort                string
     NotificationServiceType string
     MaxBotServiceAddr       string
+    EmployeeServiceAddr     string
     MaxBotToken             string
     MinPasswordLength       int
     ResetTokenExpiration    int // in minutes
@@ -34,6 +35,7 @@ func Load() (*Config, error) {
         GRPCPort:                getEnv("GRPC_PORT", "9090"),
         NotificationServiceType: notificationServiceType,
         MaxBotServiceAddr:       getEnv("MAXBOT_SERVICE_ADDR", ""),
+        EmployeeServiceAddr:     getEnv("EMPLOYEE_SERVICE_ADDR", ""),
         MaxBotToken:             os.Getenv("MAX_BOT_TOKEN"),
         MinPasswordLength:       minPasswordLength,
         ResetTokenExpiration:    resetTokenExpiration,

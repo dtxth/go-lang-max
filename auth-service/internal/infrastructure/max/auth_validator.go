@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"sort"
@@ -32,8 +33,16 @@ func (v *AuthValidator) ValidateInitData(initData string, botToken string) (*dom
 		return nil, fmt.Errorf("botToken cannot be empty")
 	}
 
+	// Try to URL decode the entire initData string first
+	// If it fails, assume it's already decoded (old format)
+	decodedInitData, err := url.QueryUnescape(initData)
+	if err != nil {
+		// If URL decode fails, try to parse as-is (old format)
+		decodedInitData = initData
+	}
+
 	// Parse query string into key-value pairs
-	values, err := url.ParseQuery(initData)
+	values, err := url.ParseQuery(decodedInitData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse initData: %w", err)
 	}
@@ -45,6 +54,10 @@ func (v *AuthValidator) ValidateInitData(initData string, botToken string) (*dom
 	}
 	receivedHash := hashValues[0]
 	values.Del("hash")
+
+	// Remove WebApp specific parameters that are not part of the hash calculation
+	values.Del("WebAppPlatform")
+	values.Del("WebAppVersion")
 
 	// Prepare data for verification by sorting parameters alphabetically
 	var sortedParams []string
@@ -80,6 +93,52 @@ func (v *AuthValidator) ValidateInitData(initData string, botToken string) (*dom
 
 // extractUserData extracts MaxUserData from parsed query values
 func (v *AuthValidator) extractUserData(values url.Values) (*domain.MaxUserData, error) {
+	// Check if we have user data in JSON format (new format)
+	userJSON := values.Get("user")
+	if userJSON != "" {
+		return v.extractUserDataFromJSON(userJSON)
+	}
+
+	// Fallback to old format for backward compatibility
+	return v.extractUserDataFromParams(values)
+}
+
+// extractUserDataFromJSON extracts user data from JSON string (new format)
+func (v *AuthValidator) extractUserDataFromJSON(userJSON string) (*domain.MaxUserData, error) {
+	var user struct {
+		ID           int64  `json:"id"`
+		FirstName    string `json:"first_name"`
+		LastName     string `json:"last_name"`
+		Username     *string `json:"username"`
+		LanguageCode string `json:"language_code"`
+		PhotoURL     string `json:"photo_url"`
+	}
+
+	if err := json.Unmarshal([]byte(userJSON), &user); err != nil {
+		return nil, fmt.Errorf("failed to parse user JSON: %w", err)
+	}
+
+	if user.ID == 0 {
+		return nil, fmt.Errorf("user id is required")
+	}
+
+	// first_name can be empty, no validation required
+
+	username := ""
+	if user.Username != nil {
+		username = *user.Username
+	}
+
+	return &domain.MaxUserData{
+		MaxID:     user.ID,
+		Username:  username,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}, nil
+}
+
+// extractUserDataFromParams extracts user data from URL parameters (old format)
+func (v *AuthValidator) extractUserDataFromParams(values url.Values) (*domain.MaxUserData, error) {
 	// Extract max_id (required)
 	maxIDStr := values.Get("max_id")
 	if maxIDStr == "" {
@@ -91,11 +150,8 @@ func (v *AuthValidator) extractUserData(values url.Values) (*domain.MaxUserData,
 		return nil, fmt.Errorf("invalid max_id format: %w", err)
 	}
 
-	// Extract first_name (required)
+	// Extract first_name (can be empty)
 	firstName := values.Get("first_name")
-	if firstName == "" {
-		return nil, fmt.Errorf("first_name is required")
-	}
 
 	// Extract optional fields
 	username := values.Get("username")

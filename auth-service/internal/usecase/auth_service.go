@@ -26,6 +26,7 @@ type AuthService struct {
     notificationService    domain.NotificationService
     maxBotClient           domain.MaxBotClient
     maxAuthValidator       domain.MaxAuthValidator
+    employeeClient         domain.EmployeeClient
     maxBotToken            string
     logger                 Logger
     metrics                *metrics.Metrics
@@ -64,6 +65,11 @@ func (s *AuthService) SetMaxAuthValidator(validator domain.MaxAuthValidator) {
 // SetMaxBotToken sets the MAX bot token
 func (s *AuthService) SetMaxBotToken(token string) {
     s.maxBotToken = token
+}
+
+// SetEmployeeClient sets the employee service client
+func (s *AuthService) SetEmployeeClient(client domain.EmployeeClient) {
+    s.employeeClient = client
 }
 
 // SetPasswordConfig sets the password configuration
@@ -824,6 +830,23 @@ func (s *AuthService) AuthenticateMAX(initData string) (*TokensWithJTIResult, er
 		return nil, fmt.Errorf("failed to update user: %w", err)
 	}
 	
+	// Update employee data in employee-service if client is available
+	if s.employeeClient != nil {
+		maxIDStr := fmt.Sprintf("%d", maxUserData.MaxID)
+		if err := s.employeeClient.UpdateEmployeeByMaxID(maxIDStr, maxUserData.FirstName, maxUserData.LastName, maxUserData.Username); err != nil {
+			// Log error but don't fail authentication
+			if s.logger != nil {
+				s.logger.Error(nil, "employee_update_failed", map[string]interface{}{
+					"user_id":   user.ID,
+					"max_id":    maxUserData.MaxID,
+					"error":     err.Error(),
+					"timestamp": time.Now().UTC().Format(time.RFC3339),
+					"operation": "authenticate_max",
+				})
+			}
+		}
+	}
+	
 	// Audit log: existing user updated
 	if s.logger != nil {
 		s.logger.Info(nil, "max_user_updated", map[string]interface{}{
@@ -888,10 +911,17 @@ func (s *AuthService) AuthenticateMAX(initData string) (*TokensWithJTIResult, er
 
 // buildDisplayName creates a display name from first and last name
 func buildDisplayName(firstName, lastName string) string {
-	if lastName != "" {
-		return firstName + " " + lastName
+	// Handle cases where firstName might be empty
+	if firstName == "" && lastName == "" {
+		return ""
 	}
-	return firstName
+	if firstName == "" {
+		return lastName
+	}
+	if lastName == "" {
+		return firstName
+	}
+	return firstName + " " + lastName
 }
 
 // GetBotInfo retrieves bot information from MaxBot service

@@ -15,7 +15,7 @@ type User struct {
     Role     string `json:"role"`
     
     // MAX-specific fields
-    MaxID    *int64  `json:"max_id,omitempty"`    // MAX platform user ID
-    Username *string `json:"username,omitempty"`   // MAX username
-    Name     *string `json:"name,omitempty"`       // Display name from MAX
+    MaxID     *int64  `json:"max_id,omitempty"`      // MAX platform user ID
+    Username  *string `json:"username,omitempty"`    // MAX username
+    Name      *string `json:"name,omitempty"`        // Display name from MAX
 }
