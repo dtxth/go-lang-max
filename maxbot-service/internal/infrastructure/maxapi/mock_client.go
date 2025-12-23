@@ -22,6 +22,12 @@ func NewMockClient() *MockClient {
 	}
 }
 
+// NewMockClientWithConfig creates a mock client with config parameters (for compatibility)
+func NewMockClientWithConfig(baseURL, token string, timeout time.Duration) *MockClient {
+	log.Printf("[DEBUG] [MOCK] Creating mock client with baseURL=%s, timeout=%v", baseURL, timeout)
+	return NewMockClient()
+}
+
 func (c *MockClient) GetMaxIDByPhone(ctx context.Context, phone string) (string, error) {
 	// Validate and normalize phone number first
 	valid, normalized, err := c.ValidatePhone(phone)

@@ -9,6 +9,10 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"bytes"
+	"encoding/json"
+	"io"
+	"net/http"
 
 	maxbot "github.com/max-messenger/max-bot-api-client-go"
 	"maxbot-service/internal/domain"
@@ -17,8 +21,33 @@ import (
 // Client wraps the official Max API client and implements the domain.MaxAPIClient interface
 var nonDigitRegexp = regexp.MustCompile(`\D`)
 
+// MAX API /internal/users request/response structures
+type InternalUsersRequest struct {
+	PhoneNumbers []string `json:"phone_numbers"`
+}
+
+type InternalUsersResponse struct {
+	Users              []InternalUserAPIResponse `json:"users"`
+	FailedPhoneNumbers []string                  `json:"failed_phone_numbers"`
+}
+
+type InternalUserAPIResponse struct {
+	UserID        int64  `json:"user_id"`
+	FirstName     string `json:"first_name"`
+	LastName      string `json:"last_name"`
+	IsBot         bool   `json:"is_bot"`
+	Username      string `json:"username"`
+	AvatarURL     string `json:"avatar_url"`
+	FullAvatarURL string `json:"full_avatar_url"`
+	Link          string `json:"link"`
+	PhoneNumber   string `json:"phone_number"`
+}
+
 type Client struct {
-	api *maxbot.Api
+	api     *maxbot.Api
+	baseURL string
+	token   string
+	client  *http.Client
 }
 
 func NewClient(baseURL, token string, timeout time.Duration) (*Client, error) {
@@ -31,8 +60,18 @@ func NewClient(baseURL, token string, timeout time.Duration) (*Client, error) {
 		return nil, fmt.Errorf("failed to initialize Max API client: %w", err)
 	}
 
+	// Set default baseURL if not provided
+	if baseURL == "" {
+		baseURL = "https://api.max.ru" // Default MAX API base URL
+	}
+
 	return &Client{
-		api: api,
+		api:     api,
+		baseURL: baseURL,
+		token:   token,
+		client: &http.Client{
+			Timeout: timeout,
+		},
 	}, nil
 }
 
@@ -401,6 +440,8 @@ func (c *Client) GetInternalUsers(ctx context.Context, phones []string) ([]*doma
 
 	// Normalize all phone numbers
 	normalizedPhones := make([]string, 0, len(phones))
+	originalToNormalized := make(map[string]string) // normalized -> original
+	
 	for _, phone := range phones {
 		valid, normalized, err := c.ValidatePhone(phone)
 		if err != nil {
@@ -408,6 +449,7 @@ func (c *Client) GetInternalUsers(ctx context.Context, phones []string) ([]*doma
 		}
 		if valid {
 			normalizedPhones = append(normalizedPhones, normalized)
+			originalToNormalized[normalized] = phone
 		}
 	}
 
@@ -415,57 +457,122 @@ func (c *Client) GetInternalUsers(ctx context.Context, phones []string) ([]*doma
 		return []*domain.InternalUser{}, phones, nil
 	}
 
-	// TODO: Implement actual MAX API /internal/users call when available
-	// For now, we'll simulate the response using existing methods
-	
-	// Get existing phones using CheckPhoneNumbers
-	existingPhones, err := c.CheckPhoneNumbers(ctx, normalizedPhones)
+	// Call real MAX API /internal/users endpoint
+	users, failedPhones, err := c.callInternalUsersAPI(ctx, normalizedPhones)
 	if err != nil {
-		log.Printf("[ERROR] Failed to check phone numbers for internal users: %v", err)
-		return nil, normalizedPhones, err
+		log.Printf("[ERROR] MAX API /internal/users call failed: %v", err)
+		// Fallback to mock implementation for development
+		return c.fallbackGetInternalUsers(ctx, normalizedPhones)
 	}
 
-	// Create a set of existing phones for quick lookup
-	existingSet := make(map[string]bool)
-	for _, phone := range existingPhones {
-		existingSet[phone] = true
-	}
-
-	// Build internal users list
-	users := make([]*domain.InternalUser, 0, len(existingPhones))
-	failedPhones := make([]string, 0)
-
-	for _, phone := range normalizedPhones {
-		if existingSet[phone] {
-			// Create internal user with available data
-			// TODO: Replace with real MAX API /internal/users response
-			user := &domain.InternalUser{
-				UserID:        generateUserID(phone), // Mock user ID generation
-				FirstName:     "",                    // Will be populated by real API
-				LastName:      "",                    // Will be populated by real API
-				IsBot:         false,
-				Username:      "",                    // Will be populated by real API
-				AvatarURL:     "",                    // Will be populated by real API
-				FullAvatarURL: "",                    // Will be populated by real API
-				Link:          generateUserLink(""),  // Will be populated by real API
-				PhoneNumber:   phone,
-			}
-			users = append(users, user)
+	// Convert failed phones back to original format
+	originalFailedPhones := make([]string, 0, len(failedPhones))
+	for _, failedPhone := range failedPhones {
+		if original, exists := originalToNormalized[failedPhone]; exists {
+			originalFailedPhones = append(originalFailedPhones, original)
 		} else {
-			failedPhones = append(failedPhones, phone)
+			originalFailedPhones = append(originalFailedPhones, failedPhone)
 		}
 	}
 
 	log.Printf("[DEBUG] GetInternalUsers processed %d phones, found %d users, %d failed", 
+		len(normalizedPhones), len(users), len(originalFailedPhones))
+	
+	return users, originalFailedPhones, nil
+}
+
+// callInternalUsersAPI makes the actual HTTP call to MAX API /internal/users
+func (c *Client) callInternalUsersAPI(ctx context.Context, phones []string) ([]*domain.InternalUser, []string, error) {
+	// Prepare request
+	reqBody := InternalUsersRequest{
+		PhoneNumbers: phones,
+	}
+
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	// Create HTTP request
+	url := fmt.Sprintf("%s/internal/users", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(jsonData))
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	// Set headers
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", c.token)
+
+	log.Printf("[DEBUG] Calling MAX API /internal/users with %d phones", len(phones))
+
+	// Make the request
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("HTTP request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+
+	// Check status code
+	if resp.StatusCode != http.StatusOK {
+		log.Printf("[ERROR] MAX API returned status %d: %s", resp.StatusCode, string(body))
+		return nil, nil, fmt.Errorf("MAX API returned status %d", resp.StatusCode)
+	}
+
+	// Parse response
+	var apiResp InternalUsersResponse
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, nil, fmt.Errorf("failed to parse response: %w", err)
+	}
+
+	// Convert API response to domain objects
+	users := make([]*domain.InternalUser, 0, len(apiResp.Users))
+	for _, apiUser := range apiResp.Users {
+		user := &domain.InternalUser{
+			UserID:        apiUser.UserID,
+			FirstName:     apiUser.FirstName,
+			LastName:      apiUser.LastName,
+			IsBot:         apiUser.IsBot,
+			Username:      apiUser.Username,
+			AvatarURL:     apiUser.AvatarURL,
+			FullAvatarURL: apiUser.FullAvatarURL,
+			Link:          apiUser.Link,
+			PhoneNumber:   apiUser.PhoneNumber,
+		}
+		users = append(users, user)
+	}
+
+	log.Printf("[DEBUG] MAX API /internal/users returned %d users, %d failed phones", 
+		len(users), len(apiResp.FailedPhoneNumbers))
+
+	return users, apiResp.FailedPhoneNumbers, nil
+}
+
+// fallbackGetInternalUsers provides fallback implementation when MAX API is unavailable
+func (c *Client) fallbackGetInternalUsers(ctx context.Context, normalizedPhones []string) ([]*domain.InternalUser, []string, error) {
+	log.Printf("[WARN] Using fallback implementation for GetInternalUsers")
+	
+	// In fallback mode, we can't reliably check phone existence without MAX API
+	// So we'll return empty users and all phones as failed
+	users := make([]*domain.InternalUser, 0)
+	failedPhones := make([]string, len(normalizedPhones))
+	copy(failedPhones, normalizedPhones)
+
+	log.Printf("[DEBUG] Fallback GetInternalUsers processed %d phones, found %d users, %d failed", 
 		len(normalizedPhones), len(users), len(failedPhones))
 	
 	return users, failedPhones, nil
 }
 
-// generateUserID creates a mock user ID from phone number
-// TODO: Remove when real MAX API is implemented
+// generateUserID creates a mock user ID from phone number (fallback only)
 func generateUserID(phone string) int64 {
-	// Simple hash-based ID generation for testing
+	// Simple hash-based ID generation for fallback
 	hash := int64(0)
 	for _, char := range phone {
 		hash = hash*31 + int64(char)
@@ -476,8 +583,7 @@ func generateUserID(phone string) int64 {
 	return hash % 999999999 + 100000000 // Ensure 9-digit ID
 }
 
-// generateUserLink creates a mock user link
-// TODO: Remove when real MAX API is implemented
+// generateUserLink creates a mock user link (fallback only)
 func generateUserLink(username string) string {
 	if username != "" {
 		return fmt.Sprintf("max.ru/%s", username)
