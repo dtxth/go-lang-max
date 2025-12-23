@@ -4,7 +4,7 @@ import (
 	"log"
 	"net"
 
-	maxbotproto "maxbot-service/api/proto"
+	maxbotproto "maxbot-service/api/proto/maxbotproto"
 
 	"google.golang.org/grpc"
 )

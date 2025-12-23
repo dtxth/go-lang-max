@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"maxbot-service/internal/infrastructure/middleware"
 	"github.com/gorilla/mux"
 )
 
@@ -90,11 +91,11 @@ func (s *Server) setupRoutes() *mux.Router {
 	router := mux.NewRouter()
 	log.Printf("✅ Created mux.Router")
 
-	// Health check - самый простой endpoint
+	// Health check - самый простой endpoint (без авторизации)
 	router.HandleFunc("/health", s.healthCheck).Methods("GET")
 	log.Printf("✅ Registered /health endpoint")
 
-	// Простой тестовый endpoint без middleware
+	// Простой тестовый endpoint без middleware (без авторизации)
 	router.HandleFunc("/test-simple", func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Simple test endpoint called")
 		w.Header().Set("Content-Type", "application/json")
@@ -109,25 +110,45 @@ func (s *Server) setupRoutes() *mux.Router {
 	router.Use(s.requestIDMiddleware)
 	log.Printf("✅ Middleware added")
 
-	// API routes
+	// API routes with authentication
 	api := router.PathPrefix("/api/v1").Subrouter()
 	log.Printf("✅ Created API subrouter with prefix /api/v1")
 	
-	// Bot endpoints
-	api.HandleFunc("/me", s.handler.GetMe).Methods("GET")
-	log.Printf("✅ Registered /api/v1/me endpoint")
+	// Auth middleware for API routes
+	authMiddleware := middleware.AuthMiddleware()
 	
-	// Chat endpoints - CRITICAL FIX
-	api.HandleFunc("/chats/{chat_id}", s.handler.GetChatInfo).Methods("GET")
-	log.Printf("✅ Registered /api/v1/chats/{chat_id} endpoint")
+	// Bot endpoints (с авторизацией)
+	api.Handle("/me", authMiddleware(http.HandlerFunc(s.handler.GetMe))).Methods("GET")
+	log.Printf("✅ Registered /api/v1/me endpoint with auth")
 	
-	// Test endpoint
-	api.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+	// Chat endpoints (с авторизацией)
+	api.Handle("/chats/{chat_id}", authMiddleware(http.HandlerFunc(s.handler.GetChatInfo))).Methods("GET")
+	log.Printf("✅ Registered /api/v1/chats/{chat_id} endpoint with auth")
+	
+	// Profile endpoints (с авторизацией)
+	api.Handle("/profiles/{user_id}", authMiddleware(http.HandlerFunc(s.handler.GetProfile))).Methods("GET")
+	api.Handle("/profiles/{user_id}", authMiddleware(http.HandlerFunc(s.handler.UpdateProfile))).Methods("PUT")
+	api.Handle("/profiles/{user_id}/name", authMiddleware(http.HandlerFunc(s.handler.SetUserProvidedName))).Methods("POST")
+	api.Handle("/profiles/stats", authMiddleware(http.HandlerFunc(s.handler.GetProfileStats))).Methods("GET")
+	log.Printf("✅ Registered profile endpoints with auth")
+	
+	// Monitoring endpoints (с авторизацией)
+	api.Handle("/monitoring/webhook/stats", authMiddleware(http.HandlerFunc(s.handler.GetWebhookStats))).Methods("GET")
+	api.Handle("/monitoring/profiles/coverage", authMiddleware(http.HandlerFunc(s.handler.GetProfileCoverage))).Methods("GET")
+	api.Handle("/monitoring/profiles/quality", authMiddleware(http.HandlerFunc(s.handler.GetProfileQualityReport))).Methods("GET")
+	log.Printf("✅ Registered monitoring endpoints with auth")
+	
+	// Webhook endpoint (без авторизации - для внешних систем)
+	api.HandleFunc("/webhook/max", s.handler.HandleMaxWebhook).Methods("POST")
+	log.Printf("✅ Registered /api/v1/webhook/max endpoint without auth")
+	
+	// Test endpoint (с авторизацией)
+	api.Handle("/test", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, `{"message":"test endpoint works"}`)
-	}).Methods("GET")
-	log.Printf("✅ Registered /api/v1/test endpoint")
+	}))).Methods("GET")
+	log.Printf("✅ Registered /api/v1/test endpoint with auth")
 
 	log.Printf("=== HTTP ROUTES SETUP COMPLETED ===")
 	return router

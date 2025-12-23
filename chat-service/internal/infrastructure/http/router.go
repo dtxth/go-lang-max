@@ -17,7 +17,7 @@ func (h *Handler) Router() http.Handler {
 		case http.MethodGet:
 			h.authMiddleware.Authenticate(h.SearchChats)(w, r)
 		case http.MethodPost:
-			h.CreateChat(w, r)
+			h.authMiddleware.Authenticate(h.CreateChat)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -39,7 +39,7 @@ func (h *Handler) Router() http.Handler {
 		if path == "" {
 			switch r.Method {
 			case http.MethodGet:
-				h.SearchChats(w, r)
+				h.authMiddleware.Authenticate(h.SearchChats)(w, r)
 			default:
 				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			}
@@ -54,7 +54,7 @@ func (h *Handler) Router() http.Handler {
 				// /chats/{id}/administrators
 				switch r.Method {
 				case http.MethodPost:
-					h.AddAdministrator(w, r)
+					h.authMiddleware.Authenticate(h.AddAdministrator)(w, r)
 				default:
 					http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 				}
@@ -74,7 +74,7 @@ func (h *Handler) Router() http.Handler {
 		// Проверяем, что это числовой ID
 		switch r.Method {
 		case http.MethodGet:
-			h.GetChatByID(w, r)
+			h.authMiddleware.Authenticate(h.GetChatByID)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
@@ -91,7 +91,7 @@ func (h *Handler) Router() http.Handler {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
-		h.GetAllAdministrators(w, r)
+		h.authMiddleware.Authenticate(h.GetAllAdministrators)(w, r)
 	})
 
 	// Обработка /administrators/{id}
@@ -104,27 +104,25 @@ func (h *Handler) Router() http.Handler {
 				http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 				return
 			}
-			h.GetAllAdministrators(w, r)
+			h.authMiddleware.Authenticate(h.GetAllAdministrators)(w, r)
 			return
 		}
 
 		// Иначе это запрос к /administrators/{id}
 		switch r.Method {
 		case http.MethodGet:
-			h.GetAdministratorByID(w, r)
+			h.authMiddleware.Authenticate(h.GetAdministratorByID)(w, r)
 		case http.MethodDelete:
-			h.RemoveAdministrator(w, r)
+			h.authMiddleware.Authenticate(h.RemoveAdministrator)(w, r)
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
 	})
 
-	// Swagger UI
+	// Swagger UI (без авторизации)
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-
-
-	// Health check
+	// Health check (без авторизации)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))

@@ -5,7 +5,7 @@ import (
 	"employee-service/internal/domain"
 
 	"google.golang.org/grpc"
-	maxbotproto "maxbot-service/api/proto"
+	maxbotproto "maxbot-service/api/proto/maxbotproto"
 )
 
 // ProfileCacheClient реализует ProfileCacheService через gRPC вызовы к maxbot-service

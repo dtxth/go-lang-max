@@ -118,7 +118,7 @@ func main() {
 	}
 
 	// Инициализируем middleware
-	authMiddleware := http.NewAuthMiddleware(authClient)
+	authMiddleware := http.NewAuthMiddleware()
 
 	// Инициализируем HTTP handler с logger
 	handler := http.NewHandler(chatService, authMiddleware, appLogger)

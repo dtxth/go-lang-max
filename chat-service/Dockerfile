@@ -30,18 +30,11 @@ COPY chat-service/ .
 RUN sed -i 's|=> ../auth-service|=> /app/auth-service|g' go.mod && \
     sed -i 's|=> ../maxbot-service|=> /app/maxbot-service|g' go.mod
 
-# Генерируем proto файлы для всех сервисов
+# Генерируем proto файлы только для chat-service
+# Внешние proto (auth, maxbot) используют предсгенерированные файлы из source
 RUN protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     api/proto/chat.proto
-
-RUN protoc --proto_path=/app/auth-service --go_out=/app/auth-service --go_opt=paths=source_relative \
-    --go-grpc_out=/app/auth-service --go-grpc_opt=paths=source_relative \
-    api/proto/auth.proto
-
-RUN protoc --proto_path=/app/maxbot-service --go_out=/app/maxbot-service --go_opt=paths=source_relative \
-    --go-grpc_out=/app/maxbot-service --go-grpc_opt=paths=source_relative \
-    api/proto/maxbot.proto
 
 # Генерируем Swagger документацию
 RUN go install github.com/swaggo/swag/cmd/swag@latest

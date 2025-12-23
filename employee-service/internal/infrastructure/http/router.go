@@ -12,8 +12,11 @@ import (
 func (h *Handler) Router() http.Handler {
 	mux := http.NewServeMux()
 
+	// Auth middleware
+	authMiddleware := middleware.AuthMiddleware()
+
 	// Simple employee creation endpoint - используем другой путь
-	mux.HandleFunc("/simple-employee", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/simple-employee", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h.logger.Info(r.Context(), "simple-employee route hit", map[string]interface{}{
 			"method": r.Method,
 			"path":   r.URL.Path,
@@ -27,43 +30,43 @@ func (h *Handler) Router() http.Handler {
 			})
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
-	})
+	})))
 
-	mux.HandleFunc("/employees/all", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/employees/all", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		h.GetAllEmployees(w, r)
-	})
+	})))
 
 	// Batch operations
-	mux.HandleFunc("/employees/batch-update-maxid", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/employees/batch-update-maxid", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		h.BatchUpdateMaxID(w, r)
-	})
+	})))
 
-	mux.HandleFunc("/employees/batch-status", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/employees/batch-status", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		h.GetAllBatchJobs(w, r)
-	})
+	})))
 
-	mux.HandleFunc("/employees/batch-status/", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/employees/batch-status/", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		h.GetBatchStatus(w, r)
-	})
+	})))
 
 	// Сотрудники
-	mux.HandleFunc("/employees", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/employees", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			h.SearchEmployees(w, r)
@@ -72,10 +75,10 @@ func (h *Handler) Router() http.Handler {
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
-	})
+	})))
 
 	// Обработка /employees/{id}
-	mux.HandleFunc("/employees/", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/employees/", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		path := strings.TrimPrefix(r.URL.Path, "/employees/")
 		
 		// Если путь пустой после /employees/, это значит запрос к /employees/
@@ -102,19 +105,19 @@ func (h *Handler) Router() http.Handler {
 		default:
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		}
-	})
+	})))
 
-	// Swagger UI
+	// Swagger UI (без авторизации)
 	mux.Handle("/swagger/", httpSwagger.WrapHandler)
 
-	// Health check
+	// Health check (без авторизации)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("OK"))
 	})
 
 	// Create employee with phone only
-	mux.HandleFunc("/create-employee", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/create-employee", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
@@ -159,16 +162,16 @@ func (h *Handler) Router() http.Handler {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(employee)
-	})
+	})))
 
 	// Update employee by MAX ID
-	mux.HandleFunc("/employees/update-by-max-id", func(w http.ResponseWriter, r *http.Request) {
+	mux.Handle("/employees/update-by-max-id", authMiddleware(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPut {
 			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 			return
 		}
 		h.UpdateEmployeeByMaxID(w, r)
-	})
+	})))
 
 	// Wrap with CORS middleware (отключен) и request ID middleware
 	return middleware.RequestIDMiddleware(h.logger)(middleware.CORSMiddleware(mux))

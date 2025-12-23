@@ -3,7 +3,7 @@ package grpc
 import (
 	"context"
 
-	maxbotproto "maxbot-service/api/proto"
+	maxbotproto "maxbot-service/api/proto/maxbotproto"
 	"maxbot-service/internal/domain"
 	"maxbot-service/internal/usecase"
 )

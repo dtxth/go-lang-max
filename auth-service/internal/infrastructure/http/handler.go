@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strings"
 )
 
 type Handler struct {
@@ -541,6 +542,57 @@ func (h *Handler) GetBotMe(w http.ResponseWriter, r *http.Request) {
     response := BotInfoResponse{
         Name:    botInfo.Name,
         AddLink: botInfo.AddLink,
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    w.WriteHeader(http.StatusOK)
+    json.NewEncoder(w).Encode(response)
+}
+
+// ValidateTokenResponse represents the response for token validation
+type ValidateTokenResponse struct {
+    UserID int64 `json:"user_id"`
+}
+
+// ValidateToken godoc
+// @Summary      Validate JWT token
+// @Description  Validates JWT token and returns user ID for other services
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        Authorization  header    string  true  "Bearer token"
+// @Success      200            {object}  ValidateTokenResponse  "Token is valid"
+// @Failure      401            {string}  string  "Invalid or expired token"
+// @Router       /validate-token [get]
+func (h *Handler) ValidateToken(w http.ResponseWriter, r *http.Request) {
+    requestID := middleware.GetRequestID(r.Context())
+    
+    // Extract token from Authorization header
+    authHeader := r.Header.Get("Authorization")
+    if authHeader == "" {
+        errors.WriteError(w, errors.UnauthorizedError("missing authorization header"), requestID)
+        return
+    }
+
+    // Check for Bearer token format
+    parts := strings.Split(authHeader, " ")
+    if len(parts) != 2 || parts[0] != "Bearer" {
+        errors.WriteError(w, errors.UnauthorizedError("invalid authorization header format"), requestID)
+        return
+    }
+
+    token := parts[1]
+
+    // Validate token
+    userID, _, _, _, err := h.auth.ValidateTokenWithContext(token)
+    if err != nil {
+        errors.WriteError(w, errors.UnauthorizedError("invalid or expired token"), requestID)
+        return
+    }
+
+    // Return user ID
+    response := ValidateTokenResponse{
+        UserID: userID,
     }
 
     w.Header().Set("Content-Type", "application/json")

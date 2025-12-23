@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package authproto;
+
+option go_package = "./authproto";
+
+// AuthService предоставляет методы для аутентификации и авторизации
+service AuthService {
+  // ValidateToken проверяет валидность токена и возвращает информацию о пользователе
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+}
+
+message ValidateTokenRequest {
+  string token = 1;
+}
+
+message ValidateTokenResponse {
+  bool valid = 1;
+  int64 user_id = 2;
+  string phone = 3;
+  string role = 4;
+  int64 university_id = 5;
+  int64 branch_id = 6;
+  int64 faculty_id = 7;
+  string error = 8;
+  string email = 9; // Опциональный
+}

@@ -12,20 +12,23 @@ import (
 func SetupRoutes(handler *Handler) http.Handler {
 	mux := http.NewServeMux()
 
-	// Migration endpoints
-	mux.HandleFunc("/migration/database", handler.StartDatabaseMigration)
-	mux.HandleFunc("/migration/google-sheets", handler.StartGoogleSheetsMigration)
-	mux.HandleFunc("/migration/excel", handler.StartExcelMigration)
-	mux.HandleFunc("/migration/jobs/", handler.HandleJobsRoute)
-	mux.HandleFunc("/migration/jobs", handler.ListMigrationJobs)
+	// Auth middleware
+	authMiddleware := middleware.AuthMiddleware()
 
-	// Health check
+	// Migration endpoints (с авторизацией)
+	mux.Handle("/migration/database", authMiddleware(http.HandlerFunc(handler.StartDatabaseMigration)))
+	mux.Handle("/migration/google-sheets", authMiddleware(http.HandlerFunc(handler.StartGoogleSheetsMigration)))
+	mux.Handle("/migration/excel", authMiddleware(http.HandlerFunc(handler.StartExcelMigration)))
+	mux.Handle("/migration/jobs/", authMiddleware(http.HandlerFunc(handler.HandleJobsRoute)))
+	mux.Handle("/migration/jobs", authMiddleware(http.HandlerFunc(handler.ListMigrationJobs)))
+
+	// Health check (без авторизации)
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"healthy"}`))
 	})
 
-	// Swagger UI
+	// Swagger UI (без авторизации)
 	mux.HandleFunc("/swagger/", httpSwagger.Handler(
 		httpSwagger.URL("/swagger/doc.json"),
 	))

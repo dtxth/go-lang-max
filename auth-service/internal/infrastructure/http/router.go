@@ -33,6 +33,9 @@ func (h *Handler) Router() http.Handler {
 	// Bot endpoints
 	mux.HandleFunc("/bot/me", h.GetBotMe)
 	
+	// Token validation endpoint for other services
+	mux.HandleFunc("/validate-token", h.ValidateToken)
+	
 	// Swagger UI
     mux.Handle("/swagger/", httpSwagger.WrapHandler)
 

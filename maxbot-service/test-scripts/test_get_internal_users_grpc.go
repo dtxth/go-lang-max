@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	maxbotproto "maxbot-service/api/proto"
+	maxbotproto "maxbot-service/api/proto/maxbotproto"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
