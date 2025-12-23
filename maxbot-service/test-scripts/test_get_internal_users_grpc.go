@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"os"
 	"time"
 
 	maxbotproto "maxbot-service/api/proto"
@@ -12,6 +13,14 @@ import (
 )
 
 func main() {
+	// Check if we should test against real or mock service
+	mockMode := os.Getenv("MOCK_MODE")
+	if mockMode == "" {
+		mockMode = "true" // Default to mock for safety
+	}
+
+	log.Printf("Testing GetInternalUsers gRPC method (MOCK_MODE=%s)...", mockMode)
+
 	// Connect to gRPC server
 	conn, err := grpc.NewClient("localhost:50051", grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
@@ -28,10 +37,10 @@ func main() {
 
 	req := &maxbotproto.GetInternalUsersRequest{
 		PhoneNumbers: []string{
-			"+79991234567", // Should get Петр Петров
-			"+79995678901", // Should get Анна Сидорова
-			"+79999999999", // Should get Мария Иванова (no username)
-			"+79991111111", // Should get Иван Иванов (default)
+			"+79991234567", // Should get Петр Петров (in mock)
+			"+79995678901", // Should get Анна Сидорова (in mock)
+			"+79999999999", // Should get Мария Иванова (in mock, no username)
+			"+79991111111", // Should get Иван Иванов (in mock, default)
 			"invalid",      // Should fail
 		},
 	}
@@ -70,7 +79,16 @@ func main() {
 		}
 	}
 
-	log.Println("✅ GetInternalUsers gRPC test completed successfully!")
+	if mockMode == "true" {
+		log.Println("✅ GetInternalUsers gRPC test completed successfully (MOCK MODE)!")
+		log.Println("   In mock mode, users have detailed information including names.")
+	} else {
+		log.Println("✅ GetInternalUsers gRPC test completed successfully (REAL API MODE)!")
+		log.Println("   In real API mode, response depends on actual MAX API availability.")
+		if len(resp.Users) == 0 && len(resp.FailedPhoneNumbers) > 0 {
+			log.Println("   Note: All phones failed - this might indicate MAX API is unavailable (fallback mode).")
+		}
+	}
 
 	// Test edge cases
 	log.Println("\nTesting edge cases...")
@@ -103,5 +121,30 @@ func main() {
 	log.Printf("- Users count: %d", len(invalidResp.Users))
 	log.Printf("- Failed phones count: %d", len(invalidResp.FailedPhoneNumbers))
 
+	// Test batch size limit (this should work but return an error)
+	log.Println("\nTesting batch size limit (101 phones)...")
+	largeReq := &maxbotproto.GetInternalUsersRequest{
+		PhoneNumbers: make([]string, 101),
+	}
+	for i := 0; i < 101; i++ {
+		largeReq.PhoneNumbers[i] = "+7999123456" + string(rune('0'+i%10))
+	}
+
+	largeResp, err := client.GetInternalUsers(ctx, largeReq)
+	if err != nil {
+		log.Printf("Large batch request failed as expected: %v", err)
+	} else {
+		log.Printf("Large batch request response:")
+		log.Printf("- Users count: %d", len(largeResp.Users))
+		log.Printf("- Failed phones count: %d", len(largeResp.FailedPhoneNumbers))
+		if largeResp.ErrorCode != maxbotproto.ErrorCode_ERROR_CODE_UNSPECIFIED {
+			log.Printf("- Error: %s - %s", largeResp.ErrorCode, largeResp.Error)
+		}
+	}
+
 	log.Println("✅ All gRPC tests completed successfully!")
+	log.Println("\nTo test against real MAX API:")
+	log.Println("1. Set MOCK_MODE=false in environment")
+	log.Println("2. Ensure MAX_BOT_TOKEN is set")
+	log.Println("3. Ensure maxbot-service is running with real API configuration")
 }

@@ -274,6 +274,48 @@ func (m *mockMaxService) GetUserProfileByPhone(phone string) (*domain.UserProfil
 	return nil, domain.ErrMaxIDNotFound
 }
 
+func (m *mockMaxService) GetInternalUsers(phones []string) ([]*domain.InternalUser, []string, error) {
+	users := make([]*domain.InternalUser, 0)
+	failedPhones := make([]string, 0)
+	
+	for i, phone := range phones {
+		if _, ok := m.users[phone]; ok {
+			// Mock user data with variations
+			user := &domain.InternalUser{
+				UserID:        int64(100000000 + i), // Mock user ID
+				PhoneNumber:   phone,
+				IsBot:         false,
+				AvatarURL:     "https://max.ru/avatars/mock_small.jpg",
+				FullAvatarURL: "https://max.ru/avatars/mock_full.jpg",
+			}
+
+			// Vary mock data based on phone number for testing
+			if strings.Contains(phone, "1234") {
+				user.FirstName = "Петр"
+				user.LastName = "Петров"
+				user.Username = "petr_petrov"
+				user.Link = "max.ru/petr_petrov"
+			} else if strings.Contains(phone, "5678") {
+				user.FirstName = "Анна"
+				user.LastName = "Сидорова"
+				user.Username = "anna_sidorova"
+				user.Link = "max.ru/anna_sidorova"
+			} else {
+				user.FirstName = "Иван"
+				user.LastName = "Иванов"
+				user.Username = "ivan_ivanov"
+				user.Link = "max.ru/ivan_ivanov"
+			}
+
+			users = append(users, user)
+		} else {
+			failedPhones = append(failedPhones, phone)
+		}
+	}
+	
+	return users, failedPhones, nil
+}
+
 type mockAuthService struct {
 	nextUserID int64
 }

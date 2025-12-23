@@ -305,6 +305,10 @@ func (m *mockEmployeeServiceWrapper) DeleteEmployee(id int64) error {
 	return nil
 }
 
+func (m *mockEmployeeServiceWrapper) GetEmployeeByMaxID(maxID string) (*domain.Employee, error) {
+	return nil, nil
+}
+
 func (m *mockEmployeeServiceWrapper) CreateEmployeeWithRole(ctx context.Context, phone, firstName, lastName, middleName, inn, kpp, universityName, role, requesterRole string) (*domain.Employee, error) {
 	return nil, nil
 }

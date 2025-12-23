@@ -3,6 +3,7 @@ package max
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"employee-service/internal/domain"
@@ -97,23 +98,72 @@ func (c *MaxClient) BatchGetMaxIDByPhone(phones []string) (map[string]string, er
 }
 
 // GetUserProfileByPhone получает профиль пользователя по номеру телефона
-// Пока MAX API не предоставляет метод получения профиля, используем GetMaxIDByPhone
-// и возвращаем пустые имена
+// Теперь использует GetInternalUsers для получения полной информации
 func (c *MaxClient) GetUserProfileByPhone(phone string) (*domain.UserProfile, error) {
-	// Получаем MAX_id через существующий метод
-	maxID, err := c.GetMaxIDByPhone(phone)
+	// Используем новый метод GetInternalUsers для получения полной информации
+	users, failed, err := c.GetInternalUsers([]string{phone})
 	if err != nil {
 		return nil, err
 	}
 
-	// Возвращаем профиль с MAX_id, но без имен
-	// TODO: Когда MAX API предоставит метод GetUserProfile, заменить на реальный вызов
+	// Если телефон не найден
+	if len(users) == 0 {
+		if len(failed) > 0 {
+			return nil, domain.ErrMaxIDNotFound
+		}
+		return nil, domain.ErrInvalidPhone
+	}
+
+	// Конвертируем InternalUser в UserProfile
+	user := users[0]
 	return &domain.UserProfile{
-		MaxID:     maxID,
-		FirstName: "", // Пустое имя - MAX API пока не предоставляет эту информацию
-		LastName:  "", // Пустая фамилия - MAX API пока не предоставляет эту информацию
-		Phone:     phone,
+		MaxID:     fmt.Sprintf("%d", user.UserID), // Используем UserID как MaxID
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+		Phone:     user.PhoneNumber,
 	}, nil
+}
+
+// GetInternalUsers получает детальную информацию о пользователях по номерам телефонов
+func (c *MaxClient) GetInternalUsers(phones []string) ([]*domain.InternalUser, []string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), c.timeout)
+	defer cancel()
+
+	var resp *maxbotproto.GetInternalUsersResponse
+	err := grpcretry.WithRetry(ctx, "MaxBot.GetInternalUsers", func() error {
+		var callErr error
+		resp, callErr = c.client.GetInternalUsers(ctx, &maxbotproto.GetInternalUsersRequest{
+			PhoneNumbers: phones,
+		})
+		return callErr
+	})
+	
+	if err != nil {
+		return nil, phones, err
+	}
+
+	if resp.Error != "" {
+		return nil, phones, mapError(resp.ErrorCode, resp.Error)
+	}
+
+	// Конвертируем protobuf объекты в domain объекты
+	users := make([]*domain.InternalUser, 0, len(resp.Users))
+	for _, protoUser := range resp.Users {
+		user := &domain.InternalUser{
+			UserID:        protoUser.UserId,
+			FirstName:     protoUser.FirstName,
+			LastName:      protoUser.LastName,
+			IsBot:         protoUser.IsBot,
+			Username:      protoUser.Username,
+			AvatarURL:     protoUser.AvatarUrl,
+			FullAvatarURL: protoUser.FullAvatarUrl,
+			Link:          protoUser.Link,
+			PhoneNumber:   protoUser.PhoneNumber,
+		}
+		users = append(users, user)
+	}
+
+	return users, resp.FailedPhoneNumbers, nil
 }
 
 func mapError(code maxbotproto.ErrorCode, message string) error {

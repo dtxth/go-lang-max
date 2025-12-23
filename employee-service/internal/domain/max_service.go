@@ -12,6 +12,9 @@ type MaxService interface {
 	
 	// GetUserProfileByPhone получает профиль пользователя по номеру телефона
 	GetUserProfileByPhone(phone string) (*UserProfile, error)
+	
+	// GetInternalUsers получает детальную информацию о пользователях по номерам телефонов
+	GetInternalUsers(phones []string) ([]*InternalUser, []string, error)
 }
 
 // UserProfile содержит профиль пользователя MAX Messenger
@@ -20,5 +23,18 @@ type UserProfile struct {
 	FirstName string
 	LastName  string
 	Phone     string
+}
+
+// InternalUser содержит детальную информацию о пользователе из MAX API /internal/users
+type InternalUser struct {
+	UserID        int64
+	FirstName     string
+	LastName      string
+	IsBot         bool
+	Username      string
+	AvatarURL     string
+	FullAvatarURL string
+	Link          string
+	PhoneNumber   string
 }
 

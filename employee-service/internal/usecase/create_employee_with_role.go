@@ -5,6 +5,7 @@ import (
 	"employee-service/internal/domain"
 	"employee-service/internal/utils"
 	"errors"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -79,20 +80,38 @@ func (uc *CreateEmployeeWithRoleUseCase) Execute(
 	}
 
 	// Получаем профиль пользователя по телефону
-	// Это включает MAX_id, first_name и last_name
+	// Используем GetInternalUsers для получения полной информации о именах
 	var maxID string
 	var profileFirstName, profileLastName string
 	
-	profile, err := uc.maxService.GetUserProfileByPhone(phone)
-	if err != nil {
-		// Логируем ошибку, но продолжаем без MAX_id и имен
-		maxID = ""
-		profileFirstName = ""
-		profileLastName = ""
+	// Сначала пытаемся получить полную информацию через GetInternalUsers
+	users, _, err := uc.maxService.GetInternalUsers([]string{phone})
+	if err == nil && len(users) > 0 {
+		// Используем имена из GetInternalUsers, но получаем MaxID через старый метод
+		user := users[0]
+		profileFirstName = user.FirstName
+		profileLastName = user.LastName
+		
+		// Получаем MaxID через старый метод для совместимости
+		profile, profileErr := uc.maxService.GetUserProfileByPhone(phone)
+		if profileErr == nil {
+			maxID = profile.MaxID
+		} else {
+			maxID = fmt.Sprintf("%d", user.UserID) // Fallback к UserID
+		}
 	} else {
-		maxID = profile.MaxID
-		profileFirstName = profile.FirstName
-		profileLastName = profile.LastName
+		// Fallback к старому методу
+		profile, profileErr := uc.maxService.GetUserProfileByPhone(phone)
+		if profileErr != nil {
+			// Логируем ошибку, но продолжаем без MAX_id и имен
+			maxID = ""
+			profileFirstName = ""
+			profileLastName = ""
+		} else {
+			maxID = profile.MaxID
+			profileFirstName = profile.FirstName
+			profileLastName = profile.LastName
+		}
 	}
 
 	// Находим или создаем вуз

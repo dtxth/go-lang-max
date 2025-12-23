@@ -67,6 +67,33 @@ func (m *mockMaxServiceForEmployeeTest) GetUserProfileByPhone(phone string) (*do
 	return profile, nil
 }
 
+func (m *mockMaxServiceForEmployeeTest) GetInternalUsers(phones []string) ([]*domain.InternalUser, []string, error) {
+	if m.shouldFail {
+		return nil, phones, errors.New("MAX API unavailable")
+	}
+	
+	users := make([]*domain.InternalUser, 0)
+	failedPhones := make([]string, 0)
+	
+	for i, phone := range phones {
+		// Mock user data
+		user := &domain.InternalUser{
+			UserID:        int64(100000000 + i),
+			FirstName:     "Test",
+			LastName:      "User",
+			PhoneNumber:   phone,
+			IsBot:         false,
+			Username:      "testuser",
+			AvatarURL:     "https://max.ru/avatars/test_small.jpg",
+			FullAvatarURL: "https://max.ru/avatars/test_full.jpg",
+			Link:          "max.ru/testuser",
+		}
+		users = append(users, user)
+	}
+	
+	return users, failedPhones, nil
+}
+
 // Test: Employee creation triggers MAX_id lookup (Requirements 3.1)
 func TestAddEmployeeByPhone_TriggersMaxIDLookup(t *testing.T) {
 	employeeRepo := newMockEmployeeRepo()

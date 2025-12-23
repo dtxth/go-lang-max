@@ -140,6 +140,32 @@ func (m *mockMaxServiceForBatch) GetUserProfileByPhone(phone string) (*domain.Us
 	return nil, errors.New("not found")
 }
 
+func (m *mockMaxServiceForBatch) GetInternalUsers(phones []string) ([]*domain.InternalUser, []string, error) {
+	users := make([]*domain.InternalUser, 0)
+	failedPhones := make([]string, 0)
+	
+	for i, phone := range phones {
+		if _, ok := m.maxIDs[phone]; ok {
+			user := &domain.InternalUser{
+				UserID:        int64(100000000 + i),
+				FirstName:     "Test",
+				LastName:      "User",
+				PhoneNumber:   phone,
+				IsBot:         false,
+				Username:      "testuser",
+				AvatarURL:     "https://max.ru/avatars/test_small.jpg",
+				FullAvatarURL: "https://max.ru/avatars/test_full.jpg",
+				Link:          "max.ru/testuser",
+			}
+			users = append(users, user)
+		} else {
+			failedPhones = append(failedPhones, phone)
+		}
+	}
+	
+	return users, failedPhones, nil
+}
+
 func TestBatchUpdateMaxId_EmptyDatabase(t *testing.T) {
 	employeeRepo := &mockEmployeeRepoForBatch{
 		employees:         []*domain.Employee{},
