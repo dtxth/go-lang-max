@@ -10,6 +10,7 @@ import (
 	"migration-service/internal/infrastructure/chat"
 	"migration-service/internal/infrastructure/grpc"
 	httpHandler "migration-service/internal/infrastructure/http"
+	"migration-service/internal/infrastructure/logger"
 	"migration-service/internal/infrastructure/migration"
 	"migration-service/internal/infrastructure/repository"
 	"migration-service/internal/usecase"
@@ -106,29 +107,33 @@ func (s *Server) Start() error {
 		nil, // logger
 	)
 
-	// Используем gRPC клиент для администраторов, если доступен, иначе HTTP
-	var chatClientForAdmins interface {
+	// Используем только gRPC клиенты для миграции (без авторизации между сервисами)
+	var chatClientForMigration interface {
 		CreateChat(ctx context.Context, chat *domain.ChatData) (int, error)
 		AddAdministrator(ctx context.Context, admin *domain.AdministratorData) error
 	}
 	if chatGRPCClient != nil {
-		// Создаем композитный клиент: gRPC для администраторов, HTTP для остального
-		log.Println("Using composite client: gRPC for administrators, HTTP for other operations")
-		chatClientForAdmins = &chat.CompositeClient{
+		// Используем только gRPC клиент для всех операций миграции
+		log.Println("Using gRPC client for all chat operations during migration")
+		chatClientForMigration = chatGRPCClient
+	} else {
+		// Fallback to composite client if gRPC is not available
+		log.Println("Warning: gRPC not available, using composite client")
+		chatClientForMigration = &chat.CompositeClient{
 			HTTPClient: chatHTTPClient,
 			GRPCClient: chatGRPCClient,
 		}
-	} else {
-		log.Println("Using HTTP client for all chat operations (gRPC not available)")
-		chatClientForAdmins = chatHTTPClient
 	}
+
+	// Initialize logger
+	migrationLogger := logger.NewDefault()
 
 	excelUseCase := usecase.NewMigrateFromExcelUseCase(
 		jobRepo,
 		errorRepo,
 		structureClient,
-		chatClientForAdmins,
-		nil, // logger
+		chatClientForMigration,
+		migrationLogger,
 	)
 
 	// Initialize HTTP handler

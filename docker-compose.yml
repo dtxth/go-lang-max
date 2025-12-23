@@ -299,6 +299,7 @@ services:
       DB_PASSWORD: ${MIGRATION_DB_PASSWORD:-postgres}
       DB_NAME: ${MIGRATION_DB_NAME:-migration_db}
       DB_SSLMODE: ${DB_SSLMODE:-disable}
+      AUTH_SERVICE_GRPC_ADDR: "${AUTH_GRPC_ADDR:-auth-service:9090}"
       CHAT_SERVICE_URL: ${CHAT_SERVICE_URL:-http://chat-service:8082}
       STRUCTURE_SERVICE_URL: ${STRUCTURE_SERVICE_URL:-http://structure-service:8083}
       GOOGLE_CREDENTIALS_PATH: ${GOOGLE_CREDENTIALS_PATH:-/app/credentials/google-credentials.json}

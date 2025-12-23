@@ -9,6 +9,8 @@ RUN go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 ENV PATH=$PATH:/root/go/bin
 
 # Копируем proto файлы и go.mod из других сервисов сначала
+COPY auth-service/api/proto /app/auth-service/api/proto
+COPY auth-service/go.mod /app/auth-service/go.mod
 COPY chat-service/api/proto /app/chat-service/api/proto
 COPY chat-service/go.mod /app/chat-service/go.mod
 COPY employee-service/api/proto /app/employee-service/api/proto
@@ -18,7 +20,8 @@ COPY employee-service/go.mod /app/employee-service/go.mod
 COPY structure-service/go.mod structure-service/go.sum ./
 
 # Исправляем replace директивы для Docker окружения
-RUN sed -i 's|=> ../chat-service|=> /app/chat-service|g' go.mod && \
+RUN sed -i 's|=> ../auth-service|=> /app/auth-service|g' go.mod && \
+    sed -i 's|=> ../chat-service|=> /app/chat-service|g' go.mod && \
     sed -i 's|=> ../employee-service|=> /app/employee-service|g' go.mod
 
 RUN go mod download
@@ -27,21 +30,15 @@ RUN go mod download
 COPY structure-service/ .
 
 # Снова исправляем replace директивы после копирования
-RUN sed -i 's|=> ../chat-service|=> /app/chat-service|g' go.mod && \
+RUN sed -i 's|=> ../auth-service|=> /app/auth-service|g' go.mod && \
+    sed -i 's|=> ../chat-service|=> /app/chat-service|g' go.mod && \
     sed -i 's|=> ../employee-service|=> /app/employee-service|g' go.mod
 
-# Генерируем proto файлы для всех сервисов
+# Генерируем proto файлы только для structure-service
+# Внешние proto используют предсгенерированные файлы
 RUN protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     api/proto/structure.proto
-
-RUN protoc --proto_path=/app/chat-service --go_out=/app/chat-service --go_opt=paths=source_relative \
-    --go-grpc_out=/app/chat-service --go-grpc_opt=paths=source_relative \
-    api/proto/chat.proto
-
-RUN protoc --proto_path=/app/employee-service --go_out=/app/employee-service --go_opt=paths=source_relative \
-    --go-grpc_out=/app/employee-service --go-grpc_opt=paths=source_relative \
-    api/proto/employee.proto
 
 # Генерируем Swagger документацию
 RUN go run github.com/swaggo/swag/cmd/swag@latest init -g cmd/structure/main.go -o internal/infrastructure/http/docs

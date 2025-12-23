@@ -202,6 +202,12 @@ func (uc *MigrateFromExcelUseCase) processExcelStreaming(ctx context.Context, jo
 
 	// Get sheets and find the "Чаты" sheet
 	sheets := f.GetSheetList()
+	uc.logInfo(ctx, "Retrieved sheet list", map[string]interface{}{
+		"job_id":      jobID,
+		"sheet_count": len(sheets),
+		"sheets":      sheets,
+	})
+	
 	if len(sheets) == 0 {
 		uc.logError(ctx, "No sheets found in Excel file", map[string]interface{}{
 			"job_id": jobID,

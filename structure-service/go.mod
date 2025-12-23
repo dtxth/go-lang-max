@@ -3,6 +3,7 @@ module structure-service
 go 1.24.0
 
 require (
+	auth-service v0.0.0
 	chat-service v0.0.0
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/leanovate/gopter v0.2.11
@@ -16,6 +17,7 @@ require (
 )
 
 replace (
+	auth-service => ../auth-service
 	chat-service => ../chat-service
 	employee-service => ../employee-service
 )

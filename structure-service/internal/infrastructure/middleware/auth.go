@@ -11,7 +11,7 @@ import (
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
-	authpb "structure-service/api/proto/authproto"
+	authpb "auth-service/api/proto"
 )
 
 // UserIDKey is the context key for user ID

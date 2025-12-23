@@ -3,9 +3,10 @@ module migration-service
 go 1.24.0
 
 require (
+	auth-service v0.0.0
 	github.com/golang-migrate/migrate/v4 v4.17.0
 	github.com/lib/pq v1.10.9
-	github.com/stretchr/testify v1.8.4
+	github.com/stretchr/testify v1.11.1
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.6
 	github.com/xuri/excelize/v2 v2.8.1
@@ -13,6 +14,8 @@ require (
 	google.golang.org/grpc v1.66.0
 	google.golang.org/protobuf v1.34.1
 )
+
+replace auth-service => ../auth-service
 
 require (
 	cloud.google.com/go/compute/metadata v0.3.0 // indirect
@@ -53,7 +56,7 @@ require (
 	go.opentelemetry.io/otel/trace v1.24.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/crypto v0.44.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
 	golang.org/x/mod v0.30.0 // indirect
 	golang.org/x/net v0.47.0 // indirect
 	golang.org/x/oauth2 v0.21.0 // indirect

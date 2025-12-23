@@ -6,17 +6,18 @@ import (
 )
 
 // CompositeClient combines HTTP and gRPC clients for Chat Service
-// Uses gRPC for administrator operations (no phone validation) and HTTP for other operations
+// Uses gRPC for all operations during migration
 type CompositeClient struct {
 	HTTPClient *HTTPClient
 	GRPCClient interface {
+		CreateChat(ctx context.Context, chat *domain.ChatData) (int, error)
 		AddAdministrator(ctx context.Context, admin *domain.AdministratorData) error
 	}
 }
 
-// CreateChat uses HTTP client
+// CreateChat uses gRPC client
 func (c *CompositeClient) CreateChat(ctx context.Context, chat *domain.ChatData) (int, error) {
-	return c.HTTPClient.CreateChat(ctx, chat)
+	return c.GRPCClient.CreateChat(ctx, chat)
 }
 
 // AddAdministrator uses gRPC client (without phone validation)
